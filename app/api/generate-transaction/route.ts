@@ -1,0 +1,260 @@
+import { type NextRequest, NextResponse } from "next/server"
+import { writeFile, unlink } from "fs/promises"
+import { join } from "path"
+import { tmpdir } from "os"
+import { randomUUID } from "crypto"
+import { exec } from "child_process"
+import { promisify } from "util"
+import { createClient } from "@supabase/supabase-js"
+
+const execAsync = promisify(exec)
+
+async function extractCertificateInfo(certBuffer: Buffer): Promise<{ vatsk?: string; pokladnica?: string }> {
+  try {
+    const certString = certBuffer.toString("utf8")
+
+    // Extract the base64 content between BEGIN and END CERTIFICATE
+    const pemMatch = certString.match(/-----BEGIN CERTIFICATE-----\s*([\s\S]*?)\s*-----END CERTIFICATE-----/)
+    if (!pemMatch) {
+      return {}
+    }
+
+    const base64Cert = pemMatch[1].replace(/\s/g, "")
+    const derBuffer = Buffer.from(base64Cert, "base64")
+
+    let vatsk: string | undefined
+    let pokladnica: string | undefined
+
+    const flexibleVATSKPatterns = [/O=VATSK-(\d{10})/gi, /O\s*=\s*VATSK-(\d{10})/gi, /VATSK-(\d{10})/gi]
+
+    const flexiblePOKLADNICAPatterns = [
+      /POKLADNICA (\d{17})/gi,
+      /OU=POKLADNICA (\d{17})/gi,
+      /OU\s*=\s*POKLADNICA (\d{17})/gi,
+      /POKLADNICA-(\d{17})/gi,
+    ]
+
+    // Extract VATSK
+    for (const pattern of flexibleVATSKPatterns) {
+      const match = pattern.exec(certString)
+      if (match && match[1] && match[1].length === 10) {
+        vatsk = match[1]
+        break
+      }
+    }
+
+    // Extract POKLADNICA
+    for (const pattern of flexiblePOKLADNICAPatterns) {
+      const match = pattern.exec(certString)
+      if (match && match[1] && match[1].length === 17) {
+        pokladnica = match[1]
+        break
+      }
+    }
+
+    // If not found in PEM string, try to decode the DER data
+    if (!vatsk || !pokladnica) {
+      const hexString = derBuffer.toString("hex")
+      const asciiMatches =
+        hexString
+          .match(/.{2}/g)
+          ?.map((hex) => String.fromCharCode(Number.parseInt(hex, 16)))
+          .join("") || ""
+
+      if (!vatsk) {
+        for (const pattern of flexibleVATSKPatterns) {
+          const match = pattern.exec(asciiMatches)
+          if (match && match[1]) {
+            vatsk = match[1]
+            break
+          }
+        }
+      }
+
+      if (!pokladnica) {
+        for (const pattern of flexiblePOKLADNICAPatterns) {
+          const match = pattern.exec(asciiMatches)
+          if (match && match[1]) {
+            pokladnica = match[1]
+            break
+          }
+        }
+      }
+    }
+
+    console.log(`[v0] ✅ Certificate parsed - VATSK: ${vatsk}, POKLADNICA: ${pokladnica}`)
+    return { vatsk, pokladnica }
+  } catch (error) {
+    console.log(`[v0] ❌ Certificate parsing error:`, error)
+    return {}
+  }
+}
+
+async function saveTransactionGeneration(data: {
+  transaction_id?: string
+  vatsk?: string
+  pokladnica?: string
+  endpoint: string
+  method: string
+  status_code: number
+  duration_ms: number
+  client_ip: string
+  response_timestamp: string
+}) {
+  try {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+    if (!supabaseUrl || !supabaseServiceKey) {
+      console.log("[v0] ❌ Missing Supabase environment variables")
+      return { success: false, error: "Missing database configuration" }
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseServiceKey)
+
+    const { data: result, error } = await supabase.from("transaction_generations").insert([
+      {
+        transaction_id: data.transaction_id,
+        vatsk: data.vatsk,
+        pokladnica: data.pokladnica,
+        endpoint: data.endpoint,
+        method: data.method,
+        status_code: data.status_code,
+        duration_ms: data.duration_ms,
+        client_ip: data.client_ip,
+        response_timestamp: data.response_timestamp,
+      },
+    ])
+
+    if (error) {
+      console.log("[v0] ❌ Database save failed:", error)
+      return { success: false, error: error.message }
+    }
+
+    console.log("[v0] ✅ Transaction generation saved successfully")
+    return { success: true, result }
+  } catch (error) {
+    console.log("[v0] ❌ Database save error:", error)
+    return { success: false, error: error instanceof Error ? error.message : "Unknown error" }
+  }
+}
+
+export async function POST(request: NextRequest) {
+  const sessionId = randomUUID()
+  let tempFiles: string[] = []
+  const startTime = Date.now()
+  const requestTimestamp = new Date().toISOString()
+
+  try {
+    const clientIP = request.headers.get("x-forwarded-for") || request.ip || "unknown"
+    console.log(`[v0] 🚀 Transaction generation started - Session: ${sessionId}, IP: ${clientIP}`)
+
+    const formData = await request.formData()
+    const clientCert = formData.get("clientCert")
+    const clientKey = formData.get("clientKey")
+    const caCert = formData.get("caCert")
+
+    if (!clientCert || !clientKey || !caCert) {
+      console.log(`[v0] ❌ Missing certificate files`)
+      return NextResponse.json({ error: "Missing required certificate files" }, { status: 400 })
+    }
+
+    // Create temporary files
+    const tempDir = tmpdir()
+    const clientCertPath = join(tempDir, `${sessionId}-client.pem`)
+    const clientKeyPath = join(tempDir, `${sessionId}-client.key`)
+    const caCertPath = join(tempDir, `${sessionId}-ca.pem`)
+    tempFiles = [clientCertPath, clientKeyPath, caCertPath]
+
+    const getCertificateBuffer = async (cert: FormDataEntryValue) => {
+      if (cert instanceof File) {
+        return Buffer.from(await cert.arrayBuffer())
+      } else {
+        return Buffer.from(cert as string, "utf8")
+      }
+    }
+
+    const clientCertBuffer = await getCertificateBuffer(clientCert)
+
+    await Promise.all([
+      writeFile(clientCertPath, clientCertBuffer),
+      writeFile(clientKeyPath, await getCertificateBuffer(clientKey)),
+      writeFile(caCertPath, await getCertificateBuffer(caCert)),
+    ])
+
+    // Extract VATSK and POKLADNICA from certificate
+    const { vatsk, pokladnica } = await extractCertificateInfo(clientCertBuffer)
+
+    // Execute API call
+    const curlCommand = `curl -s -S -X POST https://api-erp-i.kverkom.sk/api/v1/generateNewTransactionId --cert "${clientCertPath}" --key "${clientKeyPath}" --cacert "${caCertPath}"`
+    const { stdout, stderr } = await execAsync(curlCommand, { timeout: 30000 })
+
+    if (stderr) {
+      console.log(`[v0] ⚠️ API call warning: ${stderr}`)
+    }
+
+    // Parse response
+    let responseData
+    try {
+      responseData = stdout ? JSON.parse(stdout.trim()) : { message: "Empty response" }
+    } catch {
+      responseData = { rawResponse: stdout.trim() }
+    }
+
+    const responseTimestamp = new Date().toISOString()
+    const duration = Date.now() - startTime
+
+    saveTransactionGeneration({
+      transaction_id: responseData?.transaction_id,
+      vatsk,
+      pokladnica,
+      endpoint: "/api/generate-transaction",
+      method: "POST",
+      status_code: 200,
+      duration_ms: duration,
+      client_ip: clientIP,
+      response_timestamp: responseTimestamp,
+    }).catch((error) => {
+      console.error("[v0] Database save failed (non-blocking):", error)
+    })
+
+    console.log(
+      `[v0] ✅ Transaction generation completed - ID: ${responseData?.transaction_id}, Duration: ${duration}ms`,
+    )
+
+    return NextResponse.json({
+      success: true,
+      data: responseData,
+      clientIP,
+      timestamp: responseTimestamp,
+    })
+  } catch (error) {
+    console.error(`[v0] ❌ Transaction generation failed:`, error)
+
+    const responseTimestamp = new Date().toISOString()
+    const duration = Date.now() - startTime
+
+    saveTransactionGeneration({
+      endpoint: "/api/generate-transaction",
+      method: "POST",
+      status_code: 500,
+      duration_ms: duration,
+      client_ip: request.headers.get("x-forwarded-for") || request.ip || "unknown",
+      response_timestamp: responseTimestamp,
+    }).catch((dbError) => {
+      console.error("[v0] Error database save failed (non-blocking):", dbError)
+    })
+
+    return NextResponse.json(
+      {
+        error: "API call failed",
+        details: error instanceof Error ? error.message : "Unknown error",
+        timestamp: responseTimestamp,
+      },
+      { status: 500 },
+    )
+  } finally {
+    // Cleanup temporary files
+    await Promise.allSettled(tempFiles.map((file) => unlink(file)))
+  }
+}
