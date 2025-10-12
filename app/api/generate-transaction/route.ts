@@ -175,65 +175,22 @@ export async function POST(request: NextRequest) {
     }
 
     const clientCertBuffer = await getCertificateBuffer(clientCert)
-    const clientKeyBuffer = await getCertificateBuffer(clientKey)
-    const caCertBuffer = await getCertificateBuffer(caCert)
-
-    const validatePemContent = (buffer: Buffer, type: string): boolean => {
-      const content = buffer.toString("utf8")
-      if (type === "cert") {
-        return content.includes("-----BEGIN CERTIFICATE-----") && content.includes("-----END CERTIFICATE-----")
-      } else if (type === "key") {
-        return (
-          (content.includes("-----BEGIN PRIVATE KEY-----") && content.includes("-----END PRIVATE KEY-----")) ||
-          (content.includes("-----BEGIN RSA PRIVATE KEY-----") && content.includes("-----END RSA PRIVATE KEY-----"))
-        )
-      } else if (type === "ca") {
-        return content.includes("-----BEGIN CERTIFICATE-----") && content.includes("-----END CERTIFICATE-----")
-      }
-      return false
-    }
-
-    if (!validatePemContent(clientCertBuffer, "cert")) {
-      console.log(`[v0] ❌ Invalid client certificate format`)
-      return NextResponse.json({ error: "Invalid client certificate format" }, { status: 400 })
-    }
-
-    if (!validatePemContent(clientKeyBuffer, "key")) {
-      console.log(`[v0] ❌ Invalid client key format`)
-      return NextResponse.json({ error: "Invalid client key format" }, { status: 400 })
-    }
-
-    if (!validatePemContent(caCertBuffer, "ca")) {
-      console.log(`[v0] ❌ Invalid CA certificate format`)
-      return NextResponse.json({ error: "Invalid CA certificate format" }, { status: 400 })
-    }
-
-    const normalizeLineEndings = (buffer: Buffer): Buffer => {
-      return Buffer.from(buffer.toString("utf8").replace(/\r\n/g, "\n"))
-    }
 
     await Promise.all([
-      writeFile(clientCertPath, normalizeLineEndings(clientCertBuffer), { mode: 0o600 }),
-      writeFile(clientKeyPath, normalizeLineEndings(clientKeyBuffer), { mode: 0o600 }),
-      writeFile(caCertPath, normalizeLineEndings(caCertBuffer), { mode: 0o600 }),
+      writeFile(clientCertPath, clientCertBuffer),
+      writeFile(clientKeyPath, await getCertificateBuffer(clientKey)),
+      writeFile(caCertPath, await getCertificateBuffer(caCert)),
     ])
-
-    console.log(`[v0] ✅ Certificate files written successfully`)
 
     // Extract VATSK and POKLADNICA from certificate
     const { vatsk, pokladnica } = await extractCertificateInfo(clientCertBuffer)
 
     // Execute API call
     const curlCommand = `curl -s -S -X POST https://api-erp-i.kverkom.sk/api/v1/generateNewTransactionId --cert "${clientCertPath}" --key "${clientKeyPath}" --cacert "${caCertPath}"`
-
-    console.log(`[v0] 🔄 Executing API call...`)
     const { stdout, stderr } = await execAsync(curlCommand, { timeout: 30000 })
 
     if (stderr) {
-      console.log(`[v0] ⚠️ API call stderr: ${stderr}`)
-      if (stderr.includes("curl:")) {
-        throw new Error(stderr)
-      }
+      console.log(`[v0] ⚠️ API call warning: ${stderr}`)
     }
 
     // Parse response
