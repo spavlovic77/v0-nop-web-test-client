@@ -3,7 +3,7 @@
 import React from "react"
 import type { FunctionComponent } from "react"
 import { Copy, XCircle } from "lucide-react" // Import Copy icon
-import { Euro, LogOut, Printer, Calendar } from "lucide-react" // Import Euro, Printer, Calendar icons
+import { Euro, LogOut, Printer, Calendar, Github } from "lucide-react" // Import Euro, Printer, Calendar icons, ADDED Github icon
 
 import { useState, useEffect, useCallback, useRef } from "react"
 import { Button } from "@/components/ui/button"
@@ -60,24 +60,20 @@ d3cuZGlnaWNlcnQuY29tMR8wHQYDVQQDExZHZW9UcnVzdCBUTFMgUlNBIENBIEcx
 MB4XDTI1MDgwNTAwMDAwMFoXDTI2MDgwNDIzNTk1OVowgYExCzAJBgNVBAYTAlNL
 MRkwFwYDVQQHDBBCYW5za8OhIEJ5c3RyaWNhMTYwNAYDVQQKDC1GaW5hbsSNbsOp
 IHJpYWRpdGXEvHN0dm8gU2xvdmVuc2tlaiByZXB1Ymxpa3kxHzAdBgNVBAMTFmFw
-aS1iYW5rYS1pLmt2ZXJrb20uc2swggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEK
+aS1iYW5rYS1pLmt2ZXJrb20uc2swggEiMA0GqGSIb3DQEBAQUAA4IBDwAwggEK
 AoIBAQCyZEsLS5QBSoporFEs/Ai95eRX+5+Fw+Gknd77BKRiJCu7GIset9e4lZTc
 vragFlRV0xEXj9MX8QXsgChuAD5qWxqhrrkCsRNH2u3QTQMNjGtE2tSKpl9l3XdK
 cVcJ+pqvalo+1JVAzRFFjJJno02WgBfGvp9CXd/8fd4D7/mgW8f9Uy8BhxRjBuMB
 E4c2WzJVW5ycwaafBYeR6hwoyNxfUCQ23IVNuF6+fn2nB90FBFhU78QFhTj6BT8Y
 dQ3Q6zm7sI0yXwdAp5/ZGKV590Q073wOxdh4PuQSPo8E/F3jn37761MnJrIcF3z+
-L8icdP5Tj/AVKfNmOx3rswbxriCJAgMBAAGjggNIMIIDRDAfBgNVHSMEGDAWgBSU
-T9Rdi+Sk4qaA/v3Y+QDvo74CVzAdBgNVHQ4EFgQUQnBHRuo8MCE0vmA9poBNOES2
-G74wSgYDVR0RBEMwQYIWYXBpLWJhbmthLWkua3ZlcmtvbS5za4IUYXBpLWVycC1p
-Lmt2ZXJrb20uc2uCEW1xdHQtaS5rdmVya29tLnNrMD4GA1UdIAQ3MDUwMwYGZ4EM
-AQICMCkwJwYIKwYBBQUHAgEWG2h0dHA6Ly93d3cuZGlnaWNlcnQuY29tL0NQUzAO
-BgNVHQ8BAf8EBAMCBaAwHQYDVR0lBBYwFAYIKwYBBQUHAwEGCCsGAQUFBwMCMD8G
+L8icdP5Tj/AVKfNmOx3rswbxriCJAgMBAAGjggNIMIIDRDAfBgNVHQ8BAf8EBAMC
+BaAwHQYDVR0lBBYwFAYIKwYBBQUHAwEGCCsGAQUFBwMCMD8G
 A1UdHwQ4MDYwNKAyoDCGLmh0dHA6Ly9jZHAuZ2VvdHJ1c3QuY29tL0dlb1RydXN0
 VExTUlNBQ0FHMS5jcmwwdgYIKwYBBQUHAQEEajBoMCYGCCsGAQUFBzABhhpodHRw
 Oi8vc3RhdHVzLmdlb3RydXN0LmNvbTA+BggrBgEFBQcwAoYyaHR0cDovL2NhY2Vy
 dHMuZ2VvdHJ1c3QuY29tL0dlb1RydXN0VExTUlNBQ0FHMS5jcnQwDAYDVR0TAQH/
 BAIwADCCAX4GCisGAQQB1nkCBAIEggFuBIIBagFoAHUA1219ENGn9XfCx+lf1wC/
-+YLJM1pl4dCzAXMXwMjFaXcAAAGYeRNtNAAABAMARjBEAiAiuXz6EYiA1JmlwRyD
++YLJM1pl4dCzAXMXwMjFaXcAAAGYeRNtNAAABAMARjBEAiAiuX6EYiA1JmlwRyDP
 pik9U0hTP/2x5IlOMJtGsHw0aQIgauYi79hye7ZZCLQdFw5x7lX2v9UQNpp/Yc6+
 3h4/lLsAdgDCMX5XRRmjRe5/ON6ykEHrx8IhWiK/f9W1rXaa2Q5SzQAAAZh5E21z
 AAAEAwBHMEUCIBPYgzw54o8ME4imD0OvNGQqk2MZVuWsQVaM7kEUqQfNAiEAju//
@@ -1325,6 +1321,17 @@ const Home: FunctionComponent = () => {
                         >
                           Získaj autentifikačné údaje
                         </Button>
+                        <div className="mt-3 text-center">
+                          <a
+                            href="https://github.com/spavlovic77/v0-nop-web-test-client"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-700 transition-colors"
+                          >
+                            <Github className="h-3.5 w-3.5" />
+                            <span>Vibecoded in Vercel VO</span>
+                          </a>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
