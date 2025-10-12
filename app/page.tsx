@@ -56,11 +56,11 @@ class ErrorBoundary extends React.Component<
 const EMBEDDED_CA_BUNDLE = `-----BEGIN CERTIFICATE-----
 MIIGtjCCBZ6gAwIBAgIQD5vKo3PlurovWKWm0kLBHzANBgkqhkiG9w0BAQsFADBg
 MQswCQYDVQQGEwJVUzEVMBMGA1UEChMMRGlnaUNlcnQgSW5jMRkwFwYDVQQLExB3
-d3cuZGlnaWNlcnQuY29tMR8wHQYDVQQDExZHZW9UcnVzdCBUTFMgUlNBIENBIEcx
+d3cuZGlnaWNlcnQuY29tMR8wHQYDVQQDExdHZW9UcnVzdCBUTFMgUlNBIENBIEcx
 MB4XDTI1MDgwNTAwMDAwMFoXDTI2MDgwNDIzNTk1OVowgYExCzAJBgNVBAYTAlNL
 MRkwFwYDVQQHDBBCYW5za8OhIEJ5c3RyaWNhMTYwNAYDVQQKDC1GaW5hbsSNbsOp
 IHJpYWRpdGXEvHN0dm8gU2xvdmVuc2tlaiByZXB1Ymxpa3kxHzAdBgNVBAMTFmFw
-aS1iYW5rYS1pLmt2ZXJrb20uc2swggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEK
+aS1iYW5rYS1pLmt2ZXJrb20uc2swggEiMA0GqGSIb3DQEBAQUAA4IBDwAwggEK
 AoIBAQCyZEsLS5QBSoporFEs/Ai95eRX+5+Fw+Gknd77BKRiJCu7GIset9e4lZTc
 vragFlRV0xEXj9MX8QXsgChuAD5qWxqhrrkCsRNH2u3QTQMNjGtE2tSKpl9l3XdK
 cVcJ+pqvalo+1JVAzRFFjJJno02WgBfGvp9CXd/8fd4D7/mgW8f9Uy8BhxRjBuMB
@@ -1034,6 +1034,7 @@ const Home: FunctionComponent = () => {
       const { data, error } = await supabase
         .from("mqtt_notifications")
         .select("payload_received_at, end_to_end_id, amount")
+        .eq("pokladnica", certificateInfo.pokladnica)
         .gte("payload_received_at", startDate)
         .lte("payload_received_at", endDate)
         .order("payload_received_at", { ascending: false })
