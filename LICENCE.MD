@@ -47,4 +47,4 @@ Používate na vlastné riziko.
 Kontakt
 Pre otázky týkajúce sa licencie alebo softvéru kontaktujte autora prostredníctvom GitHub repozitára: https://github.com/spavlovic77/v0-nop-web-test-client
 
-Posledná aktualizácia: 10. december 2025
+Posledná aktualizácia: 10. október 2025
