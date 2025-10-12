@@ -36,17 +36,21 @@ async function saveMqttNotificationToDatabase(
 }> {
   try {
     console.log("[v0] 💾 Starting database save operation...")
+    console.log("[v0] 📝 Topic:", topic)
+    console.log("[v0] 📝 Message:", messageStr)
 
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
     if (!supabaseUrl || !supabaseKey) {
-      console.log("[v0] ❌ Missing Supabase environment variables")
+      console.error("[v0] ❌ Missing Supabase environment variables!")
+      console.error("[v0] NEXT_PUBLIC_SUPABASE_URL:", supabaseUrl ? "present" : "MISSING")
+      console.error("[v0] SUPABASE_SERVICE_ROLE_KEY:", supabaseKey ? "present" : "MISSING")
       return { success: false, error: "Missing Supabase configuration" }
     }
 
     const supabase = createClient(supabaseUrl, supabaseKey)
-    console.log("[v0] ✅ Supabase client created with direct initialization")
+    console.log("[v0] ✅ Supabase client created with service role key")
 
     // Parse topic: VATSK-1029867938/POKLADNICA-88812345604850001/QR-f806d06f8bb64d6fa57b4dc25a9d6410
     const topicParts = topic.split("/")
@@ -89,7 +93,7 @@ async function saveMqttNotificationToDatabase(
       end_to_end_id = parsedPayload.endToEndId
       payload_received_at = parsedPayload.receivedAt
     } catch (parseError) {
-      console.log("[v0] ⚠️ Could not parse JSON payload:", parseError)
+      console.warn("[v0] ⚠️ Could not parse JSON payload, saving as raw text:", parseError)
     }
 
     // Prepare data for database insert
@@ -107,20 +111,26 @@ async function saveMqttNotificationToDatabase(
       payload_received_at,
     }
 
-    console.log("[v0] 💾 Inserting data:", insertData)
+    console.log("[v0] 💾 Attempting to insert data into mqtt_notifications table...")
+    console.log("[v0] 📋 Insert data:", JSON.stringify(insertData, null, 2))
 
-    // Insert into database
     const { data, error } = await supabase.from("mqtt_notifications").insert(insertData).select()
 
     if (error) {
-      console.log("[v0] ❌ Database insert failed:", error)
+      console.error("[v0] ❌ Database insert failed!")
+      console.error("[v0] Error code:", error.code)
+      console.error("[v0] Error message:", error.message)
+      console.error("[v0] Error details:", JSON.stringify(error, null, 2))
       return { success: false, error }
     }
 
-    console.log("[v0] ✅ Database insert successful:", data)
+    console.log("[v0] ✅ Database insert successful!")
+    console.log("[v0] 📊 Inserted data:", JSON.stringify(data, null, 2))
     return { success: true, data }
   } catch (error) {
-    console.log("[v0] ❌ Database save exception:", error)
+    console.error("[v0] ❌ Database save exception!")
+    console.error("[v0] Exception:", error)
+    console.error("[v0] Stack trace:", error instanceof Error ? error.stack : "No stack trace")
     return { success: false, error }
   }
 }
@@ -136,6 +146,9 @@ async function saveMqttSubscriptionToDatabase(
 }> {
   try {
     console.log("[v0] 💾 Starting subscription database save operation...")
+    console.log("[v0] 📝 Topic:", topic)
+    console.log("[v0] 📝 QoS:", qos)
+    console.log("[v0] 📝 Granted At:", grantedAt)
 
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -177,7 +190,8 @@ async function saveMqttSubscriptionToDatabase(
       qos,
     }
 
-    console.log("[v0] 💾 Inserting subscription data:", insertData)
+    console.log("[v0] 💾 Attempting to insert subscription data into mqtt_subscriptions table...")
+    console.log("[v0] 📋 Insert data:", JSON.stringify(insertData, null, 2))
 
     // Insert into database
     const { data, error } = await supabase.from("mqtt_subscriptions").insert(insertData).select()
@@ -342,27 +356,29 @@ export async function POST(request: NextRequest) {
         communicationLog.push(`[${timestamp}] 💬 Message content: ${messageStr}`)
         communicationLog.push(`[${timestamp}] 📊 Total messages collected: ${messages.length}`)
 
-        console.log("[v0] 🔄 Calling database save function...")
-        saveMqttNotificationToDatabase(topic, messageStr)
-          .then((dbResult) => {
-            if (dbResult.success) {
-              console.log("[v0] ✅ Database save successful!")
-              communicationLog.push(`[${timestamp}] ✅ MQTT notification saved to database`)
-            } else {
-              console.log("[v0] ❌ Database save failed:", dbResult.error)
-              communicationLog.push(
-                `[${timestamp}] ❌ Database save failed: ${dbResult.error?.message || "Unknown error"}`,
-              )
-            }
-          })
-          .catch((error) => {
-            console.error("[v0] MQTT notification database save failed (non-blocking):", error)
-            communicationLog.push(
-              `[${timestamp}] ❌ MQTT notification database save failed (non-blocking): ${error.message}`,
-            )
-          })
+        console.log("[v0] 🔄 Saving MQTT notification to database...")
+        try {
+          const dbResult = await saveMqttNotificationToDatabase(topic, messageStr)
 
-        communicationLog.push(`[${timestamp}] 🎉 Message received - returning immediately`)
+          if (dbResult.success) {
+            console.log("[v0] ✅ MQTT notification successfully saved to database!")
+            communicationLog.push(`[${timestamp}] ✅ MQTT notification saved to database`)
+          } else {
+            console.error("[v0] ❌ Failed to save MQTT notification to database!")
+            console.error("[v0] Error:", dbResult.error)
+            communicationLog.push(
+              `[${timestamp}] ❌ Database save failed: ${dbResult.error?.message || JSON.stringify(dbResult.error)}`,
+            )
+          }
+        } catch (error) {
+          console.error("[v0] ❌ Exception while saving MQTT notification to database!")
+          console.error("[v0] Exception:", error)
+          communicationLog.push(
+            `[${timestamp}] ❌ Database save exception: ${error instanceof Error ? error.message : "Unknown error"}`,
+          )
+        }
+
+        communicationLog.push(`[${timestamp}] 🎉 Message processed - returning response`)
 
         cleanup().then(() => {
           resolve(
