@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Download, FileText, Info, Copy, Check, ArrowLeft } from "lucide-react"
+import { Download, FileText, Info, Copy, Check, ArrowLeft, Github } from "lucide-react"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 
@@ -60,10 +60,12 @@ export default function DownloadPage() {
                 <div className="flex items-start gap-2 sm:gap-3">
                   <Info className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600 mt-0.5 flex-shrink-0" />
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-medium text-blue-900 mb-2 text-sm sm:text-base">XML súbor a heslo do testovacieho prostredia aplikácie</h3>
+                    <h3 className="font-medium text-blue-900 mb-2 text-sm sm:text-base">
+                      XML súbor a heslo do testovacieho prostredia aplikácie
+                    </h3>
                     <p className="text-xs sm:text-sm text-blue-800 mb-4 leading-relaxed">
-                      Tento súbor obsahuje autentifikačné údaje vo formáte XML, ktoré môžete použiť na
-                      prihlásenia sa do testovacieho prostredia aplikácie. 
+                      Tento súbor obsahuje autentifikačné údaje vo formáte XML, ktoré môžete použiť na prihlásenia sa do
+                      testovacieho prostredia aplikácie.
                     </p>
 
                     <div className="bg-white rounded border border-blue-200 p-2 sm:p-3 mb-4">
@@ -112,6 +114,18 @@ export default function DownloadPage() {
                         <ArrowLeft className="h-4 w-4 mr-2" />
                         Späť na prihlásenie
                       </Button>
+                    </div>
+
+                    <div className="text-center pt-4 mt-4 border-t border-gray-200">
+                      <a
+                        href="https://github.com/spavlovic77/v0-nop-web-test-client"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 text-xs text-gray-500 hover:text-gray-700 transition-colors"
+                      >
+                        <Github className="h-3 w-3" />
+                        <span>Vibecoded in Vercel V0</span>
+                      </a>
                     </div>
                   </div>
                 </div>

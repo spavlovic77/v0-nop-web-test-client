@@ -2,7 +2,7 @@
 
 import React from "react"
 import type { FunctionComponent } from "react"
-import { Copy, XCircle, Github } from "lucide-react" // Import Copy, Github icons
+import { Copy, XCircle } from "lucide-react" // Import Copy icon
 import { Euro, LogOut, Printer, Calendar } from "lucide-react" // Import Euro, Printer, Calendar icons
 
 import { useState, useEffect, useCallback, useRef } from "react"
@@ -60,13 +60,13 @@ d3cuZGlnaWNlcnQuY29tMR8wHQYDVQQDExZHZW9UcnVzdCBUTFMgUlNBIENBIEcx
 MB4XDTI1MDgwNTAwMDAwMFoXDTI2MDgwNDIzNTk1OVowgYExCzAJBgNVBAYTAlNL
 MRkwFwYDVQQHDBBCYW5za8OhIEJ5c3RyaWNhMTYwNAYDVQQKDC1GaW5hbsSNbsOp
 IHJpYWRpdGXEvHN0dm8gU2xvdmVuc2tlaiByZXB1Ymxpa3kxHzAdBgNVBAMTFmFw
-aS1iYW5rYS1pLmt2ZXJrb20uc2swggEiMA0GqGSIb3DQEBAQUAA4IBDwAwggEK
+aS1iYW5rYS1pLmt2ZXJrb20uc2swggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEK
 AoIBAQCyZEsLS5QBSoporFEs/Ai95eRX+5+Fw+Gknd77BKRiJCu7GIset9e4lZTc
 vragFlRV0xEXj9MX8QXsgChuAD5qWxqhrrkCsRNH2u3QTQMNjGtE2tSKpl9l3XdK
 cVcJ+pqvalo+1JVAzRFFjJJno02WgBfGvp9CXd/8fd4D7/mgW8f9Uy8BhxRjBuMB
 E4c2WzJVW5ycwaafBYeR6hwoyNxfUCQ23IVNuF6+fn2nB90FBFhU78QFhTj6BT8Y
 dQ3Q6zm7sI0yXwdAp5/ZGKV590Q073wOxdh4PuQSPo8E/F3jn37761MnJrIcF3z+
-L8icdP5Tj/AVKfNmOx3rswbxriCJAgMBAAGjggNIMIIDRDAfBgNVHQMEGDAWgBSU
+L8icdP5Tj/AVKfNmOx3rswbxriCJAgMBAAGjggNIMIIDRDAfBgNVHSMEGDAWgBSU
 T9Rdi+Sk4qaA/v3Y+QDvo74CVzAdBgNVHQ4EFgQUQnBHRuo8MCE0vmA9poBNOES2
 G74wSgYDVR0RBEMwQYIWYXBpLWJhbmthLWkua3ZlcmtvbS5za4IUYXBpLWVycC1p
 Lmt2ZXJrb20uc2uCEW1xdHQtaS5rdmVya29tLnNrMD4GA1UdIAQ3MDUwMwYGZ4EM
@@ -77,7 +77,7 @@ VExTUlNBQ0FHMS5jcmwwdgYIKwYBBQUHAQEEajBoMCYGCCsGAQUFBzABhhpodHRw
 Oi8vc3RhdHVzLmdlb3RydXN0LmNvbTA+BggrBgEFBQcwAoYyaHR0cDovL2NhY2Vy
 dHMuZ2VvdHJ1c3QuY29tL0dlb1RydXN0VExTUlNBQ0FHMS5jcnQwDAYDVR0TAQH/
 BAIwADCCAX4GCisGAQQB1nkCBAIEggFuBIIBagFoAHUA1219ENGn9XfCx+lf1wC/
-+YLJM1pl4dCzAXMXwMjFaXcAAAGYeRNtNAAABAMARjBEAiAiuX6EYiA1JmlwRyD
++YLJM1pl4dCzAXMXwMjFaXcAAAGYeRNtNAAABAMARjBEAiAiuXz6EYiA1JmlwRyD
 pik9U0hTP/2x5IlOMJtGsHw0aQIgauYi79hye7ZZCLQdFw5x7lX2v9UQNpp/Yc6+
 3h4/lLsAdgDCMX5XRRmjRe5/ON6ykEHrx8IhWiK/f9W1rXaa2Q5SzQAAAZh5E21z
 AAAEAwBHMEUCIBPYgzw54o8ME4imD0OvNGQqk2MZVuWsQVaM7kEUqQfNAiEAju//
@@ -104,13 +104,13 @@ b20xIDAeBgNVBAMTF0RpZ2lDZXJ0IEdsb2JhbCBSb290IEcyMIIBIjANBgkqhkiG
 q2EGnI/yuum06ZIya7XzV+hdG82MHauVBJVJ8zUtluNJbd134/tJS7SsVQepj5Wz
 tCO7TG1F8PapspUwtP1MVYwnSlcUfIKdzXOS0xZKBgyMUNGPHgm+F6HmIcr9g+UQ
 vIOlCsRnKPZzFBQ9RnbDhxSJITRNrw9FDKZJobq7nMWxM4MphQIDAQABo0IwQDAP
-BgNVHQMBAf8EBTADAQH/MA4GA1UdDwEB/wQEAwIBhjAdBgNVHQ4EFgQUTiJUIBiV
+BgNVHRMBAf8EBTADAQH/MA4GA1UdDwEB/wQEAwIBhjAdBgNVHQ4EFgQUTiJUIBiV
 5uNu5g/6+rkS7QYXjzkwDQYJKoZIhvcNAQELBQADggEBAGBnKJRvDkhj6zHd6mcY
 1Yl9PMWLSn/pvtsrF9+wX3N3KjITOYFnQoQj8kVnNeyIv/iPsGEMNKSuIEyExtv4
-NeF22d+mQrvHRAiFzZ0JFrabA0FwtW98kndth/Jsw1HKj2ZL7tcu7XUIOGZX1NG
+NeF22d+mQrvHRAiGfzZ0JFrabA0UWTW98kndth/Jsw1HKj2ZL7tcu7XUIOGZX1NG
 Fdtom/DzMNU+MeKNhJ7jitralj41E6Vf8PlwUHBHQRFXGU7Aj64GxJUTFy8bJZ91
 8rGOmaFvE7FBcf6IKshPECBV1/MUReXgRPTqh5Uykw7+U0b6LJ3/iyK5S9kJRaTe
-pLiaWN0bfVKfjllDiIGknibVb63dDcY3fe0Dkhvld1927jyNxF1WW6zNTfl
+pLiaWN0bfVKfjllDiIGknibVb63dDcY3fe0Dkhvld1927jyNxF1WW6LZZm6zNTfl
 MrY=
 -----END CERTIFICATE-----`
 
@@ -1326,18 +1326,6 @@ const Home: FunctionComponent = () => {
                         >
                           Získaj autentifikačné údaje
                         </Button>
-
-                        <div className="mt-4 text-center">
-                          <a
-                            href="https://github.com/spavlovic77/v0-nop-web-test-client"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-2 text-xs text-gray-500 hover:text-gray-700 transition-colors"
-                          >
-                            <Github className="h-3 w-3" />
-                            <span>Vibecoded in Vercel VO</span>
-                          </a>
-                        </div>
                       </div>
                     </CardContent>
                   </Card>
@@ -1805,11 +1793,6 @@ const Home: FunctionComponent = () => {
                   >
                     <Terminal className="h-5 w-5" />
                   </Button>
-
-                  {/* Github icon link */}
-                  <a href="https://github.com/your-username/your-repo" target="_blank" rel="noopener noreferrer">
-                    <Github className="h-5 w-5 text-gray-600 hover:text-gray-800" />
-                  </a>
 
                   {/* Refresh button */}
                   <Button
