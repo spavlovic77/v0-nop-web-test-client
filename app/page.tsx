@@ -85,7 +85,7 @@ tf4YqaAgCXa1Mrl/Wz6qFlgujIz4rXqy6b1zTlqlmpmT/9wXUM6wJ/UerRosFvyw
 +KJzi8wFKRdktIe6YckdR5OqScNOpb3WJe6sySCMh9CcdEB/RgvJdfr2iHttPllM
 txckPbRer3T1YsGusZVO3PljQwJdSB+mblUXwBlYVIFtPeEwlSdPSMxfBaRRGaW4
 Jm2Nt5ymR8y6DfkqPAhbNw0EIVa+MMphsV5vWCRwZd1KyHoBWN8fQkkZixj3Onpl
-CeQY+5U8ixbAl71NxbGEWhXudbAf+Alu3ic251/AX/u2ridRKKdX67/8
+CeQY+5U8ixbAl71NxbGEWhXudbAf+Aluic251/AX/u2ridRKKdX67/8
 -----END CERTIFICATE-----
 -----BEGIN CERTIFICATE-----
 MIIDjjCCAnagAwIBAgIQAzrx5qcRqaC7KGSxHQn65TANBgkqhkiG9w0BAQsFADBh
@@ -1030,6 +1030,7 @@ const Home: FunctionComponent = () => {
       const { data, error } = await supabase
         .from("mqtt_notifications")
         .select("payload_received_at, end_to_end_id, amount")
+        .eq("pokladnica", certificateInfo.pokladnica) // Only get transactions for this POKLADNICA
         .gte("payload_received_at", startDate)
         .lte("payload_received_at", endDate)
         .order("payload_received_at", { ascending: false })

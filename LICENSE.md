@@ -62,4 +62,4 @@ https://github.com/spavlovic77/v0-nop-web-test-client
 
 ---
 
-*Posledná aktualizácia: 10. december 2025*
+*Posledná aktualizácia: 12.10 2025*
