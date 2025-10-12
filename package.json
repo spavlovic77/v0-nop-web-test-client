@@ -35,7 +35,6 @@
     "react-dom": "^19",
     "tailwind-merge": "^2.5.5",
     "tailwindcss-animate": "^1.0.7",
-    "tw-animate-css": "latest",
     "util": "latest",
     "uuid": "11.1.0"
   },
