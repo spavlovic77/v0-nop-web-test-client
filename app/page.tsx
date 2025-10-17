@@ -108,9 +108,9 @@ BgNVHRMBAf8EBTADAQH/MA4GA1UdDwEB/wQEAwIBhjAdBgNVHQ4EFgQUTiJUIBiV
 5uNu5g/6+rkS7QYXjzkwDQYJKoZIhvcNAQELBQADggEBAGBnKJRvDkhj6zHd6mcY
 1Yl9PMWLSn/pvtsrF9+wX3N3KjITOYFnQoQj8kVnNeyIv/iPsGEMNKSuIEyExtv4
 NeF22d+mQrvHRAiGfzZ0JFrabA0UWTW98kndth/Jsw1HKj2ZL7tcu7XUIOGZX1NG
-Fdtom/DzMNU+MeKNhJ7jitralj41E6Vf8PlwUHBHQRFXGU7Aj64GxJUTFy8bJZ91
+Fdtom/DzMNU+MeKNhJ7jitralj41E6Vf8PlwUHBHQRFUJG0Aj64GxJUTFy8bJZ91
 8rGOmaFvE7FBcf6IKshPECBV1/MUReXgRPTqh5Uykw7+U0b6LJ3/iyK5S9kJRaTe
-pLiaWN0bfVKfjllDiIGknibVb63dDcY3fe0Dkhvld1927jyNxF1WW6LZZm6zNTfl
+pLiaWN0bfVKfjllDiIGknibVb63dDcY3fe0Dkhvld1927jyNxF1WW6zNTfl
 MrY=
 -----END CERTIFICATE-----`
 
@@ -652,8 +652,14 @@ const Home: FunctionComponent = () => {
         console.log("[v0] Starting QR generation process...")
 
         const formData = new FormData()
-        formData.append("clientCert", files.convertedCertPem)
-        formData.append("clientKey", files.convertedKeyPem)
+        const clientCertBlob = new Blob([files.convertedCertPem], { type: "application/x-pem-file" })
+        const clientCertFile = new File([clientCertBlob], "client-cert.pem", { type: "application/x-pem-file" })
+
+        const clientKeyBlob = new Blob([files.convertedKeyPem], { type: "application/x-pem-file" })
+        const clientKeyFile = new File([clientKeyBlob], "client-key.pem", { type: "application/x-pem-file" })
+
+        formData.append("clientCert", clientCertFile)
+        formData.append("clientKey", clientKeyFile)
         formData.append("caCert", files.caCert!)
         formData.append("certificateSecret", files.xmlPassword!)
 
@@ -775,8 +781,14 @@ const Home: FunctionComponent = () => {
 
       const formData = new FormData()
       if (files.convertedCertPem && files.convertedKeyPem) {
-        formData.append("clientCert", files.convertedCertPem)
-        formData.append("clientKey", files.convertedKeyPem)
+        const clientCertBlob = new Blob([files.convertedCertPem], { type: "application/x-pem-file" })
+        const clientCertFile = new File([clientCertBlob], "client-cert.pem", { type: "application/x-pem-file" })
+
+        const clientKeyBlob = new Blob([files.convertedKeyPem], { type: "application/x-pem-file" })
+        const clientKeyFile = new File([clientKeyBlob], "client-key.pem", { type: "application/x-pem-file" })
+
+        formData.append("clientCert", clientCertFile)
+        formData.append("clientKey", clientKeyFile)
       } else {
         throw new Error("Certificate files not properly converted")
       }
