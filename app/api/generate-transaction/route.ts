@@ -9,6 +9,45 @@ import { createClient } from "@supabase/supabase-js"
 
 const execAsync = promisify(exec)
 
+function validateAndNormalizePEM(pemContent: string, type: string): string {
+  // Normalize line endings to Unix format
+  const normalized = pemContent.replace(/\r\n/g, "\n").replace(/\r/g, "\n")
+
+  // Validate PEM format based on type
+  let beginMarker: string
+  let endMarker: string
+
+  if (type === "certificate" || type === "ca") {
+    beginMarker = "-----BEGIN CERTIFICATE-----"
+    endMarker = "-----END CERTIFICATE-----"
+  } else if (type === "key") {
+    beginMarker = "-----BEGIN"
+    endMarker = "-----END"
+  } else {
+    throw new Error(`Unknown PEM type: ${type}`)
+  }
+
+  // Check if PEM markers exist
+  if (!normalized.includes(beginMarker)) {
+    throw new Error(`Invalid ${type} PEM format: missing BEGIN marker`)
+  }
+
+  if (!normalized.includes(endMarker)) {
+    throw new Error(`Invalid ${type} PEM format: missing END marker`)
+  }
+
+  // Remove any extra whitespace at start/end
+  return normalized.trim()
+}
+
+async function getCertificateBuffer(cert: FormDataEntryValue): Promise<Buffer> {
+  if (cert instanceof File) {
+    return Buffer.from(await cert.arrayBuffer())
+  } else {
+    return Buffer.from(cert as string, "utf8")
+  }
+}
+
 async function extractCertificateInfo(certBuffer: Buffer): Promise<{ vatsk?: string; pokladnica?: string }> {
   try {
     const certString = certBuffer.toString("utf8")
@@ -159,6 +198,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Missing required certificate files" }, { status: 400 })
     }
 
+    const clientCertBuffer = await getCertificateBuffer(clientCert)
+    const clientKeyBuffer = await getCertificateBuffer(clientKey)
+    const caCertBuffer = await getCertificateBuffer(caCert)
+
+    // Validate and normalize PEM format
+    const validatedClientCert = validateAndNormalizePEM(clientCertBuffer.toString("utf8"), "certificate")
+    const validatedClientKey = validateAndNormalizePEM(clientKeyBuffer.toString("utf8"), "key")
+    const validatedCaCert = validateAndNormalizePEM(caCertBuffer.toString("utf8"), "ca")
+
+    console.log(`[v0] ✅ All certificates validated and normalized`)
+
     // Create temporary files
     const tempDir = tmpdir()
     const clientCertPath = join(tempDir, `${sessionId}-client.pem`)
@@ -166,31 +216,26 @@ export async function POST(request: NextRequest) {
     const caCertPath = join(tempDir, `${sessionId}-ca.pem`)
     tempFiles = [clientCertPath, clientKeyPath, caCertPath]
 
-    const getCertificateBuffer = async (cert: FormDataEntryValue) => {
-      if (cert instanceof File) {
-        return Buffer.from(await cert.arrayBuffer())
-      } else {
-        return Buffer.from(cert as string, "utf8")
-      }
-    }
-
-    const clientCertBuffer = await getCertificateBuffer(clientCert)
-
     await Promise.all([
-      writeFile(clientCertPath, clientCertBuffer),
-      writeFile(clientKeyPath, await getCertificateBuffer(clientKey)),
-      writeFile(caCertPath, await getCertificateBuffer(caCert)),
+      writeFile(clientCertPath, validatedClientCert, { mode: 0o600 }),
+      writeFile(clientKeyPath, validatedClientKey, { mode: 0o600 }),
+      writeFile(caCertPath, validatedCaCert, { mode: 0o600 }),
     ])
 
+    console.log(`[v0] ✅ Certificate files written with proper permissions`)
+
     // Extract VATSK and POKLADNICA from certificate
-    const { vatsk, pokladnica } = await extractCertificateInfo(clientCertBuffer)
+    const { vatsk, pokladnica } = await extractCertificateInfo(Buffer.from(validatedClientCert))
 
     // Execute API call
     const curlCommand = `curl -s -S -X POST https://api-erp-i.kverkom.sk/api/v1/generateNewTransactionId --cert "${clientCertPath}" --key "${clientKeyPath}" --cacert "${caCertPath}"`
+
+    console.log(`[v0] 🔄 Executing curl command...`)
     const { stdout, stderr } = await execAsync(curlCommand, { timeout: 30000 })
 
     if (stderr) {
-      console.log(`[v0] ⚠️ API call warning: ${stderr}`)
+      console.log(`[v0] ⚠️ API call stderr: ${stderr}`)
+      throw new Error(`Curl error: ${stderr}`)
     }
 
     // Parse response
