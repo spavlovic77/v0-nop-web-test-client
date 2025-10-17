@@ -53,13 +53,15 @@ class ErrorBoundary extends React.Component<
   }
 }
 
-const EMBEDDED_CA_BUNDLE = `-----BEGIN CERTIFICATE-----
+const EMBEDDED_CA_BUNDLE = `subject=C = SK, L = Bansk\C3\A1 Bystrica, O = Finan\C4\8Dn\C3\A9 riadite\C4\BEstvo Slovenskej republiky, CN = api-banka-i.kverkom.sk
+issuer=C = US, O = DigiCert Inc, OU = www.digicert.com, CN = GeoTrust TLS RSA CA G1
+-----BEGIN CERTIFICATE-----
 MIIGtjCCBZ6gAwIBAgIQD5vKo3PlurovWKWm0kLBHzANBgkqhkiG9w0BAQsFADBg
 MQswCQYDVQQGEwJVUzEVMBMGA1UEChMMRGlnaUNlcnQgSW5jMRkwFwYDVQQLExB3
 d3cuZGlnaWNlcnQuY29tMR8wHQYDVQQDExZHZW9UcnVzdCBUTFMgUlNBIENBIEcx
 MB4XDTI1MDgwNTAwMDAwMFoXDTI2MDgwNDIzNTk1OVowgYExCzAJBgNVBAYTAlNL
 MRkwFwYDVQQHDBBCYW5za8OhIEJ5c3RyaWNhMTYwNAYDVQQKDC1GaW5hbsSNbsOp
-IHJpYWRpdGXEvHN0dm8gU2xvdmVuc2tlaiByZXB1Ymxpa3kxHzAdBgNVBAMTFmFw
+IHJpYWRpdGXEvnN0dm8gU2xvdmVuc2tlaiByZXB1Ymxpa3kxHzAdBgNVBAMTFmFw
 aS1iYW5rYS1pLmt2ZXJrb20uc2swggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEK
 AoIBAQCyZEsLS5QBSoporFEs/Ai95eRX+5+Fw+Gknd77BKRiJCu7GIset9e4lZTc
 vragFlRV0xEXj9MX8QXsgChuAD5qWxqhrrkCsRNH2u3QTQMNjGtE2tSKpl9l3XdK
@@ -91,6 +93,39 @@ txckPbRer3T1YsGusZVO3PljQwJdSB+mblUXwBlYVIFtPeEwlSdPSMxfBaRRGaW4
 Jm2Nt5ymR8y6DfkqPAhbNw0EIVa+MMphsV5vWCRwZd1KyHoBWN8fQkkZixj3Onpl
 CeQY+5U8ixbAl71NxbGEWhXudbAf+Alu3ic251/AX/u2ridRKKdX67/8
 -----END CERTIFICATE-----
+
+subject=C = US, O = DigiCert Inc, OU = www.digicert.com, CN = GeoTrust TLS RSA CA G1
+issuer=C = US, O = DigiCert Inc, OU = www.digicert.com, CN = DigiCert Global Root G2
+-----BEGIN CERTIFICATE-----
+MIIEjTCCA3WgAwIBAgIQDQd4KhM/xvmlcpbhMf/ReTANBgkqhkiG9w0BAQsFADBh
+MQswCQYDVQQGEwJVUzEVMBMGA1UEChMMRGlnaUNlcnQgSW5jMRkwFwYDVQQLExB3
+d3cuZGlnaWNlcnQuY29tMSAwHgYDVQQDExdEaWdpQ2VydCBHbG9iYWwgUm9vdCBH
+MjAeFw0xNzExMDIxMjIzMzdaFw0yNzExMDIxMjIzMzdaMGAxCzAJBgNVBAYTAlVT
+MRUwEwYDVQQKEwxEaWdpQ2VydCBJbmMxGTAXBgNVBAsTEHd3dy5kaWdpY2VydC5j
+b20xHzAdBgNVBAMTFkdlb1RydXN0IFRMUyBSU0EgQ0EgRzEwggEiMA0GCSqGSIb3
+DQEBAQUAA4IBDwAwggEKAoIBAQC+F+jsvikKy/65LWEx/TMkCDIuWegh1Ngwvm4Q
+yISgP7oU5d79eoySG3vOhC3w/3jEMuipoH1fBtp7m0tTpsYbAhch4XA7rfuD6whU
+gajeErLVxoiWMPkC/DnUvbgi74BJmdBiuGHQSd7LwsuXpTEGG9fYXcbTVN5SATYq
+DfbexbYxTMwVJWoVb6lrBEgM3gBBqiiAiy800xu1Nq07JdCIQkBsNpFtZbIZhsDS
+fzlGWP4wEmBQ3O67c+ZXkFr2DcrXBEtHam80Gp2SNhou2U5U7UesDL/xgLK6/0d7
+6TnEVMSUVJkZ8VeZr+IUIlvoLrtjLbqugb0T3OYXW+CQU0kBAgMBAAGjggFAMIIB
+PDAdBgNVHQ4EFgQUlE/UXYvkpOKmgP792PkA76O+AlcwHwYDVR0jBBgwFoAUTiJU
+IBiV5uNu5g/6+rkS7QYXjzkwDgYDVR0PAQH/BAQDAgGGMB0GA1UdJQQWMBQGCCsG
+AQUFBwMBBggrBgEFBQcDAjASBgNVHRMBAf8ECDAGAQH/AgEAMDQGCCsGAQUFBwEB
+BCgwJjAkBggrBgEFBQcwAYYYaHR0cDovL29jc3AuZGlnaWNlcnQuY29tMEIGA1Ud
+HwQ7MDkwN6A1oDOGMWh0dHA6Ly9jcmwzLmRpZ2ljZXJ0LmNvbS9EaWdpQ2VydEds
+b2JhbFJvb3RHMi5jcmwwPQYDVR0gBDYwNDAyBgRVHSAAMCowKAYIKwYBBQUHAgEW
+HGh0dHBzOi8vd3d3LmRpZ2ljZXJ0LmNvbS9DUFMwDQYJKoZIhvcNAQELBQADggEB
+AIIcBDqC6cWpyGUSXAjjAcYwsK4iiGF7KweG97i1RJz1kwZhRoo6orU1JtBYnjzB
+c4+/sXmnHJk3mlPyL1xuIAt9sMeC7+vreRIF5wFBC0MCN5sbHwhNN1JzKbifNeP5
+ozpZdQFmkCo+neBiKR6HqIA+LMTMCMMuv2khGGuPHmtDze4GmEGZtYLyF8EQpa5Y
+jPuV6k2Cr/N3XxFpT3hRpt/3usU/Zb9wfKPtWpoznZ4/44c1p9rzFcZYrWkj3A+7
+TNBJE0GmP2fhXhP1D/XVfIW/h0yCJGEiV9Glm/uGOa3DXHlmbAcxSyCRraG+ZBkA
+7h4SeM6Y8l/7MBRpPCz6l8Y=
+-----END CERTIFICATE-----
+
+subject=C = US, O = DigiCert Inc, OU = www.digicert.com, CN = DigiCert Global Root G2
+issuer=C = US, O = DigiCert Inc, OU = www.digicert.com, CN = DigiCert Global Root G2
 -----BEGIN CERTIFICATE-----
 MIIDjjCCAnagAwIBAgIQAzrx5qcRqaC7KGSxHQn65TANBgkqhkiG9w0BAQsFADBh
 MQswCQYDVQQGEwJVUzEVMBMGA1UEChMMRGlnaUNlcnQgSW5jMRkwFwYDVQQLExB3
@@ -171,6 +206,7 @@ const Home: FunctionComponent = () => {
     caCert: null,
   })
   const [userIban, setUserIban] = useState<string>("")
+  const [merchantAccountName, setMerchantAccountName] = useState<string>("")
   const [loading, setLoading] = useState(false)
   const [mqttLoading, setMqttLoading] = useState(false)
   const [bankLoading, setBankLoading] = useState(false)
@@ -232,7 +268,7 @@ const Home: FunctionComponent = () => {
       IBAN: userIban.replace(/\s/g, ""), // Remove spaces from IBAN for payment link
       AM: amount, // Amount from user
       CC: "EUR", // Currency
-      CN: "Kverkom s.r.o.", // Creditor name (fabricated)
+      CN: merchantAccountName || "Kverkom s.r.o.", // Creditor name
       PI: transactionId, // Payment identification (EndToEnd as Transaction ID)
       MSG: "Payment+via+mobile+app", // Fabricated message
     })
@@ -550,7 +586,8 @@ const Home: FunctionComponent = () => {
     setMqttMessages([])
   }
 
-  const allRequiredFieldsComplete = files.xmlAuthData && files.xmlPassword && userIban && configurationSaved
+  const allRequiredFieldsComplete =
+    files.xmlAuthData && files.xmlPassword && userIban && merchantAccountName && configurationSaved
 
   const roundToFiftyCents = (value: string) => {
     const num = Number.parseFloat(value)
@@ -900,15 +937,17 @@ const Home: FunctionComponent = () => {
 
         const allFilesPresent = files.xmlAuthData && files.caCert
         const validIban = formattedValue && validateIbanSecure(formattedValue)
+        // Check if merchantAccountName is also present and valid
+        const validMerchantAccount = merchantAccountName && merchantAccountName.length > 0
 
-        if (allFilesPresent && validIban) {
+        if (allFilesPresent && validIban && validMerchantAccount) {
           setCertificateSectionCollapsed(true)
         } else {
           setCertificateSectionCollapsed(false)
         }
       }
     },
-    [files.xmlAuthData, files.caCert, sanitizeInput, validateIbanSecure],
+    [files.xmlAuthData, files.caCert, sanitizeInput, validateIbanSecure, merchantAccountName],
   )
 
   const handleSaveConfiguration = useCallback(async () => {
@@ -952,8 +991,14 @@ const Home: FunctionComponent = () => {
     }
   }, [files.xmlAuthData, files.xmlPassword, handleApiCallWithRetry, convertXmlToPem])
 
+  // Removed redeclared 'allRequiredFieldsComplete'
   const canSaveConfiguration =
-    files.xmlAuthData && files.xmlPassword && userIban && isValidIbanFormat(userIban) && !configurationSaved
+    files.xmlAuthData &&
+    files.xmlPassword &&
+    userIban &&
+    merchantAccountName &&
+    isValidIbanFormat(userIban) &&
+    !configurationSaved
 
   const copyAllLogs = () => {
     const logsText = apiCallLogs.map((log) => JSON.stringify(log, null, 2)).join("\n")
@@ -974,6 +1019,7 @@ const Home: FunctionComponent = () => {
       xmlPassword: "",
     })
     setUserIban("")
+    setMerchantAccountName("") // Reset merchant account name
     setConfigurationSaved(false)
     setCertificateInfo({
       vatsk: null,
@@ -1277,6 +1323,38 @@ const Home: FunctionComponent = () => {
                             className="w-full h-12 font-mono tracking-wider border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                           />
                           {userIban && isValidIbanFormat(userIban) && (
+                            <CheckCircle className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-green-500" />
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Label
+                                htmlFor="merchantAccountName"
+                                className="text-sm font-medium text-gray-700 flex items-center gap-1 cursor-help"
+                              >
+                                Názov bankového účtu obchodníka
+                                <Info className="h-3 w-3 text-gray-400" />
+                              </Label>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Zadajte názov Vášho bankového účtu, ktorý sa zobrazí na platobnom príkaze</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                        <div className="relative">
+                          <Input
+                            id="merchantAccountName"
+                            type="text"
+                            placeholder="Názov obchodníka"
+                            value={merchantAccountName}
+                            onChange={(e) => setMerchantAccountName(e.target.value)}
+                            className="w-full h-12 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                          />
+                          {merchantAccountName && (
                             <CheckCircle className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-green-500" />
                           )}
                         </div>
