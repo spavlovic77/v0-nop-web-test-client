@@ -56,7 +56,7 @@ class ErrorBoundary extends React.Component<
 const EMBEDDED_CA_BUNDLE = `-----BEGIN CERTIFICATE-----
 MIIGtjCCBZ6gAwIBAgIQD5vKo3PlurovWKWm0kLBHzANBgkqhkiG9w0BAQsFADBg
 MQswCQYDVQQGEwJVUzEVMBMGA1UEChMMRGlnaUNlcnQgSW5jMRkwFwYDVQQLExB3
-d3cuZGlnaWNlcnQuY29tMR8wHQYDVQQDExdHZW9UcnVzdCBUTFMgUlNBIENBIEcx
+d3cuZGlnaWNlcnQuY29tMR8wHQYDVQQDExZHZW9UcnVzdCBUTFMgUlNBIENBIEcx
 MB4XDTI1MDgwNTAwMDAwMFoXDTI2MDgwNDIzNTk1OVowgYExCzAJBgNVBAYTAlNL
 MRkwFwYDVQQHDBBCYW5za8OhIEJ5c3RyaWNhMTYwNAYDVQQKDC1GaW5hbsSNbsOp
 IHJpYWRpdGXEvHN0dm8gU2xvdmVuc2tlaiByZXB1Ymxpa3kxHzAdBgNVBAMTFmFw
@@ -66,30 +66,30 @@ vragFlRV0xEXj9MX8QXsgChuAD5qWxqhrrkCsRNH2u3QTQMNjGtE2tSKpl9l3XdK
 cVcJ+pqvalo+1JVAzRFFjJJno02WgBfGvp9CXd/8fd4D7/mgW8f9Uy8BhxRjBuMB
 E4c2WzJVW5ycwaafBYeR6hwoyNxfUCQ23IVNuF6+fn2nB90FBFhU78QFhTj6BT8Y
 dQ3Q6zm7sI0yXwdAp5/ZGKV590Q073wOxdh4PuQSPo8E/F3jn37761MnJrIcF3z+
-L8icdP5Tj/AVKfNmOx3rswbxriCJAgMBAAGjggNIMIIDRDAfBgNVHSMEGDAWgBRG
-Ruo8MCE0vmA9poBNOES2G74wSgYDVR0RBEMwQYIWYXBpLWJhbmthLWkua3Zlcmtv
-bS5za4IUYXBpLWVycC1pLmt2ZXJrb20uc2uCEW1xdHQtaS5rdmVya29tLnNrMD4G
-A1UdIAQ3MDUwMwYGZ4EMAQICMCkwJwYIKwYBBQUHAgEWG2h0dHA6Ly93d3cuZGln
-aWNlcnQuY29tL0NQUzAOBgNVHQ8BAf8EBAMCBaAwHQYDVR0lBBYwFAYIKwYBBQUH
-AwEGCCsGAQUFBwMCMD8GA1UdHwQ4MDYwNKAyoDCGLmh0dHA6Ly9jZHAuZ2VvdHJ1
-c3QuY29tL0dlb1RydXN0VExTUlNBQ0FHMS5jcmwwdgYIKwYBBQUHAQEEajBoMCYG
-CCsGAQUFBzABhhpodHRwOi8vc3RhdHVzLmdlb3RydXN0LmNvbTA+BggrBgEFBQcw
-AoYyaHR0cDovL2NhY2VydHRzLmdlb3RydXN0LmNvbS9HZW9UcnVzdFRMU1JSQ0FH
-MS5jcnQwDAYDVR0TAQH/BAIwADCCAX4GCisGAQQB1nkCBAIEggFuBIIBagFoAHUA
-1219ENGn9XfCx+lf1wC/+YLJM1pl4dCzAXMXwMjFaXcAAAGYeRNtNAAABAMARjBE
-AiAiuXz6EYiA1JmlwRyDpik9U0hTP/2x5IlOMJtGsHw0aQIgauYi79hye7ZZCLQd
-Fw5x7lX2v9UQNpp/Yc6+3h4/lLsAdgDCMX5XRRmjRe5/ON6ykEHrx8IhWiK/f9W1
-rXaa2Q5SzQAAAZh5E21zAAAEAwBHMEUCIBPYgzw54o8ME4imD0OvNGQqk2MZVuWs
-QVaM7kEUqQfNAiEAju//4YMOmYFgZyf1mXpQtjTbtwqIt6XDdX99VmmUtwgAdwCU
-TkOH+uzB74HzGSQmqBhlAcfTXzgCAT9yZ31VNy4Z2AAAAZh5E22FAAAEAwBIMEYC
-IQDwAYPZkrGQn8jOJbVtVQXeUoBAWKwk5BeBeFQv2c17mQIhANQmIJKkkJ+o1mRn
-J6V/9OMqyE45bAahUJiWIMAqmw+8MA0GCSqGSIb3DQEBCwUAA4IBAQAOhZc04PXt
-Mw0px7samnDkdBLBgtSKtf4YqaAgCXa1Mrl/Wz6qFlgujIz4rXqy6b1zTlqlmpmT
-/9wXUM6wJ/UerRosFvyw+KJzi8wFKRdktIe6YckdR5OqScNOpb3WJe6sySCMh9Cc
-dEB/RgvJdfr2iHttPllMtxckPbRer3T1YsGusZVO3PljQwJdSB+mblUXwBlYVIFt
-PeEwlSdPSMxfBaRRGaW4Jm2Nt5ymR8y6DfkqPAhbNw0EIVa+MMphsV5vWCRwZd1K
-yHoBWN8fQkkZixj3OnplCeQY+5U8ixbAl71NxbGEWhXudbAf+Aluic251/AX/u2r
-idRKKdX67/8
+L8icdP5Tj/AVKfNmOx3rswbxriCJAgMBAAGjggNIMIIDRDAfBgNVHSMEGDAWgBSU
+T9Rdi+Sk4qaA/v3Y+QDvo74CVzAdBgNVHQ4EFgQUQnBHRuo8MCE0vmA9poBNOES2
+G74wSgYDVR0RBEMwQYIWYXBpLWJhbmthLWkua3ZlcmtvbS5za4IUYXBpLWVycC1p
+Lmt2ZXJrb20uc2uCEW1xdHQtaS5rdmVya29tLnNrMD4GA1UdIAQ3MDUwMwYGZ4EM
+AQICMCkwJwYIKwYBBQUHAgEWG2h0dHA6Ly93d3cuZGlnaWNlcnQuY29tL0NQUzAO
+BgNVHQ8BAf8EBAMCBaAwHQYDVR0lBBYwFAYIKwYBBQUHAwEGCCsGAQUFBwMCMD8G
+A1UdHwQ4MDYwNKAyoDCGLmh0dHA6Ly9jZHAuZ2VvdHJ1c3QuY29tL0dlb1RydXN0
+VExTUlNBQ0FHMS5jcmwwdgYIKwYBBQUHAQEEajBoMCYGCCsGAQUFBzABhhpodHRw
+Oi8vc3RhdHVzLmdlb3RydXN0LmNvbTA+BggrBgEFBQcwAoYyaHR0cDovL2NhY2Vy
+dHMuZ2VvdHJ1c3QuY29tL0dlb1RydXN0VExTUlNBQ0FHMS5jcnQwDAYDVR0TAQH/
+BAIwADCCAX4GCisGAQQB1nkCBAIEggFuBIIBagFoAHUA1219ENGn9XfCx+lf1wC/
++YLJM1pl4dCzAXMXwMjFaXcAAAGYeRNtNAAABAMARjBEAiAiuXz6EYiA1JmlwRyD
+pik9U0hTP/2x5IlOMJtGsHw0aQIgauYi79hye7ZZCLQdFw5x7lX2v9UQNpp/Yc6+
+3h4/lLsAdgDCMX5XRRmjRe5/ON6ykEHrx8IhWiK/f9W1rXaa2Q5SzQAAAZh5E21z
+AAAEAwBHMEUCIBPYgzw54o8ME4imD0OvNGQqk2MZVuWsQVaM7kEUqQfNAiEAju//
+4YMOmYFgZyf1mXpQtjTbtwqIt6XDdX99VmmUtwgAdwCUTkOH+uzB74HzGSQmqBhl
+AcfTXzgCAT9yZ31VNy4Z2AAAAZh5E22FAAAEAwBIMEYCIQDwAYPZkrGQn8jOJbVt
+VQXeUoBAWKwk5BeBeFQv2c17mQIhANQmIJKkkJ+o1mRnJ6V/9OMqyE45bAahUJiW
+IMAqmw+8MA0GCSqGSIb3DQEBCwUAA4IBAQAOhZc04PXtMw0px7samnDkdBLBgtSK
+tf4YqaAgCXa1Mrl/Wz6qFlgujIz4rXqy6b1zTlqlmpmT/9wXUM6wJ/UerRosFvyw
++KJzi8wFKRdktIe6YckdR5OqScNOpb3WJe6sySCMh9CcdEB/RgvJdfr2iHttPllM
+txckPbRer3T1YsGusZVO3PljQwJdSB+mblUXwBlYVIFtPeEwlSdPSMxfBaRRGaW4
+Jm2Nt5ymR8y6DfkqPAhbNw0EIVa+MMphsV5vWCRwZd1KyHoBWN8fQkkZixj3Onpl
+CeQY+5U8ixbAl71NxbGEWhXudbAf+Alu3ic251/AX/u2ridRKKdX67/8
 -----END CERTIFICATE-----
 -----BEGIN CERTIFICATE-----
 MIIDjjCCAnagAwIBAgIQAzrx5qcRqaC7KGSxHQn65TANBgkqhkiG9w0BAQsFADBh
@@ -649,15 +649,9 @@ const Home: FunctionComponent = () => {
       try {
         console.log("[v0] Starting QR generation process...")
 
-        const certBlob = new Blob([files.convertedCertPem], { type: "application/x-pem-file" })
-        const certFile = new File([certBlob], "client-cert.pem", { type: "application/x-pem-file" })
-
-        const keyBlob = new Blob([files.convertedKeyPem], { type: "application/x-pem-file" })
-        const keyFile = new File([keyBlob], "client-key.pem", { type: "application/x-pem-file" })
-
         const formData = new FormData()
-        formData.append("clientCert", certFile)
-        formData.append("clientKey", keyFile)
+        formData.append("clientCert", files.convertedCertPem)
+        formData.append("clientKey", files.convertedKeyPem)
         formData.append("caCert", files.caCert!)
         formData.append("certificateSecret", files.xmlPassword!)
 
@@ -777,15 +771,13 @@ const Home: FunctionComponent = () => {
     try {
       setSubscriptionActive(true)
 
-      const certBlob = new Blob([files.convertedCertPem!], { type: "application/x-pem-file" })
-      const certFile = new File([certBlob], "client-cert.pem", { type: "application/x-pem-file" })
-
-      const keyBlob = new Blob([files.convertedKeyPem!], { type: "application/x-pem-file" })
-      const keyFile = new File([keyBlob], "client-key.pem", { type: "application/x-pem-file" })
-
       const formData = new FormData()
-      formData.append("clientCert", certFile)
-      formData.append("clientKey", keyFile)
+      if (files.convertedCertPem && files.convertedKeyPem) {
+        formData.append("clientCert", files.convertedCertPem)
+        formData.append("clientKey", files.convertedKeyPem)
+      } else {
+        throw new Error("Certificate files not properly converted")
+      }
       formData.append("caCert", files.caCert!)
       formData.append("certificateSecret", files.xmlPassword!)
       formData.append("transactionId", transactionId)
