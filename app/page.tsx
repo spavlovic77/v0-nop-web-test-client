@@ -60,7 +60,7 @@ d3cuZGlnaWNlcnQuY29tMR8wHQYDVQQDExZHZW9UcnVzdCBUTFMgUlNBIENBIEcx
 MB4XDTI1MDgwNTAwMDAwMFoXDTI2MDgwNDIzNTk1OVowgYExCzAJBgNVBAYTAlNL
 MRkwFwYDVQQHDBBCYW5za8OhIEJ5c3RyaWNhMTYwNAYDVQQKDC1GaW5hbsSNbsOp
 IHJpYWRpdGXEvHN0dm8gU2xvdmVuc2tlaiByZXB1Ymxpa3kxHzAdBgNVBAMTFmFw
-aS1iYW5rYS1pLmt2ZXJrb20uc2swggEiMA0GqGSIb3DQEBAQUAA4IBDwAwggEK
+aS1iYW5rYS1pLmt2ZXJrb20uc2swggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEK
 AoIBAQCyZEsLS5QBSoporFEs/Ai95eRX+5+Fw+Gknd77BKRiJCu7GIset9e4lZTc
 vragFlRV0xEXj9MX8QXsgChuAD5qWxqhrrkCsRNH2u3QTQMNjGtE2tSKpl9l3XdK
 cVcJ+pqvalo+1JVAzRFFjJJno02WgBfGvp9CXd/8fd4D7/mgW8f9Uy8BhxRjBuMB
@@ -77,7 +77,7 @@ VExTUlNBQ0FHMS5jcmwwdgYIKwYBBQUHAQEEajBoMCYGCCsGAQUFBzABhhpodHRw
 Oi8vc3RhdHVzLmdlb3RydXN0LmNvbTA+BggrBgEFBQcwAoYyaHR0cDovL2NhY2Vy
 dHMuZ2VvdHJ1c3QuY29tL0dlb1RydXN0VExTUlNBQ0FHMS5jcnQwDAYDVR0TAQH/
 BAIwADCCAX4GCisGAQQB1nkCBAIEggFuBIIBagFoAHUA1219ENGn9XfCx+lf1wC/
-+YLJM1pl4dCzAXMXwMjFaXcAAAGYeRNtNAAABAMARjBEAiAiuX6EYiA1JmlwRyDj
++YLJM1pl4dCzAXMXwMjFaXcAAAGYeRNtNAAABAMARjBEAiAiuXz6EYiA1JmlwRyD
 pik9U0hTP/2x5IlOMJtGsHw0aQIgauYi79hye7ZZCLQdFw5x7lX2v9UQNpp/Yc6+
 3h4/lLsAdgDCMX5XRRmjRe5/ON6ykEHrx8IhWiK/f9W1rXaa2Q5SzQAAAZh5E21z
 AAAEAwBHMEUCIBPYgzw54o8ME4imD0OvNGQqk2MZVuWsQVaM7kEUqQfNAiEAju//
@@ -89,7 +89,7 @@ tf4YqaAgCXa1Mrl/Wz6qFlgujIz4rXqy6b1zTlqlmpmT/9wXUM6wJ/UerRosFvyw
 +KJzi8wFKRdktIe6YckdR5OqScNOpb3WJe6sySCMh9CcdEB/RgvJdfr2iHttPllM
 txckPbRer3T1YsGusZVO3PljQwJdSB+mblUXwBlYVIFtPeEwlSdPSMxfBaRRGaW4
 Jm2Nt5ymR8y6DfkqPAhbNw0EIVa+MMphsV5vWCRwZd1KyHoBWN8fQkkZixj3Onpl
-CeQY+5U8ixbAl71NxbGEWhXudbAf+Aluic251/AX/u2ridRKKdX67/8
+CeQY+5U8ixbAl71NxbGEWhXudbAf+Alu3ic251/AX/u2ridRKKdX67/8
 -----END CERTIFICATE-----
 -----BEGIN CERTIFICATE-----
 MIIDjjCCAnagAwIBAgIQAzrx5qcRqaC7KGSxHQn65TANBgkqhkiG9w0BAQsFADBh
@@ -108,9 +108,9 @@ BgNVHRMBAf8EBTADAQH/MA4GA1UdDwEB/wQEAwIBhjAdBgNVHQ4EFgQUTiJUIBiV
 5uNu5g/6+rkS7QYXjzkwDQYJKoZIhvcNAQELBQADggEBAGBnKJRvDkhj6zHd6mcY
 1Yl9PMWLSn/pvtsrF9+wX3N3KjITOYFnQoQj8kVnNeyIv/iPsGEMNKSuIEyExtv4
 NeF22d+mQrvHRAiGfzZ0JFrabA0UWTW98kndth/Jsw1HKj2ZL7tcu7XUIOGZX1NG
-Fdtom/DzMNU+MeKNhJ7jitralj41E6Vf8PlwUHBHQRFUJG0Aj64GxJUTFy8bJZ91
+Fdtom/DzMNU+MeKNhJ7jitralj41E6Vf8PlwUHBHQRFXGU7Aj64GxJUTFy8bJZ91
 8rGOmaFvE7FBcf6IKshPECBV1/MUReXgRPTqh5Uykw7+U0b6LJ3/iyK5S9kJRaTe
-pLiaWN0bfVKfjllDiIGknibVb63dDcY3fe0Dkhvld1927jyNxF1WW6zNTfl
+pLiaWN0bfVKfjllDiIGknibVb63dDcY3fe0Dkhvld1927jyNxF1WW6LZZm6zNTfl
 MrY=
 -----END CERTIFICATE-----`
 
@@ -171,7 +171,6 @@ const Home: FunctionComponent = () => {
     caCert: null,
   })
   const [userIban, setUserIban] = useState<string>("")
-  const [merchantAccountName, setMerchantAccountName] = useState<string>("")
   const [loading, setLoading] = useState(false)
   const [mqttLoading, setMqttLoading] = useState(false)
   const [bankLoading, setBankLoading] = useState(false)
@@ -233,7 +232,7 @@ const Home: FunctionComponent = () => {
       IBAN: userIban.replace(/\s/g, ""), // Remove spaces from IBAN for payment link
       AM: amount, // Amount from user
       CC: "EUR", // Currency
-      CN: merchantAccountName || "Kverkom s.r.o.", // Creditor name from user input or fallback
+      CN: "Kverkom s.r.o.", // Creditor name (fabricated)
       PI: transactionId, // Payment identification (EndToEnd as Transaction ID)
       MSG: "Payment+via+mobile+app", // Fabricated message
     })
@@ -551,8 +550,7 @@ const Home: FunctionComponent = () => {
     setMqttMessages([])
   }
 
-  const allRequiredFieldsComplete =
-    files.xmlAuthData && files.xmlPassword && userIban && merchantAccountName && configurationSaved
+  const allRequiredFieldsComplete = files.xmlAuthData && files.xmlPassword && userIban && configurationSaved
 
   const roundToFiftyCents = (value: string) => {
     const num = Number.parseFloat(value)
@@ -652,14 +650,8 @@ const Home: FunctionComponent = () => {
         console.log("[v0] Starting QR generation process...")
 
         const formData = new FormData()
-        const clientCertBlob = new Blob([files.convertedCertPem], { type: "application/x-pem-file" })
-        const clientCertFile = new File([clientCertBlob], "client-cert.pem", { type: "application/x-pem-file" })
-
-        const clientKeyBlob = new Blob([files.convertedKeyPem], { type: "application/x-pem-file" })
-        const clientKeyFile = new File([clientKeyBlob], "client-key.pem", { type: "application/x-pem-file" })
-
-        formData.append("clientCert", clientCertFile)
-        formData.append("clientKey", clientKeyFile)
+        formData.append("clientCert", files.convertedCertPem)
+        formData.append("clientKey", files.convertedKeyPem)
         formData.append("caCert", files.caCert!)
         formData.append("certificateSecret", files.xmlPassword!)
 
@@ -781,14 +773,8 @@ const Home: FunctionComponent = () => {
 
       const formData = new FormData()
       if (files.convertedCertPem && files.convertedKeyPem) {
-        const clientCertBlob = new Blob([files.convertedCertPem], { type: "application/x-pem-file" })
-        const clientCertFile = new File([clientCertBlob], "client-cert.pem", { type: "application/x-pem-file" })
-
-        const clientKeyBlob = new Blob([files.convertedKeyPem], { type: "application/x-pem-file" })
-        const clientKeyFile = new File([clientKeyBlob], "client-key.pem", { type: "application/x-pem-file" })
-
-        formData.append("clientCert", clientCertFile)
-        formData.append("clientKey", clientKeyFile)
+        formData.append("clientCert", files.convertedCertPem)
+        formData.append("clientKey", files.convertedKeyPem)
       } else {
         throw new Error("Certificate files not properly converted")
       }
@@ -914,16 +900,15 @@ const Home: FunctionComponent = () => {
 
         const allFilesPresent = files.xmlAuthData && files.caCert
         const validIban = formattedValue && validateIbanSecure(formattedValue)
-        const validMerchantName = merchantAccountName // Check if merchantAccountName is filled
 
-        if (allFilesPresent && validIban && validMerchantName) {
+        if (allFilesPresent && validIban) {
           setCertificateSectionCollapsed(true)
         } else {
           setCertificateSectionCollapsed(false)
         }
       }
     },
-    [files.xmlAuthData, files.caCert, sanitizeInput, validateIbanSecure, merchantAccountName],
+    [files.xmlAuthData, files.caCert, sanitizeInput, validateIbanSecure],
   )
 
   const handleSaveConfiguration = useCallback(async () => {
@@ -968,12 +953,7 @@ const Home: FunctionComponent = () => {
   }, [files.xmlAuthData, files.xmlPassword, handleApiCallWithRetry, convertXmlToPem])
 
   const canSaveConfiguration =
-    files.xmlAuthData &&
-    files.xmlPassword &&
-    userIban &&
-    isValidIbanFormat(userIban) &&
-    merchantAccountName &&
-    !configurationSaved
+    files.xmlAuthData && files.xmlPassword && userIban && isValidIbanFormat(userIban) && !configurationSaved
 
   const copyAllLogs = () => {
     const logsText = apiCallLogs.map((log) => JSON.stringify(log, null, 2)).join("\n")
@@ -994,7 +974,6 @@ const Home: FunctionComponent = () => {
       xmlPassword: "",
     })
     setUserIban("")
-    setMerchantAccountName("") // Reset merchant account name
     setConfigurationSaved(false)
     setCertificateInfo({
       vatsk: null,
@@ -1298,38 +1277,6 @@ const Home: FunctionComponent = () => {
                             className="w-full h-12 font-mono tracking-wider border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                           />
                           {userIban && isValidIbanFormat(userIban) && (
-                            <CheckCircle className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-green-500" />
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="space-y-2">
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Label
-                                htmlFor="merchantAccountName"
-                                className="text-sm font-medium text-gray-700 flex items-center gap-1 cursor-help"
-                              >
-                                Názov bankového účtu obchodníka
-                                <Info className="h-3 w-3 text-gray-400" />
-                              </Label>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>Zadajte názov Vášho bankového účtu, ktorý sa zobrazí pri platbe</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                        <div className="relative">
-                          <Input
-                            id="merchantAccountName"
-                            type="text"
-                            placeholder="Názov obchodníka"
-                            value={merchantAccountName}
-                            onChange={(e) => setMerchantAccountName(e.target.value)}
-                            className="w-full h-12 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
-                          />
-                          {merchantAccountName && (
                             <CheckCircle className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-green-500" />
                           )}
                         </div>
