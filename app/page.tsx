@@ -1735,8 +1735,8 @@ const Home: FunctionComponent = () => {
 
                               return (
                                 <div className="space-y-3">
-                                  <span className="text-lg font-medium text-red-600">
-                                    Pozor!!! Preverte platbu vo Vašej banke
+                                  <span className="text-lg font-medium text-yellow-600">
+                                    Pozor! Preverte platbu vo Vašej banke
                                   </span>
                                   <div className="bg-red-50 p-4 rounded-lg space-y-2">
                                     <div className="flex justify-between items-center">
