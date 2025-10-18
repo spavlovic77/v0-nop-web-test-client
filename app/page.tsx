@@ -1045,11 +1045,7 @@ const Home: FunctionComponent = () => {
   }
 
   const handleQrModalClose = (open: boolean) => {
-    // Only allow closing if explicitly set to false (close button clicked)
-    // Prevent closing on outside clicks by ignoring when open is true
-    if (!open) {
-      setShowQrModal(false)
-    }
+    // Do nothing - modal can only be closed via the "Zrušiť platbu" button
   }
 
   const handleTransactionListClick = () => {
@@ -1575,7 +1571,11 @@ const Home: FunctionComponent = () => {
             )}
 
             <Dialog open={showQrModal} onOpenChange={handleQrModalClose}>
-              <DialogContent className="sm:max-w-md w-[95vw] max-h-[90vh] flex flex-col">
+              <DialogContent
+                className="sm:max-w-md w-[95vw] max-h-[90vh] flex flex-col"
+                onInteractOutside={(e) => e.preventDefault()}
+                onEscapeKeyDown={(e) => e.preventDefault()}
+              >
                 <div className="flex-1 flex flex-col items-center justify-center space-y-4 py-4 min-h-[400px]">
                   {qrLoading ? (
                     <div className="flex flex-col items-center gap-4">
@@ -1599,11 +1599,9 @@ const Home: FunctionComponent = () => {
                           <Button
                             variant="outline"
                             className="w-full bg-transparent"
-                            disabled={mqttTimerActive || mqttTimeRemaining > 0} // Enable if timer is not active or finished
+                            disabled={mqttTimerActive || mqttTimeRemaining > 0}
                             onClick={() => {
-                              // TODO: Implement re-subscribe logic
                               console.log("[v0] Repeat subscription clicked")
-                              // Re-subscribe to MQTT notifications
                               if (qrTransactionId) {
                                 subscribeToQrBankNotifications(qrTransactionId)
                               }
@@ -1618,15 +1616,16 @@ const Home: FunctionComponent = () => {
                           variant="destructive"
                           className="w-full"
                           onClick={() => {
-                            // TODO: Implement cancel payment logic
                             console.log("[v0] Cancel payment clicked")
-                            setShowQrModal(false) // Close the QR modal
+                            setShowQrModal(false)
+                            setMqttTimerActive(false)
+                            setMqttTimeRemaining(120)
+                            // </CHANGE>
                           }}
                         >
                           Zrušiť platbu
                         </Button>
                       </div>
-                      {/* </CHANGE> */}
                     </div>
                   ) : (
                     <XCircle className="h-8 w-8 text-red-500" />
