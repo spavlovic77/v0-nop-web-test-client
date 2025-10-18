@@ -835,7 +835,33 @@ const Home: FunctionComponent = () => {
       if (data.hasMessages && data.messages && data.messages.length > 0) {
         console.log("[v0] Payment notification received via MQTT! Messages:", data.messages)
 
-        setConfirmedPaymentAmount(eurAmount)
+        let notificationAmount = eurAmount // Fallback to entered amount
+
+        // Try to parse the notification message to extract the actual amount
+        for (const message of data.messages) {
+          try {
+            const parsedMessage = JSON.parse(message)
+            if (parsedMessage.amount) {
+              // Convert the amount to the same format as eurAmount (digits only)
+              const amountValue = Number.parseFloat(parsedMessage.amount)
+              const amountInCents = Math.round(amountValue * 100)
+              notificationAmount = amountInCents.toString()
+              console.log(
+                "[v0] Extracted amount from notification:",
+                amountValue,
+                "EUR (",
+                notificationAmount,
+                "cents)",
+              )
+              break
+            }
+          } catch (error) {
+            console.log("[v0] Could not parse message as JSON:", message)
+          }
+        }
+
+        setConfirmedPaymentAmount(notificationAmount)
+        // </CHANGE>
         setShowQrModal(false)
         setShowPaymentReceivedModal(true)
         setVerifyingIntegrity(true)
