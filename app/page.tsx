@@ -99,7 +99,7 @@ BgNVHRMBAf8EBTADAQH/MA4GA1UdDwEB/wQEAwIBhjAdBgNVHQ4EFgQUTiJUIBiV
 NeF22d+mQrvHRAiGfzZ0JFrabA0UWTW98kndth/Jsw1HKj2ZL7tcu7XUIOGZX1NG
 Fdtom/DzMNU+MeKNhJ7jitralj41E6Vf8PlwUHBHQRFXGU7Aj64GxJUTFy8bJZ91
 8rGOmaFvE7FBcf6IKshPECBV1/MUReXgRPTqh5Uykw7+U0b6LJ3/iyK5S9kJRaTe
-pLiaWN0bfVKfjllDiIGknibVb63dDcY3fe0Dkhvld1927jyNxF1WW6LZZm6zNTfl
+pLiaWN0bfVKfjllDiIGknibVb63dDcY3fe0Dkhvld1927jyNxF1WW6zNTfl
 MrY=
 -----END CERTIFICATE-----`
 
@@ -211,7 +211,6 @@ const Home: FunctionComponent = () => {
   // Add new state for MQTT timer
   const [mqttTimeRemaining, setMqttTimeRemaining] = useState(120)
   const [mqttTimerActive, setMqttTimerActive] = useState(false)
-  // </CHANGE>
 
   const logApiCall = (log: ApiCallLog) => {
     setApiCallLogs((prev) => [...prev, log].slice(-20)) // Keep only last 20 logs
@@ -453,9 +452,20 @@ const Home: FunctionComponent = () => {
     setMqttMessages([])
     setMqttConnected(false)
 
-    const vatskValue = certificateInfo.vatsk || "1234567890"
-    const pokladnicaValue = certificateInfo.pokladnica || "88812345678900001"
-    const topic = `VATSK-${vatskValue}/POKLADNICA-${pokladnicaValue}/${transactionId || "QR-01c40ef8bb2541659c2bd4abfb6a9964"}`
+    if (!certificateInfo.vatsk || !certificateInfo.pokladnica) {
+      setError("VATSK alebo POKLADNICA nie sú k dispozícii. Prosím, nahrajte platné certifikáty.")
+      setMqttLoading(false)
+      return
+    }
+
+    if (!transactionId) {
+      setError("Transaction ID nie je k dispozícii.")
+      setMqttLoading(false)
+      return
+    }
+
+    const topic = `VATSK-${certificateInfo.vatsk}/POKLADNICA-${certificateInfo.pokladnica}/${transactionId}`
+    // </CHANGE>
     console.log("[v0] Subscribing to MQTT topic:", topic)
 
     const startTime = Date.now()
@@ -483,8 +493,8 @@ const Home: FunctionComponent = () => {
       if (transactionId) {
         formData.append("transactionId", transactionId)
       }
-      formData.append("vatsk", vatskValue)
-      formData.append("pokladnica", pokladnicaValue)
+      formData.append("vatsk", certificateInfo.vatsk)
+      formData.append("pokladnica", certificateInfo.pokladnica)
 
       const res = await fetch("/api/mqtt-subscribe", {
         method: "POST",
@@ -751,9 +761,20 @@ const Home: FunctionComponent = () => {
   )
 
   const subscribeToQrBankNotifications = async (transactionId: string) => {
-    const vatskValue = certificateInfo.vatsk || "1234567890"
-    const pokladnicaValue = certificateInfo.pokladnica || "88812345678900001"
-    const topic = `VATSK-${vatskValue}/POKLADNICA-${pokladnicaValue}/${transactionId || "QR-01c40ef8bb2541659c2bd4abfb6a9964"}`
+    if (!certificateInfo.vatsk || !certificateInfo.pokladnica) {
+      setError("VATSK alebo POKLADNICA nie sú k dispozícii. Prosím, nahrajte platné certifikáty.")
+      setSubscriptionActive(false)
+      return
+    }
+
+    if (!transactionId) {
+      setError("Transaction ID nie je k dispozícii.")
+      setSubscriptionActive(false)
+      return
+    }
+
+    const topic = `VATSK-${certificateInfo.vatsk}/POKLADNICA-${certificateInfo.pokladnica}/${transactionId}`
+    // </CHANGE>
     console.log("[v0] Subscribing to MQTT topic:", topic)
 
     const startTime = Date.now()
@@ -780,7 +801,6 @@ const Home: FunctionComponent = () => {
         })
       }, 1000)
       cleanupRef.current.push(() => clearInterval(timerInterval)) // Add cleanup for the interval
-      // </CHANGE>
 
       const formData = new FormData()
       if (files.convertedCertPem && files.convertedKeyPem) {
@@ -792,8 +812,8 @@ const Home: FunctionComponent = () => {
       formData.append("caCert", files.caCert!)
       formData.append("certificateSecret", files.xmlPassword!)
       formData.append("transactionId", transactionId)
-      formData.append("vatsk", vatskValue)
-      formData.append("pokladnica", pokladnicaValue)
+      formData.append("vatsk", certificateInfo.vatsk)
+      formData.append("pokladnica", certificateInfo.pokladnica)
 
       console.log("[v0] Starting MQTT subscription...")
 
@@ -965,7 +985,6 @@ const Home: FunctionComponent = () => {
     }
   }, [files.xmlAuthData, files.xmlPassword, handleApiCallWithRetry, convertXmlToPem])
 
-  // Removed redeclared 'allRequiredFieldsComplete'
   const canSaveConfiguration =
     files.xmlAuthData &&
     files.xmlPassword &&
@@ -1580,7 +1599,7 @@ const Home: FunctionComponent = () => {
                           <Button
                             variant="outline"
                             className="w-full bg-transparent"
-                            disabled={!mqttTimerActive || mqttTimeRemaining <= 0} // Disable if timer is not active or finished
+                            disabled={mqttTimerActive || mqttTimeRemaining > 0} // Enable if timer is not active or finished
                             onClick={() => {
                               // TODO: Implement re-subscribe logic
                               console.log("[v0] Repeat subscription clicked")
@@ -1590,7 +1609,7 @@ const Home: FunctionComponent = () => {
                               }
                             }}
                           >
-                            {mqttTimerActive ? `Čakám ${mqttTimeRemaining}s` : "Zopakovať"}
+                            {mqttTimerActive ? `Čakám oznámenie z banky ${mqttTimeRemaining}s` : "Zopakovať"}
                           </Button>
                         </div>
 
@@ -1613,17 +1632,6 @@ const Home: FunctionComponent = () => {
                     <XCircle className="h-8 w-8 text-red-500" />
                   )}
                 </div>
-
-                {/* <div className="flex items-center justify-between mt-4">
-                  <div className="flex items-center gap-3 p-3 mx-3">
-                    {subscriptionActive && (
-                      <>
-                        <Clock className="h-5 w-5 text-blue-500 animate-pulse" />
-                        <span className="text-sm text-muted-foreground">Čakám na oznámenie z banky</span>
-                      </>
-                    )}
-                  </div> */}
-                {/* </CHANGE> */}
 
                 <div className="flex flex-col items-end gap-2">
                   {qrCode && (
