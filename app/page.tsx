@@ -841,9 +841,9 @@ const Home: FunctionComponent = () => {
         for (const message of data.messages) {
           try {
             const parsedMessage = JSON.parse(message)
-            if (parsedMessage.amount) {
+            if (parsedMessage.transactionAmount && parsedMessage.transactionAmount.amount) {
               // Convert the amount to the same format as eurAmount (digits only)
-              const amountValue = Number.parseFloat(parsedMessage.amount)
+              const amountValue = Number.parseFloat(parsedMessage.transactionAmount.amount)
               const amountInCents = Math.round(amountValue * 100)
               notificationAmount = amountInCents.toString()
               console.log(
@@ -859,6 +859,7 @@ const Home: FunctionComponent = () => {
             console.log("[v0] Could not parse message as JSON:", message)
           }
         }
+        // </CHANGE>
 
         setConfirmedPaymentAmount(notificationAmount)
         // </CHANGE>
