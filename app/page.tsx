@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Dialog, DialogContent } from "@/components/ui/dialog"
 import { Tooltip, TooltipProvider, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
-import { CheckCircle, X, Terminal, WifiOff, User, Clock, Info, QrCode, MoveLeft } from "lucide-react"
+import { CheckCircle, X, Terminal, WifiOff, User, Info, QrCode, MoveLeft } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Loader2, Upload } from "lucide-react"
 import QRCode from "qrcode"
@@ -207,6 +207,11 @@ const Home: FunctionComponent = () => {
 
   const [configurationSaved, setConfigurationSaved] = useState(false)
   const [savingConfiguration, setSavingConfiguration] = useState(false)
+
+  // Add new state for MQTT timer
+  const [mqttTimeRemaining, setMqttTimeRemaining] = useState(120)
+  const [mqttTimerActive, setMqttTimerActive] = useState(false)
+  // </CHANGE>
 
   const logApiCall = (log: ApiCallLog) => {
     setApiCallLogs((prev) => [...prev, log].slice(-20)) // Keep only last 20 logs
@@ -761,6 +766,21 @@ const Home: FunctionComponent = () => {
 
     try {
       setSubscriptionActive(true)
+      setMqttTimerActive(true)
+      setMqttTimeRemaining(120)
+
+      const timerInterval = setInterval(() => {
+        setMqttTimeRemaining((prev) => {
+          if (prev <= 1) {
+            clearInterval(timerInterval)
+            setMqttTimerActive(false)
+            return 0
+          }
+          return prev - 1
+        })
+      }, 1000)
+      cleanupRef.current.push(() => clearInterval(timerInterval)) // Add cleanup for the interval
+      // </CHANGE>
 
       const formData = new FormData()
       if (files.convertedCertPem && files.convertedKeyPem) {
@@ -1543,17 +1563,58 @@ const Home: FunctionComponent = () => {
                       <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
                     </div>
                   ) : qrCode ? (
-                    <div className="space-y-4 flex flex-col items-center">
+                    <div className="space-y-4 flex flex-col items-center w-full">
                       <div className="bg-white p-4 rounded-lg">
                         <img src={qrCode || "/placeholder.svg"} alt="Payment QR Code" className="w-64 h-64" />
                       </div>
+
+                      <div className="w-full max-w-sm space-y-3 px-4">
+                        {/* Timer progress button */}
+                        <div className="space-y-2">
+                          <div className="w-full bg-gray-200 rounded-full h-2">
+                            <div
+                              className="bg-blue-600 h-2 rounded-full transition-all duration-1000"
+                              style={{ width: `${(mqttTimeRemaining / 120) * 100}%` }}
+                            />
+                          </div>
+                          <Button
+                            variant="outline"
+                            className="w-full bg-transparent"
+                            disabled={!mqttTimerActive || mqttTimeRemaining <= 0} // Disable if timer is not active or finished
+                            onClick={() => {
+                              // TODO: Implement re-subscribe logic
+                              console.log("[v0] Repeat subscription clicked")
+                              // Re-subscribe to MQTT notifications
+                              if (qrTransactionId) {
+                                subscribeToQrBankNotifications(qrTransactionId)
+                              }
+                            }}
+                          >
+                            {mqttTimerActive ? `Čakám ${mqttTimeRemaining}s` : "Zopakovať"}
+                          </Button>
+                        </div>
+
+                        {/* Cancel payment button */}
+                        <Button
+                          variant="destructive"
+                          className="w-full"
+                          onClick={() => {
+                            // TODO: Implement cancel payment logic
+                            console.log("[v0] Cancel payment clicked")
+                            setShowQrModal(false) // Close the QR modal
+                          }}
+                        >
+                          Zrušiť platbu
+                        </Button>
+                      </div>
+                      {/* </CHANGE> */}
                     </div>
                   ) : (
                     <XCircle className="h-8 w-8 text-red-500" />
                   )}
                 </div>
 
-                <div className="flex items-center justify-between mt-4">
+                {/* <div className="flex items-center justify-between mt-4">
                   <div className="flex items-center gap-3 p-3 mx-3">
                     {subscriptionActive && (
                       <>
@@ -1561,47 +1622,47 @@ const Home: FunctionComponent = () => {
                         <span className="text-sm text-muted-foreground">Čakám na oznámenie z banky</span>
                       </>
                     )}
-                  </div>
+                  </div> */}
+                {/* </CHANGE> */}
 
-                  <div className="flex flex-col items-end gap-2">
-                    {qrCode && (
-                      <>
-                        <div className="flex items-center gap-3">
-                          <span className="text-xs text-muted-foreground text-right max-w-[200px]">
-                            Simulátor úhrady. Naskenuj link kamerou.
-                          </span>
-                          <div className="bg-white p-1 rounded border flex-shrink-0">
-                            <img
-                              src={`https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${encodeURIComponent("https://scantopay.vercel.app")}`}
-                              alt="Scan to open scantopay.vercel.app"
-                              className={`w-20 h-20 object-contain transition-all duration-300 ${
-                                scanToggleActive ? "blur-none" : "blur-sm"
-                              }`}
-                            />
-                          </div>
+                <div className="flex flex-col items-end gap-2">
+                  {qrCode && (
+                    <>
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs text-muted-foreground text-right max-w-[200px]">
+                          Simulátor úhrady. Naskenuj link kamerou.
+                        </span>
+                        <div className="bg-white p-1 rounded border flex-shrink-0">
+                          <img
+                            src={`https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${encodeURIComponent("https://scantopay.vercel.app")}`}
+                            alt="Scan to open scantopay.vercel.app"
+                            className={`w-20 h-20 object-contain transition-all duration-300 ${
+                              scanToggleActive ? "blur-none" : "blur-sm"
+                            }`}
+                          />
                         </div>
+                      </div>
 
-                        <div className="flex items-center gap-3">
-                          <span className="text-xs text-muted-foreground">
-                            {scanToggleActive ? `Zostávajúci čas ${scanTimeRemaining}s` : "Zaostri QR kód"}
-                          </span>
-                          <button
-                            onClick={handleScanToggle}
-                            disabled={scanToggleActive}
-                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
-                              scanToggleActive ? "bg-blue-600" : "bg-gray-200 hover:bg-gray-300"
-                            } ${scanToggleActive ? "cursor-not-allowed" : "cursor-pointer"}`}
-                          >
-                            <span
-                              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                                scanToggleActive ? "translate-x-6" : "translate-x-1"
-                              }`}
-                            />
-                          </button>
-                        </div>
-                      </>
-                    )}
-                  </div>
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs text-muted-foreground">
+                          {scanToggleActive ? `Zostávajúci čas ${scanTimeRemaining}s` : "Zaostri QR kód"}
+                        </span>
+                        <button
+                          onClick={handleScanToggle}
+                          disabled={scanToggleActive}
+                          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                            scanToggleActive ? "bg-blue-600" : "bg-gray-200 hover:bg-gray-300"
+                          } ${scanToggleActive ? "cursor-not-allowed" : "cursor-pointer"}`}
+                        >
+                          <span
+                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                              scanToggleActive ? "translate-x-6" : "translate-x-1"
+                            }`}
+                          />
+                        </button>
+                      </div>
+                    </>
+                  )}
                 </div>
               </DialogContent>
             </Dialog>
