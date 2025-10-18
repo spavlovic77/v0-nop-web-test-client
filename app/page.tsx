@@ -1736,7 +1736,7 @@ const Home: FunctionComponent = () => {
                               return (
                                 <div className="space-y-3">
                                   <span className="text-lg font-medium text-red-600">
-                                    Očakávaná suma je iná ako suma oznámená bankou
+                                    Pozor!!! Preverte platbu vo Vašej banke
                                   </span>
                                   <div className="bg-red-50 p-4 rounded-lg space-y-2">
                                     <div className="flex justify-between items-center">
@@ -1746,7 +1746,7 @@ const Home: FunctionComponent = () => {
                                       </span>
                                     </div>
                                     <div className="flex justify-between items-center">
-                                      <span className="text-sm text-gray-600">Prijatá suma:</span>
+                                      <span className="text-sm text-gray-600">Oznámená suma:</span>
                                       <span className="text-lg font-bold text-gray-900">
                                         {formatAmount(receivedAmount)} EUR
                                       </span>
