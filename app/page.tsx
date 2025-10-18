@@ -99,7 +99,7 @@ BgNVHRMBAf8EBTADAQH/MA4GA1UdDwEB/wQEAwIBhjAdBgNVHQ4EFgQUTiJUIBiV
 NeF22d+mQrvHRAiGfzZ0JFrabA0UWTW98kndth/Jsw1HKj2ZL7tcu7XUIOGZX1NG
 Fdtom/DzMNU+MeKNhJ7jitralj41E6Vf8PlwUHBHQRFXGU7Aj64GxJUTFy8bJZ91
 8rGOmaFvE7FBcf6IKshPECBV1/MUReXgRPTqh5Uykw7+U0b6LJ3/iyK5S9kJRaTe
-pLiaWN0bfVKfjllDiIGknibVb63dDcY3fe0Dkhvld1927jyNxF1WW6LZZm6zNTfl
+pLiaWN0bfVKfjllDiIGknibVb63dDcY3fe0Dkhvld1927jyNxF1WW6zNTfl
 MrY=
 -----END CERTIFICATE-----`
 
@@ -1703,9 +1703,7 @@ const Home: FunctionComponent = () => {
             <Dialog open={showPaymentReceivedModal} onOpenChange={setShowPaymentReceivedModal}>
               <DialogContent className="max-w-[95vw] max-h-[90vh]">
                 <div className="space-y-4 text-center py-8">
-                  <div className="text-xl font-semibold text-gray-800 mb-4">
-                    Prichádzajúca platba {formatEurAmountDisplay(confirmedPaymentAmount)} EUR
-                  </div>
+                  <div className="text-xl font-semibold text-gray-800 mb-4">Prichádzajúca platba</div>
 
                   {verifyingIntegrity ? (
                     <div className="flex flex-col items-center justify-center gap-4">
@@ -1717,12 +1715,72 @@ const Home: FunctionComponent = () => {
                       {integrityError ? (
                         <>
                           <XCircle className="h-12 w-12 text-red-600" />
-                          <span className="text-lg font-medium text-red-600">Nesprávna platba</span>
+                          {(() => {
+                            // Compare expected amount with received amount
+                            const expectedAmount = eurAmount
+                            const receivedAmount = confirmedPaymentAmount
+                            const amountsMatch = expectedAmount === receivedAmount
+
+                            if (!amountsMatch) {
+                              // Amounts don't match - show comparison
+                              const formatAmount = (cents: string) => {
+                                if (!cents || cents === "0") return "0,00"
+                                const cleanDigits = cents.replace(/^0+/, "") || "0"
+                                const paddedDigits = cleanDigits.padStart(2, "0")
+                                const centsValue = paddedDigits.slice(-2)
+                                const euros = paddedDigits.slice(0, -2) || "0"
+                                return `${euros},${centsValue}`
+                              }
+
+                              return (
+                                <div className="space-y-3">
+                                  <span className="text-lg font-medium text-red-600">
+                                    Očakávaná suma je iná ako suma oznámená bankou
+                                  </span>
+                                  <div className="bg-red-50 p-4 rounded-lg space-y-2">
+                                    <div className="flex justify-between items-center">
+                                      <span className="text-sm text-gray-600">Očakávaná suma:</span>
+                                      <span className="text-lg font-bold text-gray-900">
+                                        {formatAmount(expectedAmount)} EUR
+                                      </span>
+                                    </div>
+                                    <div className="flex justify-between items-center">
+                                      <span className="text-sm text-gray-600">Prijatá suma:</span>
+                                      <span className="text-lg font-bold text-gray-900">
+                                        {formatAmount(receivedAmount)} EUR
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
+                              )
+                            } else {
+                              // Amounts match but integrity error - invalid payment
+                              return (
+                                <span className="text-lg font-medium text-red-600">
+                                  Toto je neplatná platba. Kontaktujte banku.
+                                </span>
+                              )
+                            }
+                          })()}
+                          {/* </CHANGE> */}
                         </>
                       ) : (
                         <>
                           <CheckCircle className="h-12 w-12 text-green-600" />
-                          <span className="text-lg font-medium text-green-600">Platba overená</span>
+                          <span className="text-lg font-medium text-green-600">
+                            Platba vo výške {(() => {
+                              const formatAmount = (cents: string) => {
+                                if (!cents || cents === "0") return "0,00"
+                                const cleanDigits = cents.replace(/^0+/, "") || "0"
+                                const paddedDigits = cleanDigits.padStart(2, "0")
+                                const centsValue = paddedDigits.slice(-2)
+                                const euros = paddedDigits.slice(0, -2) || "0"
+                                return `${euros},${centsValue}`
+                              }
+                              return formatAmount(confirmedPaymentAmount)
+                            })()} EUR overená
+                          </span>
+                          {/* </CHANGE> */}
                         </>
                       )}
                     </div>
