@@ -1568,7 +1568,7 @@ const Home: FunctionComponent = () => {
                       <>
                         <div className="flex items-center gap-3">
                           <span className="text-xs text-muted-foreground text-right max-w-[200px]">
-                            Simulátor úhrady. Naskenuj link QR kamerou.
+                            Simulátor úhrady. Naskenuj link kamerou.
                           </span>
                           <div className="bg-white p-1 rounded border flex-shrink-0">
                             <img

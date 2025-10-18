@@ -52,7 +52,7 @@ async function saveMqttNotificationToDatabase(
     const supabase = createClient(supabaseUrl, supabaseKey)
     console.log("[v0] ✅ Supabase client created with service role key")
 
-    // Parse topic: VATSK-1029867938/POKLADNICA-88812345604850001/QR-f806d06f8bb64d6fa57b4dc25a9d6410
+    // Parse topic
     const topicParts = topic.split("/")
     let vatsk = null
     let pokladnica = null
@@ -161,7 +161,7 @@ async function saveMqttSubscriptionToDatabase(
     const supabase = createClient(supabaseUrl, supabaseKey)
     console.log("[v0] ✅ Supabase client created for subscription save")
 
-    // Parse topic: VATSK-1029867938/POKLADNICA-88812345604850001/QR-f806d06f8bb64d6fa57b4dc25a9d6410
+    // Parse topic
     const topicParts = topic.split("/")
     let vatsk = null
     let pokladnica = null
@@ -233,6 +233,34 @@ export async function POST(request: NextRequest) {
       })
     }
 
+    if (!vatsk || !pokladnica) {
+      console.log("[v0] Missing required parameters: vatsk or pokladnica")
+      return new Response(
+        JSON.stringify({
+          error: "Missing required parameters",
+          details: "Both vatsk and pokladnica are required",
+        }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        },
+      )
+    }
+
+    if (!transactionId) {
+      console.log("[v0] Missing required parameter: transactionId")
+      return new Response(
+        JSON.stringify({
+          error: "Missing required parameter",
+          details: "transactionId is required",
+        }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        },
+      )
+    }
+
     console.log("[v0] Converting files to buffers...")
     const sessionId = Date.now().toString()
     const clientCertPath = path.join("/tmp", `${sessionId}-client.pem`)
@@ -246,14 +274,10 @@ export async function POST(request: NextRequest) {
       writeFile(caCertPath, await getCertificateBuffer(caCert)),
     ])
 
-    const vatskValue = vatsk || "1234567890"
-    const pokladnicaValue = pokladnica || "88812345678900001"
-    const mqttTopic = transactionId
-      ? `VATSK-${vatskValue}/POKLADNICA-${pokladnicaValue}/${transactionId}`
-      : `VATSK-${vatskValue}/POKLADNICA-${pokladnicaValue}/QR-01c40ef8bb2541659c2bd4abfb6a9964`
+    const mqttTopic = `VATSK-${vatsk}/POKLADNICA-${pokladnica}/${transactionId}`
 
     console.log("[v0] Starting MQTT subscription with MQTT.js library...")
-    console.log("[v0] Using transaction ID:", transactionId || "default")
+    console.log("[v0] Using transaction ID:", transactionId)
     console.log("[v0] MQTT topic:", mqttTopic)
     console.log("[v0] Will listen for 120 seconds...")
 
