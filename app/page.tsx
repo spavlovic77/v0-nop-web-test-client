@@ -1194,8 +1194,10 @@ const Home: FunctionComponent = () => {
   }
 
   const handleTransactionDisputeClick = (transactionId: string) => {
+    console.log("[v0] handleTransactionDisputeClick called with:", transactionId)
     setSelectedDisputeTransaction(transactionId)
     setShowDisputeActionModal(true)
+    console.log("[v0] showDisputeActionModal set to true")
   }
 
   const handleConfirmDisputeAction = async () => {
@@ -2227,7 +2229,7 @@ const Home: FunctionComponent = () => {
                 </div>
               </DialogContent>
             </Dialog>
-            {/* Add dispute confirmation modal before closing tag */}
+            {/* Dispute confirmation modal (from cancel payment) */}
             <Dialog open={showDisputeConfirmModal} onOpenChange={setShowDisputeConfirmModal}>
               <DialogContent className="sm:max-w-md">
                 <DialogHeader>
@@ -2246,8 +2248,28 @@ const Home: FunctionComponent = () => {
                 </div>
               </DialogContent>
             </Dialog>
+
+            <Dialog open={showDisputeActionModal} onOpenChange={setShowDisputeActionModal}>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Doklad o neoznámenej úhrade</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <p className="text-center text-lg">Ukončiť s potvrdením o neoznámenej úhrade?</p>
+                  <div className="flex gap-3">
+                    <Button variant="outline" className="flex-1 bg-transparent" onClick={handleCancelDisputeAction}>
+                      Nie
+                    </Button>
+                    <Button className="flex-1" onClick={handleConfirmDisputeAction}>
+                      Áno
+                    </Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
             {/* </CHANGE> */}
 
+            {/* Dispute date picker modal */}
             <Dialog open={showDisputeDateModal} onOpenChange={setShowDisputeDateModal}>
               <DialogContent className="max-w-md">
                 <div className="space-y-4">
