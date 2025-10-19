@@ -102,6 +102,44 @@ export default function ConfirmationPage() {
 
   return (
     <div className="min-h-screen bg-background p-4 md:p-8">
+      <style jsx global>{`
+        @media print {
+          body {
+            padding: 10px !important;
+            margin: 0 !important;
+          }
+          .print\\:hidden {
+            display: none !important;
+          }
+          .print\\:shadow-none {
+            box-shadow: none !important;
+          }
+          * {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+          @page {
+            size: auto;
+            margin: 10mm;
+          }
+        }
+        
+        @media print and (max-width: 600px) {
+          body {
+            font-size: 12px !important;
+          }
+          h1, h2, h3 {
+            font-size: 16px !important;
+          }
+          .grid {
+            display: block !important;
+          }
+          .grid > div {
+            margin-bottom: 8px !important;
+          }
+        }
+      `}</style>
+
       <div className="max-w-4xl mx-auto">
         <div className="print:hidden mb-4">
           <Button onClick={handlePrint} className="gap-2">

@@ -1294,91 +1294,110 @@ const Home: FunctionComponent = () => {
     const disputedTransactions = sortedDisputeTransactions.filter((t) => t.dispute === true)
 
     if (disputedTransactions.length === 0) {
-      alert("Žiadne transakcie s vyhotoveným dokladom")
       return
     }
-
-    const printWindow = window.open("", "_blank")
-    if (!printWindow) return
 
     const printContent = `
       <!DOCTYPE html>
       <html>
         <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
           <title>Doklady o neoznámenej úhrade</title>
           <style>
-            body {
-              font-family: Arial, sans-serif;
-              padding: 20px;
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body { 
+              font-family: Arial, sans-serif; 
+              padding: 15px;
+              font-size: 12px;
+              line-height: 1.4;
             }
-            h1 {
-              text-align: center;
-              margin-bottom: 20px;
+            h1 { 
+              font-size: 18px;
+              color: #333; 
+              border-bottom: 2px solid #333; 
+              padding-bottom: 8px;
+              margin-bottom: 15px;
             }
-            table {
-              width: 100%;
-              border-collapse: collapse;
-              margin-top: 20px;
+            p { margin-bottom: 8px; }
+            table { 
+              width: 100%; 
+              border-collapse: collapse; 
+              margin: 15px 0;
+              font-size: 11px;
             }
-            th, td {
-              border: 1px solid #ddd;
-              padding: 12px;
+            th, td { 
+              border: 1px solid #ddd; 
+              padding: 6px 4px;
               text-align: left;
+              word-wrap: break-word;
             }
-            th {
-              background-color: #f5f5f5;
+            th { 
+              background-color: #f5f5f5; 
               font-weight: bold;
+              font-size: 11px;
             }
-            .amount {
-              text-align: right;
-            }
-            .transaction-id {
-              font-family: monospace;
-            }
+            .amount { text-align: right; }
+            
             @media print {
-              body {
-                padding: 10px;
-              }
+              body { padding: 10px; }
+              table { page-break-inside: auto; }
+              tr { page-break-inside: avoid; page-break-after: auto; }
+            }
+            
+            @media screen and (max-width: 600px) {
+              body { font-size: 11px; }
+              h1 { font-size: 16px; }
+              th, td { padding: 4px 2px; font-size: 10px; }
             }
           </style>
         </head>
         <body>
           <h1>Doklady o neoznámenej úhrade</h1>
           <p><strong>Dátum:</strong> ${selectedDisputeDate ? new Date(selectedDisputeDate).toLocaleDateString("sk-SK") : ""}</p>
-          <p><strong>Pokladnica:</strong> ${certificateInfo?.pokladnica || ""}</p>
+          <p><strong>Pokladnica:</strong> ${certificateInfo?.pokladnica?.slice(3) || ""}</p>
           <table>
             <thead>
               <tr>
-                <th>Čas</th>
-                <th>Transaction ID</th>
-                <th class="amount">Suma (EUR)</th>
+                <th style="width: 25%;">Čas</th>
+                <th style="width: 50%;">Transaction ID</th>
+                <th class="amount" style="width: 25%;">Suma (EUR)</th>
               </tr>
             </thead>
             <tbody>
               ${disputedTransactions
-                .map(
-                  (transaction) => `
-                <tr>
-                  <td>${new Date(transaction.response_timestamp).toLocaleString("sk-SK")}</td>
-                  <td class="transaction-id">${transaction.transaction_id}</td>
-                  <td class="amount">${formatAmount(transaction.amount)}</td>
-                </tr>
-              `,
-                )
+                .map((transaction) => {
+                  const amount = transaction.amount ? (Number.parseInt(transaction.amount) / 100).toFixed(2) : "0.00"
+                  return `
+                    <tr>
+                      <td>${new Date(transaction.response_timestamp).toLocaleTimeString("sk-SK", { hour: "2-digit", minute: "2-digit" })}</td>
+                      <td style="font-family: monospace; font-size: 10px; word-break: break-all;">${transaction.transaction_id}</td>
+                      <td class="amount">${amount}</td>
+                    </tr>
+                  `
+                })
                 .join("")}
             </tbody>
           </table>
+          <p style="margin-top: 15px;"><strong>Vygenerované:</strong> ${new Date().toLocaleString("sk-SK")}</p>
+          <script>
+            window.onload = function() {
+              setTimeout(function() {
+                window.print();
+              }, 250);
+            };
+          </script>
         </body>
       </html>
     `
 
-    printWindow.document.write(printContent)
-    printWindow.document.close()
-    printWindow.focus()
-    setTimeout(() => {
-      printWindow.print()
-    }, 250)
+    const printWindow = window.open("", "_blank")
+    if (printWindow) {
+      printWindow.document.write(printContent)
+      printWindow.document.close()
+    }
   }
+  // </CHANGE>
 
   const handleQrModalClose = (open: boolean) => {
     // Do nothing - modal can only be closed via the "Zrušiť platbu" button
@@ -1433,54 +1452,67 @@ const Home: FunctionComponent = () => {
     }, 0)
   }
 
-  const printTransactionSummary = () => {
-    const printContent = `
-      <html>
-        <head>
-          <title>Súhrn transakcií - ${selectedTransactionDate}</title>
-          <style>
-            body { font-family: Arial, sans-serif; margin: 20px; }
-            h1 { color: #333; border-bottom: 2px solid #333; padding-bottom: 10px; }
-            .summary { margin-top: 20px; padding: 15px; background-color: #f9f9f9; border-radius: 5px; }
-            .summary-item { margin: 10px 0; font-size: 16px; }
-          </style>
-        </head>
-        <body>
-          <h1>Súhrn transakcií</h1>
-          <p><strong>Dátum:</strong> ${new Date(selectedTransactionDate).toLocaleDateString("sk-SK")}</p>
-          <div class="summary">
-            <div class="summary-item"><strong>Dátum:</strong> ${new Date(selectedTransactionDate).toLocaleDateString("sk-SK")}</div>
-            <div class="summary-item"><strong>Počet transakcií:</strong> ${transactionListData.length}</div>
-            <div class="summary-item"><strong>Celková suma:</strong> ${calculateTransactionTotal().toFixed(2)} EUR</div>
-            <div class="summary-item"><strong>Vygenerované:</strong> ${new Date().toLocaleString("sk-SK")}</div>
-          </div>
-        </body>
-      </html>
-    `
-
-    const printWindow = window.open("", "_blank")
-    if (printWindow) {
-      printWindow.document.write(printContent)
-      printWindow.document.close()
-      printWindow.print()
-    }
-  }
-
   const printAllTransactions = () => {
     const printContent = `
+      <!DOCTYPE html>
       <html>
         <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
           <title>Všetky transakcie - ${selectedTransactionDate}</title>
           <style>
-            body { font-family: Arial, sans-serif; margin: 20px; }
-            h1 { color: #333; border-bottom: 2px solid #333; padding-bottom: 10px; }
-            table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-            th { background-color: #f5f5f5; font-weight: bold; }
-            .total { font-weight: bold; background-color: #e8f4fd; }
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body { 
+              font-family: Arial, sans-serif; 
+              padding: 15px;
+              font-size: 12px;
+              line-height: 1.4;
+            }
+            h1 { 
+              font-size: 18px;
+              color: #333; 
+              border-bottom: 2px solid #333; 
+              padding-bottom: 8px;
+              margin-bottom: 15px;
+            }
+            p { margin-bottom: 8px; }
+            table { 
+              width: 100%; 
+              border-collapse: collapse; 
+              margin: 15px 0;
+              font-size: 11px;
+            }
+            th, td { 
+              border: 1px solid #ddd; 
+              padding: 6px 4px;
+              text-align: left;
+              word-wrap: break-word;
+            }
+            th { 
+              background-color: #f5f5f5; 
+              font-weight: bold;
+              font-size: 11px;
+            }
+            .total { 
+              font-weight: bold; 
+              background-color: #e8f4fd;
+            }
             .verified { color: #16a34a; font-weight: bold; }
             .failed { color: #dc2626; font-weight: bold; }
             .pending { color: #9ca3af; }
+            .amount { text-align: right; }
+            
+            @media print {
+              body { padding: 10px; }
+              table { page-break-inside: auto; }
+              tr { page-break-inside: avoid; page-break-after: auto; }
+            }
+            
+            @media screen and (max-width: 600px) {
+              body { font-size: 11px; }
+              h1 { font-size: 16px; }
+              th, td { padding: 4px 2px; font-size: 10px; }
+            }
           </style>
         </head>
         <body>
@@ -1490,10 +1522,10 @@ const Home: FunctionComponent = () => {
           <table>
             <thead>
               <tr>
-                <th>Čas</th>
-                <th>Transaction ID</th>
-                <th>Suma (EUR)</th>
-                <th>Overenie</th>
+                <th style="width: 15%;">Čas</th>
+                <th style="width: 40%;">Transaction ID</th>
+                <th class="amount" style="width: 20%;">Suma (EUR)</th>
+                <th style="width: 25%;">Overenie</th>
               </tr>
             </thead>
             <tbody>
@@ -1508,22 +1540,30 @@ const Home: FunctionComponent = () => {
 
                   return `
                       <tr>
-                        <td>${new Date(transaction.payload_received_at).toLocaleTimeString("sk-SK")}</td>
-                        <td>${transaction.end_to_end_id || "N/A"}</td>
-                        <td>${Number.parseFloat(transaction.amount || 0).toFixed(2)}</td>
+                        <td>${new Date(transaction.payload_received_at).toLocaleTimeString("sk-SK", { hour: "2-digit", minute: "2-digit" })}</td>
+                        <td style="font-family: monospace; font-size: 10px; word-break: break-all;">${transaction.end_to_end_id || "N/A"}</td>
+                        <td class="amount">${Number.parseFloat(transaction.amount || 0).toFixed(2)}</td>
                         <td>${verificationStatus}</td>
                       </tr>
                     `
                 })
                 .join("")}
               <tr class="total">
-                <td colspan="3"><strong>Celková suma:</strong></td>
-                <td><strong>${calculateTransactionTotal().toFixed(2)} EUR</strong></td>
+                <td colspan="2"><strong>Celková suma:</strong></td>
+                <td class="amount"><strong>${calculateTransactionTotal().toFixed(2)} EUR</strong></td>
+                <td></td>
               </tr>
             </tbody>
           </table>
           
-          <p><strong>Vygenerované:</strong> ${new Date().toLocaleString("sk-SK")}</p>
+          <p style="margin-top: 15px;"><strong>Vygenerované:</strong> ${new Date().toLocaleString("sk-SK")}</p>
+          <script>
+            window.onload = function() {
+              setTimeout(function() {
+                window.print();
+              }, 250);
+            };
+          </script>
         </body>
       </html>
     `
@@ -1532,7 +1572,121 @@ const Home: FunctionComponent = () => {
     if (printWindow) {
       printWindow.document.write(printContent)
       printWindow.document.close()
-      printWindow.print()
+    }
+  }
+  // </CHANGE>
+
+  // Define printTransactionSummary here
+  const printTransactionSummary = () => {
+    const printContent = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Súhrn transakcií - ${selectedTransactionDate}</title>
+          <style>
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body { 
+              font-family: Arial, sans-serif; 
+              padding: 15px;
+              font-size: 12px;
+              line-height: 1.4;
+            }
+            h1 { 
+              font-size: 18px;
+              color: #333; 
+              border-bottom: 2px solid #333; 
+              padding-bottom: 8px;
+              margin-bottom: 15px;
+            }
+            p { margin-bottom: 8px; }
+            table { 
+              width: 100%; 
+              border-collapse: collapse; 
+              margin: 15px 0;
+              font-size: 11px;
+            }
+            th, td { 
+              border: 1px solid #ddd; 
+              padding: 6px 4px;
+              text-align: left;
+              word-wrap: break-word;
+            }
+            th { 
+              background-color: #f5f5f5; 
+              font-weight: bold;
+              font-size: 11px;
+            }
+            .total { 
+              font-weight: bold; 
+              background-color: #e8f4fd;
+            }
+            .verified { color: #16a34a; font-weight: bold; }
+            .failed { color: #dc2626; font-weight: bold; }
+            .pending { color: #9ca3af; }
+            .amount { text-align: right; }
+            
+            @media print {
+              body { padding: 10px; }
+              table { page-break-inside: auto; }
+              tr { page-break-inside: avoid; page-break-after: auto; }
+            }
+            
+            @media screen and (max-width: 600px) {
+              body { font-size: 11px; }
+              h1 { font-size: 16px; }
+              th, td { padding: 4px 2px; font-size: 10px; }
+            }
+          </style>
+        </head>
+        <body>
+          <h1>Súhrn transakcií</h1>
+          <p><strong>Dátum:</strong> ${new Date(selectedTransactionDate).toLocaleDateString("sk-SK")}</p>
+          
+          <table>
+            <thead>
+              <tr>
+                <th style="width: 20%;">Čas</th>
+                <th style="width: 40%;">Transaction ID</th>
+                <th class="amount" style="width: 40%;">Suma (EUR)</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${transactionListData
+                .map((transaction) => {
+                  return `
+                      <tr>
+                        <td>${new Date(transaction.payload_received_at).toLocaleTimeString("sk-SK", { hour: "2-digit", minute: "2-digit" })}</td>
+                        <td style="font-family: monospace; font-size: 10px; word-break: break-all;">${transaction.end_to_end_id || "N/A"}</td>
+                        <td class="amount">${Number.parseFloat(transaction.amount || 0).toFixed(2)}</td>
+                      </tr>
+                    `
+                })
+                .join("")}
+              <tr class="total">
+                <td colspan="2"><strong>Celková suma:</strong></td>
+                <td class="amount"><strong>${calculateTransactionTotal().toFixed(2)} EUR</strong></td>
+              </tr>
+            </tbody>
+          </table>
+          
+          <p style="margin-top: 15px;"><strong>Vygenerované:</strong> ${new Date().toLocaleString("sk-SK")}</p>
+          <script>
+            window.onload = function() {
+              setTimeout(function() {
+                window.print();
+              }, 250);
+            };
+          </script>
+        </body>
+      </html>
+    `
+
+    const printWindow = window.open("", "_blank")
+    if (printWindow) {
+      printWindow.document.write(printContent)
+      printWindow.document.close()
     }
   }
 
