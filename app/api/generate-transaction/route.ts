@@ -133,6 +133,8 @@ async function saveTransactionGeneration(data: {
   transaction_id?: string
   vatsk?: string
   pokladnica?: string
+  iban?: string
+  amount?: string
   endpoint: string
   method: string
   status_code: number
@@ -156,6 +158,8 @@ async function saveTransactionGeneration(data: {
         transaction_id: data.transaction_id,
         vatsk: data.vatsk,
         pokladnica: data.pokladnica,
+        iban: data.iban,
+        amount: data.amount,
         endpoint: data.endpoint,
         method: data.method,
         status_code: data.status_code,
@@ -192,6 +196,8 @@ export async function POST(request: NextRequest) {
     const clientCert = formData.get("clientCert")
     const clientKey = formData.get("clientKey")
     const caCert = formData.get("caCert")
+    const iban = formData.get("iban") as string | null
+    const amount = formData.get("amount") as string | null
 
     if (!clientCert || !clientKey || !caCert) {
       console.log(`[v0] ❌ Missing certificate files`)
@@ -253,6 +259,8 @@ export async function POST(request: NextRequest) {
       transaction_id: responseData?.transaction_id,
       vatsk,
       pokladnica,
+      iban: iban || undefined,
+      amount: amount || undefined,
       endpoint: "/api/generate-transaction",
       method: "POST",
       status_code: 200,

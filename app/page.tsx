@@ -338,7 +338,7 @@ const Home: FunctionComponent = () => {
     return cleanValue.replace(/(.{4})/g, "$1 ").trim()
   }
 
-  useEffect(() => {
+  const useEffectOnlineStatus = () => {
     const handleOnline = () => setIsOnline(true)
     const handleOffline = () => setIsOnline(false)
 
@@ -351,7 +351,9 @@ const Home: FunctionComponent = () => {
       window.removeEventListener("online", handleOnline)
       window.removeEventListener("offline", handleOffline)
     }
-  }, [])
+  }
+
+  useEffect(useEffectOnlineStatus, [])
 
   useEffect(() => {
     if (!supabase) {
@@ -665,6 +667,8 @@ const Home: FunctionComponent = () => {
         formData.append("clientKey", files.convertedKeyPem)
         formData.append("caCert", files.caCert!)
         formData.append("certificateSecret", files.xmlPassword!)
+        formData.append("iban", userIban)
+        formData.append("amount", eurAmount)
 
         console.log("[v0] FormData prepared, making API call to generate transaction...")
         const res = await fetch("/api/generate-transaction", {
@@ -2015,10 +2019,10 @@ const Home: FunctionComponent = () => {
             <Dialog open={showDisputeConfirmModal} onOpenChange={setShowDisputeConfirmModal}>
               <DialogContent className="sm:max-w-md">
                 <DialogHeader>
-                  <DialogTitle>Potvrdenie</DialogTitle>
+                  <DialogTitle>Doklad</DialogTitle>
                 </DialogHeader>
                 <div className="space-y-4">
-                  <p className="text-center text-lg">Ukončiť s potvrdením o neoznámenej úhrade?</p>
+                  <p className="text-center text-lg">Vyhotoviť doklad o nepotvrdení zrealizovanej platby?</p>
                   <div className="flex gap-3">
                     <Button variant="outline" className="flex-1 bg-transparent" onClick={handleDisputeNo}>
                       Nie
