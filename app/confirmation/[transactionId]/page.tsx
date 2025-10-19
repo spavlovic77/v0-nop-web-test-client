@@ -20,6 +20,8 @@ interface TransactionData {
   created_at: string
   response_timestamp: string
   dispute: boolean
+  iban: string | null
+  amount: string | null
 }
 
 export default function ConfirmationPage() {
@@ -61,6 +63,12 @@ export default function ConfirmationPage() {
 
   const handlePrint = () => {
     window.print()
+  }
+
+  const formatAmount = (amountInCents: string | null): string => {
+    if (!amountInCents) return "N/A"
+    const euros = Number.parseInt(amountInCents) / 100
+    return `${euros.toFixed(2)} €`
   }
 
   if (loading) {
@@ -110,6 +118,18 @@ export default function ConfirmationPage() {
           <CardContent className="p-6 space-y-6">
             {/* Transaction Details */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {transaction.iban && (
+                <div className="md:col-span-2">
+                  <p className="text-sm font-medium text-muted-foreground">IBAN</p>
+                  <p className="text-base font-mono">{transaction.iban}</p>
+                </div>
+              )}
+              {transaction.amount && (
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Suma</p>
+                  <p className="text-lg font-semibold">{formatAmount(transaction.amount)}</p>
+                </div>
+              )}
               <div>
                 <p className="text-sm font-medium text-muted-foreground">VATSK</p>
                 <p className="text-base font-mono">{transaction.vatsk}</p>
