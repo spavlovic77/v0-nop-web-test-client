@@ -2056,7 +2056,7 @@ const Home: FunctionComponent = () => {
 
                   <div className="space-y-2">
                     <Label htmlFor="transactionDate" className="text-sm font-medium">
-                      Dátum transakcií
+                      Dátum
                     </Label>
                     <Input
                       id="transactionDate"
@@ -2087,7 +2087,7 @@ const Home: FunctionComponent = () => {
               <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-semibold">
-                    Zoznam transakcií -{" "}
+                    Zoznam platieb -{" "}
                     {selectedTransactionDate ? new Date(selectedTransactionDate).toLocaleDateString("sk-SK") : ""}
                   </h3>
                   <div className="flex gap-2">
@@ -2106,14 +2106,14 @@ const Home: FunctionComponent = () => {
                   {transactionListLoading ? (
                     <div className="flex items-center justify-center py-8">
                       <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
-                      <span className="ml-2">Načítavam transakcie...</span>
+                      <span className="ml-2">Načítavam platby...</span>
                     </div>
                   ) : transactionListData.length > 0 ? (
                     <div className="space-y-4">
                       <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
                         <div className="text-center">
                           <div className="text-2xl font-bold text-blue-600">{transactionListData.length}</div>
-                          <div className="text-sm text-gray-600">Transakcií</div>
+                          <div className="text-sm text-gray-600">Platieb</div>
                         </div>
                         <div className="text-center">
                           <div className="text-2xl font-bold text-green-600">
@@ -2126,7 +2126,7 @@ const Home: FunctionComponent = () => {
                   ) : (
                     <div className="text-center py-8 text-gray-500">
                       <Calendar className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                      <p>Žiadne transakcie pre vybraný dátum</p>
+                      <p>Žiadne platby pre vybraný dátum</p>
                     </div>
                   )}
                 </div>
@@ -2161,7 +2161,7 @@ const Home: FunctionComponent = () => {
                 <div className="space-y-4">
                   <div className="flex items-center gap-3">
                     <AlertTriangle className="h-6 w-6 text-orange-500" />
-                    <h3 className="text-lg font-semibold">Potvrdenie sporu</h3>
+                    <h3 className="text-lg font-semibold">Doklad</h3>
                   </div>
 
                   <p className="text-sm text-muted-foreground">Ukončiť s potvrdením o neoznámenej úhrade?</p>
@@ -2213,7 +2213,7 @@ const Home: FunctionComponent = () => {
               <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-semibold">
-                    Generované transakcie -{" "}
+                    Generované ID transakcií -{" "}
                     {selectedDisputeDate ? new Date(selectedDisputeDate).toLocaleDateString("sk-SK") : ""}
                   </h3>
                 </div>
@@ -2254,7 +2254,7 @@ const Home: FunctionComponent = () => {
                               </div>
                             </th>
                             {/* </CHANGE> */}
-                            <th className="border p-2 text-center text-sm font-medium">Rozpor</th>
+                            <th className="border p-2 text-center text-sm font-medium">Doklad</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -2270,14 +2270,14 @@ const Home: FunctionComponent = () => {
                               <td className="border p-2 text-sm text-right">{formatAmount(transaction.amount)}</td>
                               <td className="border p-2 text-center">
                                 {transaction.dispute ? (
-                                  <span className="text-orange-500 text-xs font-medium">Rozporované</span>
+                                  <span className="text-orange-500 text-xs font-medium">Vyhotovený</span>
                                 ) : (
                                   <Button
                                     variant="ghost"
                                     size="sm"
                                     onClick={() => handleTransactionDisputeClick(transaction.transaction_id)}
                                     className="p-1"
-                                    title="Označiť spor"
+                                    title="Vyhotoviť doklad"
                                   >
                                     <AlertTriangle className="h-4 w-4 text-orange-500" />
                                   </Button>
