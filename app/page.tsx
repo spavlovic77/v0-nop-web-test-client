@@ -2255,7 +2255,7 @@ const Home: FunctionComponent = () => {
                   <DialogTitle>Doklad o neoznámenej úhrade</DialogTitle>
                 </DialogHeader>
                 <div className="space-y-4">
-                  <p className="text-center text-lg">Ukončiť s potvrdením o neoznámenej úhrade?</p>
+                  <p className="text-center text-lg">Vyhotoviť doklad o neoznámenej úhrade?</p>
                   <div className="flex gap-3">
                     <Button variant="outline" className="flex-1 bg-transparent" onClick={handleCancelDisputeAction}>
                       Nie
