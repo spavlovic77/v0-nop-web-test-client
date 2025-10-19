@@ -1271,6 +1271,97 @@ const Home: FunctionComponent = () => {
     return disputeSortDirection === "asc" ? comparison : -comparison
   })
 
+  const handlePrintDisputedTransactions = () => {
+    const disputedTransactions = sortedDisputeTransactions.filter((t) => t.dispute === true)
+
+    if (disputedTransactions.length === 0) {
+      alert("Žiadne transakcie s vyhotoveným dokladom")
+      return
+    }
+
+    const printWindow = window.open("", "_blank")
+    if (!printWindow) return
+
+    const printContent = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Doklady o neoznámenej úhrade</title>
+          <style>
+            body {
+              font-family: Arial, sans-serif;
+              padding: 20px;
+            }
+            h1 {
+              text-align: center;
+              margin-bottom: 20px;
+            }
+            table {
+              width: 100%;
+              border-collapse: collapse;
+              margin-top: 20px;
+            }
+            th, td {
+              border: 1px solid #ddd;
+              padding: 12px;
+              text-align: left;
+            }
+            th {
+              background-color: #f5f5f5;
+              font-weight: bold;
+            }
+            .amount {
+              text-align: right;
+            }
+            .transaction-id {
+              font-family: monospace;
+            }
+            @media print {
+              body {
+                padding: 10px;
+              }
+            }
+          </style>
+        </head>
+        <body>
+          <h1>Doklady o neoznámenej úhrade</h1>
+          <p><strong>Dátum:</strong> ${selectedDisputeDate ? new Date(selectedDisputeDate).toLocaleDateString("sk-SK") : ""}</p>
+          <p><strong>Pokladnica:</strong> ${certificateInfo?.pokladnica || ""}</p>
+          <table>
+            <thead>
+              <tr>
+                <th>Čas</th>
+                <th>Transaction ID</th>
+                <th class="amount">Suma (EUR)</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${disputedTransactions
+                .map(
+                  (transaction) => `
+                <tr>
+                  <td>${new Date(transaction.response_timestamp).toLocaleString("sk-SK")}</td>
+                  <td class="transaction-id">${transaction.transaction_id}</td>
+                  <td class="amount">${formatAmount(transaction.amount)}</td>
+                </tr>
+              `,
+                )
+                .join("")}
+            </tbody>
+          </table>
+        </body>
+      </html>
+    `
+
+    printWindow.document.write(printContent)
+    printWindow.document.close()
+    printWindow.focus()
+    setTimeout(() => {
+      printWindow.print()
+    }, 250)
+  }
+  // </CHANGE>
+
   const handleQrModalClose = (open: boolean) => {
     // Do nothing - modal can only be closed via the "Zrušiť platbu" button
   }
@@ -2155,28 +2246,6 @@ const Home: FunctionComponent = () => {
                 </div>
               </DialogContent>
             </Dialog>
-
-            <Dialog open={showDisputeActionModal} onOpenChange={setShowDisputeActionModal}>
-              <DialogContent className="max-w-md">
-                <div className="space-y-4">
-                  <div className="flex items-center gap-3">
-                    <AlertTriangle className="h-6 w-6 text-orange-500" />
-                    <h3 className="text-lg font-semibold">Doklad</h3>
-                  </div>
-
-                  <p className="text-sm text-muted-foreground">Vyhotoviť potvrdenie o neoznámenej úhrade?</p>
-
-                  <div className="flex justify-end gap-3 mt-6">
-                    <Button variant="outline" onClick={handleCancelDisputeAction}>
-                      Nie
-                    </Button>
-                    <Button onClick={handleConfirmDisputeAction} className="bg-orange-500 hover:bg-orange-600">
-                      Áno
-                    </Button>
-                  </div>
-                </div>
-              </DialogContent>
-            </Dialog>
             {/* </CHANGE> */}
 
             <Dialog open={showDisputeDateModal} onOpenChange={setShowDisputeDateModal}>
@@ -2297,9 +2366,18 @@ const Home: FunctionComponent = () => {
                   )}
                 </div>
 
-                <div className="flex justify-end mt-4">
+                <div className="flex justify-between mt-4">
+                  <Button
+                    onClick={handlePrintDisputedTransactions}
+                    variant="outline"
+                    disabled={sortedDisputeTransactions.filter((t) => t.dispute === true).length === 0}
+                  >
+                    <Printer className="h-4 w-4 mr-2" />
+                    Vytlačiť
+                  </Button>
                   <Button onClick={() => setShowDisputeListModal(false)}>Zavrieť</Button>
                 </div>
+                {/* </CHANGE> */}
               </DialogContent>
             </Dialog>
           </div>
