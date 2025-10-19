@@ -691,6 +691,10 @@ const Home: FunctionComponent = () => {
           throw new Error(data.error || `HTTP ${res.status}: ${res.statusText}`)
         }
 
+        console.log("[v0] Logging generate-transaction API call to console...")
+        logApiCall(logEntry)
+        console.log("[v0] Generate-transaction API call logged successfully")
+
         let transactionId = null
         if (data.data && data.data.transactionId) {
           transactionId = data.data.transactionId
@@ -729,13 +733,10 @@ const Home: FunctionComponent = () => {
       } catch (err) {
         console.error("[v0] QR generation error:", err)
         logEntry.error = err instanceof Error ? err.message : "Failed to generate QR code"
+        logApiCall(logEntry)
         setError(err instanceof Error ? err.message : "Failed to generate QR code")
         setQrLoading(false)
         setShowQrModal(false)
-      } finally {
-        console.log("[v0] Logging API call to console...")
-        logApiCall(logEntry)
-        console.log("[v0] API call logged successfully")
       }
     } else {
       console.log("[v0] EARLY RETURN: handleQrGeneration validation failed - invalid amount")
