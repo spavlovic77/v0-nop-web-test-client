@@ -2,7 +2,7 @@
 
 import React from "react"
 import type { FunctionComponent } from "react"
-import { Copy, XCircle, AlertTriangle } from "lucide-react" // Import Copy icon, AlertTriangle icon
+import { Copy, XCircle, FileText, Github } from "lucide-react" // Import Copy icon, AlertTriangle icon, FileText, Github
 import { Euro, LogOut, Printer, Calendar } from "lucide-react" // Import Euro, Printer, Calendar icons
 
 import { useState, useEffect, useCallback, useRef } from "react"
@@ -1714,6 +1714,19 @@ const Home: FunctionComponent = () => {
                           Získaj autentifikačné údaje
                         </Button>
                       </div>
+
+                      <div className="text-center pt-4 mt-4 border-t border-gray-200">
+                        <a
+                          href="https://github.com/spavlovic77/v0-nop-web-test-client"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-2 text-xs text-gray-500 hover:text-gray-700 transition-colors"
+                        >
+                          <Github className="h-3 w-3" />
+                          <span>Vibecoded in Vercel V0</span>
+                        </a>
+                      </div>
+                      {/* </CHANGE> */}
                     </CardContent>
                   </Card>
                 </div>
@@ -2360,9 +2373,7 @@ const Home: FunctionComponent = () => {
                               {/* </CHANGE> */}
                               <td className="border p-2 text-sm text-right">{formatAmount(transaction.amount)}</td>
                               <td className="border p-2 text-center">
-                                {transaction.dispute ? (
-                                  <span className="text-orange-500 text-xs font-medium">Vyhotovený</span>
-                                ) : (
+                                {!transaction.dispute && (
                                   <Button
                                     variant="ghost"
                                     size="sm"
@@ -2370,7 +2381,7 @@ const Home: FunctionComponent = () => {
                                     className="p-1"
                                     title="Vyhotoviť doklad"
                                   >
-                                    <AlertTriangle className="h-4 w-4 text-orange-500" />
+                                    <FileText className="h-4 w-4 text-orange-500" />
                                   </Button>
                                 )}
                               </td>
@@ -2435,7 +2446,7 @@ const Home: FunctionComponent = () => {
                     className="p-3 mx-1"
                     title="Vyhotovenie dokladov"
                   >
-                    <AlertTriangle className="h-5 w-5" />
+                    <FileText className="h-5 w-5" />
                   </Button>
 
                   {/* Console log button */}

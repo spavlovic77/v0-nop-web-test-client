@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Download, FileText, Info, Copy, Check, ArrowLeft, Github } from "lucide-react"
+import { Download, FileText, Info, Copy, Check, ArrowLeft } from "lucide-react"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 
@@ -114,18 +114,6 @@ export default function DownloadPage() {
                         <ArrowLeft className="h-4 w-4 mr-2" />
                         Späť na prihlásenie
                       </Button>
-                    </div>
-
-                    <div className="text-center pt-4 mt-4 border-t border-gray-200">
-                      <a
-                        href="https://github.com/spavlovic77/v0-nop-web-test-client"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-2 text-xs text-gray-500 hover:text-gray-700 transition-colors"
-                      >
-                        <Github className="h-3 w-3" />
-                        <span>Vibecoded in Vercel V0</span>
-                      </a>
                     </div>
                   </div>
                 </div>
