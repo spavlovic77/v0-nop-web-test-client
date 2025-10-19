@@ -2047,7 +2047,7 @@ const Home: FunctionComponent = () => {
                   {certificateInfo?.pokladnica && (
                     <div className="flex items-center gap-3 px-2">
                       <User className="h-5 w-5 text-green-500" />
-                      <span className="text-sm font-medium">{certificateInfo.pokladnica}</span>
+                      <span className="text-sm font-medium">{certificateInfo.pokladnica.slice(3)}</span>
                     </div>
                   )}
 
