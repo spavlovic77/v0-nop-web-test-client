@@ -10,13 +10,14 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Dialog, DialogContent } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog" // Import DialogHeader and DialogTitle
 import { Tooltip, TooltipProvider, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { CheckCircle, X, Terminal, WifiOff, User, Info, QrCode, MoveLeft } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Loader2, Upload } from "lucide-react"
 import QRCode from "qrcode"
 import { createClient } from "@supabase/supabase-js"
+import { toast } from "@/components/ui/use-toast" // Assuming you have a toast component
 
 class ErrorBoundary extends React.Component<
   { children: React.ReactNode; fallback?: React.ReactNode },
@@ -71,7 +72,7 @@ IBiV5uNu5g/6+rkS7QYXjzkwDgYDVR0PAQH/BAQDAgGGMB0GA1UdJQQWMBQGCCsG
 AQUFBwMBBggrBgEFBQcDAjASBgNVHRMBAf8ECDAGAQH/AgEAMDQGCCsGAQUFBwEB
 BCgwJjAkBggrBgEFBQcwAYYYaHR0cDovL29jc3AuZGlnaWNlcnQuY29tMEIGA1Ud
 HwQ7MDkwN6A1oDOGMWh0dHA6Ly9jcmwzLmRpZ2ljZXJ0LmNvbS9EaWdpQ2VydEds
-b2JhbFJvb3RHMi5jcmwwPQYDVR0gBDYwNDAyBgRVHSAAMCowKAYIKwYBBQUHAgEW
+b2JhbFJvb3RHMi5jcmwwPQYDVR0wBDYwNDAyBgRVHSAAMCowKAYIKwYBBQUHAgEW
 HGh0dHBzOi8vd3d3LmRpZ2ljZXJ0LmNvbS9DUFMwDQYJKoZIhvcNAQELBQADggEB
 AIIcBDqC6cWpyGUSXAjjAcYwsK4iiGF7KweG97i1RJz1kwZhRoo6orU1JtBYnjzB
 c4+/sXmnHJk3mlPyL1xuIAt9sMeC7+vreRIF5wFBC0MCN5sbHwhNN1JzKbifNeP5
@@ -99,7 +100,7 @@ BgNVHRMBAf8EBTADAQH/MA4GA1UdDwEB/wQEAwIBhjAdBgNVHQ4EFgQUTiJUIBiV
 NeF22d+mQrvHRAiGfzZ0JFrabA0UWTW98kndth/Jsw1HKj2ZL7tcu7XUIOGZX1NG
 Fdtom/DzMNU+MeKNhJ7jitralj41E6Vf8PlwUHBHQRFXGU7Aj64GxJUTFy8bJZ91
 8rGOmaFvE7FBcf6IKshPECBV1/MUReXgRPTqh5Uykw7+U0b6LJ3/iyK5S9kJRaTe
-pLiaWN0bfVKfjllDiIGknibVb63dDcY3fe0Dkhvld1927jyNxF1WW6LZZm6zNTfl
+pLiaWN0bfVKfjllDiIGknibVb63dDcY3fe0Dkhvld1927jyNxF1WW6zNTfl
 MrY=
 -----END CERTIFICATE-----`
 
@@ -196,6 +197,10 @@ const Home: FunctionComponent = () => {
   const [selectedTransactionDate, setSelectedTransactionDate] = useState<string>("")
   const [transactionListData, setTransactionListData] = useState<any[]>([])
   const [transactionListLoading, setTransactionListLoading] = useState(false)
+
+  const [showDisputeConfirmModal, setShowDisputeConfirmModal] = useState(false)
+  const [currentTransactionId, setCurrentTransactionId] = useState<string | null>(null)
+  // </CHANGE>
 
   const [certificateInfo, setCertificateInfo] = useState<{
     vatsk: string | null
@@ -1072,6 +1077,75 @@ const Home: FunctionComponent = () => {
     }
   }
 
+  const handleDisputeConfirmation = async () => {
+    if (!currentTransactionId) {
+      toast({
+        title: "Chyba",
+        description: "ID transakcie nebolo nájdené",
+        variant: "destructive",
+      })
+      return
+    }
+
+    try {
+      // Update dispute flag in database
+      const response = await fetch("/api/update-dispute", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ transactionId: currentTransactionId }),
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to update dispute flag")
+      }
+
+      // Close modals
+      setShowDisputeConfirmModal(false)
+      setShowQrModal(false)
+
+      // Open confirmation in new window for printing
+      window.open(`/confirmation/${currentTransactionId}`, "_blank")
+
+      // Reset form
+      setEurAmount("")
+      setMqttTimerActive(false)
+      setMqttTimeRemaining(120)
+      setCurrentTransactionId(null)
+    } catch (error) {
+      console.error("[v0] Error confirming dispute:", error)
+      toast({
+        title: "Chyba",
+        description: "Nepodarilo sa potvrdiť spor",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const handleCancelPayment = () => {
+    console.log("[v0] Cancel payment clicked")
+    // Stop MQTT timer
+    setMqttTimerActive(false)
+    setMqttTimeRemaining(120)
+    // Store current transaction ID
+    setCurrentTransactionId(qrTransactionId)
+    // Show dispute confirmation modal
+    setShowDisputeConfirmModal(true)
+  }
+
+  const handleDisputeNo = () => {
+    // Close all modals
+    setShowDisputeConfirmModal(false)
+    setShowQrModal(false)
+    // Reset form
+    setEurAmount("")
+    setMqttTimerActive(false)
+    setMqttTimeRemaining(120)
+    setCurrentTransactionId(null)
+  }
+  // </CHANGE>
+
   const handleQrModalClose = (open: boolean) => {
     // Do nothing - modal can only be closed via the "Zrušiť platbu" button
   }
@@ -1635,24 +1709,18 @@ const Home: FunctionComponent = () => {
                               }
                             }}
                           >
-                            {mqttTimerActive ? `Čakám oznámenie z banky ${mqttTimeRemaining}s` : "Zopakovať"}
+                            {mqttTimerActive
+                              ? `Čakám oznámenie z banky ${mqttTimeRemaining}s`
+                              : "Klikni pre opätovné pripojenie k banke"}
                           </Button>
                         </div>
 
                         {/* Cancel payment button */}
-                        <Button
-                          variant="destructive"
-                          className="w-full"
-                          onClick={() => {
-                            console.log("[v0] Cancel payment clicked")
-                            setShowQrModal(false)
-                            setMqttTimerActive(false)
-                            setMqttTimeRemaining(120)
-                            // </CHANGE>
-                          }}
-                        >
+                        {/* Update Zrušiť platbu button onClick handler */}
+                        <Button variant="destructive" className="w-full" onClick={handleCancelPayment}>
                           Zrušiť platbu
                         </Button>
+                        {/* </CHANGE> */}
                       </div>
                     </div>
                   ) : (
@@ -1943,6 +2011,26 @@ const Home: FunctionComponent = () => {
                 </div>
               </DialogContent>
             </Dialog>
+            {/* Add dispute confirmation modal before closing tag */}
+            <Dialog open={showDisputeConfirmModal} onOpenChange={setShowDisputeConfirmModal}>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Potvrdenie</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <p className="text-center text-lg">Ukončiť s potvrdením o neoznámenej úhrade?</p>
+                  <div className="flex gap-3">
+                    <Button variant="outline" className="flex-1 bg-transparent" onClick={handleDisputeNo}>
+                      Nie
+                    </Button>
+                    <Button className="flex-1" onClick={handleDisputeConfirmation}>
+                      Áno
+                    </Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
+            {/* </CHANGE> */}
           </div>
 
           {allRequiredFieldsComplete && (
