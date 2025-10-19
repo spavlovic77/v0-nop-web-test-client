@@ -2,7 +2,7 @@
 
 import React from "react"
 import type { FunctionComponent } from "react"
-import { Copy, XCircle } from "lucide-react" // Import Copy icon
+import { Copy, XCircle, AlertTriangle } from "lucide-react" // Import Copy icon, AlertTriangle icon
 import { Euro, LogOut, Printer, Calendar } from "lucide-react" // Import Euro, Printer, Calendar icons
 
 import { useState, useEffect, useCallback, useRef } from "react"
@@ -197,6 +197,14 @@ const Home: FunctionComponent = () => {
   const [selectedTransactionDate, setSelectedTransactionDate] = useState<string>("")
   const [transactionListData, setTransactionListData] = useState<any[]>([])
   const [transactionListLoading, setTransactionListLoading] = useState(false)
+
+  const [showDisputeDateModal, setShowDisputeDateModal] = useState(false)
+  const [selectedDisputeDate, setSelectedDisputeDate] = useState<string>("")
+  const [showDisputeListModal, setShowDisputeListModal] = useState(false)
+  const [disputeTransactions, setDisputeTransactions] = useState<any[]>([])
+  const [disputeListLoading, setDisputeListLoading] = useState(false)
+  const [selectedDisputeTransaction, setSelectedDisputeTransaction] = useState<string | null>(null)
+  const [showDisputeActionModal, setShowDisputeActionModal] = useState(false)
 
   const [showDisputeConfirmModal, setShowDisputeConfirmModal] = useState(false)
   const [currentTransactionId, setCurrentTransactionId] = useState<string | null>(null)
@@ -1150,6 +1158,87 @@ const Home: FunctionComponent = () => {
   }
   // </CHANGE>
 
+  const handleDisputeClick = () => {
+    setShowDisputeDateModal(true)
+  }
+
+  const handleDisputeDateSelect = async () => {
+    if (!selectedDisputeDate || !certificateInfo?.pokladnica) return
+
+    setShowDisputeDateModal(false)
+    setShowDisputeListModal(true)
+    setDisputeListLoading(true)
+
+    try {
+      const response = await fetch("/api/get-transactions-by-date", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          date: selectedDisputeDate,
+          pokladnica: certificateInfo.pokladnica,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch transactions")
+      }
+
+      const data = await response.json()
+      setDisputeTransactions(data.transactions || [])
+    } catch (error) {
+      console.error("[v0] Error fetching dispute transactions:", error)
+      setDisputeTransactions([])
+    } finally {
+      setDisputeListLoading(false)
+    }
+  }
+
+  const handleTransactionDisputeClick = (transactionId: string) => {
+    setSelectedDisputeTransaction(transactionId)
+    setShowDisputeActionModal(true)
+  }
+
+  const handleConfirmDisputeAction = async () => {
+    if (!selectedDisputeTransaction) return
+
+    try {
+      // Update dispute flag
+      const response = await fetch("/api/update-dispute", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ transactionId: selectedDisputeTransaction }),
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to update dispute flag")
+      }
+
+      // Open confirmation in new window for printing
+      window.open(`/confirmation/${selectedDisputeTransaction}`, "_blank")
+
+      // Close modals and refresh the list
+      setShowDisputeActionModal(false)
+      setSelectedDisputeTransaction(null)
+
+      // Refresh the transaction list
+      handleDisputeDateSelect()
+    } catch (error) {
+      console.error("[v0] Error updating dispute:", error)
+      alert("Chyba pri aktualizácii sporu")
+    }
+  }
+
+  const handleCancelDisputeAction = () => {
+    setShowDisputeActionModal(false)
+    setSelectedDisputeTransaction(null)
+  }
+
+  const formatAmount = (amount: string | number | null) => {
+    if (!amount) return "0.00"
+    const numAmount = typeof amount === "string" ? Number.parseFloat(amount) : amount
+    return (numAmount / 100).toFixed(2)
+  }
+
   const handleQrModalClose = (open: boolean) => {
     // Do nothing - modal can only be closed via the "Zrušiť platbu" button
   }
@@ -2035,6 +2124,124 @@ const Home: FunctionComponent = () => {
               </DialogContent>
             </Dialog>
             {/* </CHANGE> */}
+
+            <Dialog open={showDisputeDateModal} onOpenChange={setShowDisputeDateModal}>
+              <DialogContent className="max-w-md">
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-center">Vyberte dátum pre spory</h3>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="disputeDate" className="text-sm font-medium">
+                      Dátum transakcií
+                    </Label>
+                    <Input
+                      id="disputeDate"
+                      type="date"
+                      value={selectedDisputeDate}
+                      onChange={(e) => setSelectedDisputeDate(e.target.value)}
+                      className="w-full"
+                    />
+                  </div>
+
+                  <div className="flex gap-2">
+                    <Button variant="outline" onClick={() => setShowDisputeDateModal(false)} className="flex-1">
+                      Zrušiť
+                    </Button>
+                    <Button onClick={handleDisputeDateSelect} disabled={!selectedDisputeDate} className="flex-1">
+                      Zobraziť transakcie
+                    </Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
+
+            <Dialog open={showDisputeListModal} onOpenChange={setShowDisputeListModal}>
+              <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold">
+                    Generované transakcie -{" "}
+                    {selectedDisputeDate ? new Date(selectedDisputeDate).toLocaleDateString("sk-SK") : ""}
+                  </h3>
+                </div>
+
+                <div className="flex-1 overflow-y-auto">
+                  {disputeListLoading ? (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+                      <span className="ml-2">Načítavam transakcie...</span>
+                    </div>
+                  ) : disputeTransactions.length > 0 ? (
+                    <div className="space-y-2">
+                      <table className="w-full border-collapse">
+                        <thead>
+                          <tr className="bg-gray-50">
+                            <th className="border p-2 text-left text-sm font-medium">Čas</th>
+                            <th className="border p-2 text-left text-sm font-medium">Transaction ID</th>
+                            <th className="border p-2 text-right text-sm font-medium">Suma (EUR)</th>
+                            <th className="border p-2 text-center text-sm font-medium">Spor</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {disputeTransactions.map((transaction) => (
+                            <tr key={transaction.id} className="hover:bg-gray-50">
+                              <td className="border p-2 text-sm">
+                                {new Date(transaction.response_timestamp).toLocaleTimeString("sk-SK")}
+                              </td>
+                              <td className="border p-2 text-sm font-mono">{transaction.transaction_id}</td>
+                              <td className="border p-2 text-sm text-right">{formatAmount(transaction.amount)}</td>
+                              <td className="border p-2 text-center">
+                                {transaction.dispute ? (
+                                  <span className="text-orange-500 text-xs font-medium">Oznámené</span>
+                                ) : (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleTransactionDisputeClick(transaction.transaction_id)}
+                                    className="p-1"
+                                    title="Označiť spor"
+                                  >
+                                    <AlertTriangle className="h-4 w-4 text-orange-500" />
+                                  </Button>
+                                )}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-gray-500">
+                      <Calendar className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                      <p>Žiadne transakcie pre vybraný dátum</p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex justify-end mt-4">
+                  <Button onClick={() => setShowDisputeListModal(false)}>Zavrieť</Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+
+            <Dialog open={showDisputeActionModal} onOpenChange={setShowDisputeActionModal}>
+              <DialogContent className="sm:max-w-md">
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-center">Potvrdiť spor</h3>
+                  <p className="text-center text-muted-foreground">
+                    Chcete označiť túto transakciu ako spor a vytlačiť potvrdenie?
+                  </p>
+                  <div className="flex gap-2">
+                    <Button variant="outline" onClick={handleCancelDisputeAction} className="flex-1 bg-transparent">
+                      Nie
+                    </Button>
+                    <Button onClick={handleConfirmDisputeAction} className="flex-1">
+                      Áno
+                    </Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
+            {/* </CHANGE> */}
           </div>
 
           {allRequiredFieldsComplete && (
@@ -2059,6 +2266,16 @@ const Home: FunctionComponent = () => {
                     title="Zoznam transakcií"
                   >
                     <Printer className="h-5 w-5" />
+                  </Button>
+
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleDisputeClick}
+                    className="p-3 mx-1"
+                    title="Správa sporov"
+                  >
+                    <AlertTriangle className="h-5 w-5" />
                   </Button>
 
                   {/* Console log button */}
