@@ -1,7 +1,6 @@
--- Drop existing table and recreate with correct schema for MQTT notifications
-DROP TABLE IF EXISTS mqtt_notifications;
+-- Create mqtt_notifications table with complete schema
+DROP TABLE IF EXISTS mqtt_notifications CASCADE;
 
--- Create mqtt_notifications table with proper structure for parsed MQTT data
 CREATE TABLE mqtt_notifications (
     id BIGSERIAL PRIMARY KEY,
     -- Topic parsing fields
@@ -14,6 +13,7 @@ CREATE TABLE mqtt_notifications (
     currency TEXT DEFAULT 'EUR',
     end_to_end_id TEXT,
     integrity_hash TEXT,
+    integrity_validation BOOLEAN,
     payload_received_at TIMESTAMPTZ,
     -- System fields
     topic TEXT NOT NULL,
@@ -29,6 +29,6 @@ CREATE INDEX idx_mqtt_notifications_created_at ON mqtt_notifications(created_at 
 -- Enable Row Level Security
 ALTER TABLE mqtt_notifications ENABLE ROW LEVEL SECURITY;
 
--- Create policy to allow all operations (adjust as needed for your security requirements)
+-- Create policy to allow all operations
 CREATE POLICY "Allow all operations on mqtt_notifications" ON mqtt_notifications
     FOR ALL USING (true) WITH CHECK (true);
