@@ -833,6 +833,7 @@ const Home: FunctionComponent = () => {
       formData.append("transactionId", transactionId)
       formData.append("vatsk", certificateInfo.vatsk)
       formData.append("pokladnica", certificateInfo.pokladnica)
+      formData.append("iban", userIban || "") // Pass IBAN for backend validation
 
       console.log("[v0] Starting MQTT subscription...")
 
@@ -1388,7 +1389,7 @@ const Home: FunctionComponent = () => {
 
       const { data, error } = await supabase
         .from("mqtt_notifications")
-        .select("payload_received_at, end_to_end_id, amount")
+        .select("payload_received_at, end_to_end_id, amount, integrity_validation") // Added integrity_validation field
         .eq("pokladnica", certificateInfo.pokladnica)
         .gte("payload_received_at", startDate)
         .lte("payload_received_at", endDate)
@@ -1431,40 +1432,6 @@ const Home: FunctionComponent = () => {
         </head>
         <body>
           <h1>Súhrn transakcií</h1>
-          <div class="summary">
-            <div class="summary-item"><strong>Dátum:</strong> ${new Date(selectedTransactionDate).toLocaleDateString("sk-SK")}</div>
-            <div class="summary-item"><strong>Počet transakcií:</strong> ${transactionListData.length}</div>
-            <div class="summary-item"><strong>Celková suma:</strong> ${calculateTransactionTotal().toFixed(2)} EUR</div>
-            <div class="summary-item"><strong>Vygenerované:</strong> ${new Date().toLocaleString("sk-SK")}</div>
-          </div>
-        </body>
-      </html>
-    `
-
-    const printWindow = window.open("", "_blank")
-    if (printWindow) {
-      printWindow.document.write(printContent)
-      printWindow.document.close()
-      printWindow.print()
-    }
-  }
-
-  const printAllTransactions = () => {
-    const printContent = `
-      <html>
-        <head>
-          <title>Všetky transakcie - ${selectedTransactionDate}</title>
-          <style>
-            body { font-family: Arial, sans-serif; margin: 20px; }
-            h1 { color: #333; border-bottom: 2px solid #333; padding-bottom: 10px; }
-            table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-            th { background-color: #f5f5f5; font-weight: bold; }
-            .total { font-weight: bold; background-color: #e8f4fd; }
-          </style>
-        </head>
-        <body>
-          <h1>Všetky transakcie</h1>
           <p><strong>Dátum:</strong> ${new Date(selectedTransactionDate).toLocaleDateString("sk-SK")}</p>
           
           <table>
@@ -1489,6 +1456,70 @@ const Home: FunctionComponent = () => {
                 .join("")}
               <tr class="total">
                 <td colspan="2"><strong>Celková suma:</strong></td>
+                <td><strong>${calculateTransactionTotal().toFixed(2)} EUR</strong></td>
+              </tr>
+            </tbody>
+          </table>
+          
+          <p><strong>Vygenerované:</strong> ${new Date().toLocaleString("sk-SK")}</p>
+        </body>
+      </html>
+    `
+
+    const printWindow = window.open("", "_blank")
+    if (printWindow) {
+      printWindow.document.write(printContent)
+      printWindow.document.close()
+      printWindow.print()
+    }
+  }
+
+  const printAllTransactions = () => {
+    const printContent = `
+      <html>
+        <head>
+          <title>Všetky transakcie - ${selectedTransactionDate}</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            h1 { color: #333; border-bottom: 2px solid #333; padding-bottom: 10px; }
+            table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+            th { background-color: #f5f5f5; font-weight: bold; }
+            .total { font-weight: bold; background-color: #e8f4fd; }
+            .verified { color: #16a34a; }
+            .failed { color: #dc2626; }
+          </style>
+        </head>
+        <body>
+          <h1>Všetky transakcie</h1>
+          <p><strong>Dátum:</strong> ${new Date(selectedTransactionDate).toLocaleDateString("sk-SK")}</p>
+          
+          <table>
+            <thead>
+              <tr>
+                <th>Čas</th>
+                <th>Transaction ID</th>
+                <th>Suma (EUR)</th>
+                <th>Overenie</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${transactionListData
+                .map(
+                  (transaction) => `
+                <tr>
+                  <td>${new Date(transaction.payload_received_at).toLocaleTimeString("sk-SK")}</td>
+                  <td>${transaction.end_to_end_id || "N/A"}</td>
+                  <td>${Number.parseFloat(transaction.amount || 0).toFixed(2)}</td>
+                  <td class="${transaction.integrity_validation === true ? "verified" : transaction.integrity_validation === false ? "failed" : ""}">
+                    ${transaction.integrity_validation === true ? "✓ OK" : transaction.integrity_validation === false ? "⚠ Chyba" : "—"}
+                  </td>
+                </tr>
+              `,
+                )
+                .join("")}
+              <tr class="total">
+                <td colspan="3"><strong>Celková suma:</strong></td>
                 <td><strong>${calculateTransactionTotal().toFixed(2)} EUR</strong></td>
               </tr>
             </tbody>

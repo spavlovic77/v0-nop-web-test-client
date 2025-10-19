@@ -4,6 +4,7 @@ import * as mqtt from "mqtt"
 import { readFileSync } from "fs"
 import path from "path"
 import { createClient } from "@supabase/supabase-js"
+import { crypto } from "node:crypto"
 
 function getClientIP(request: NextRequest): string {
   const forwarded = request.headers.get("x-forwarded-for")
@@ -26,9 +27,25 @@ async function getCertificateBuffer(data: File | string): Promise<Buffer> {
   }
 }
 
+async function generateDataIntegrityHash(
+  iban: string,
+  amount: string,
+  currency: string,
+  endToEndId: string,
+): Promise<string> {
+  const inputString = `${iban}|${amount}|${currency}|${endToEndId}`
+  const encoder = new TextEncoder()
+  const data = encoder.encode(inputString)
+  const hashBuffer = await crypto.subtle.digest("SHA-256", data)
+  const hashArray = Array.from(new Uint8Array(hashBuffer))
+  const hashHex = hashArray.map((b) => b.toString(16).padStart(2, "0")).join("")
+  return hashHex
+}
+
 async function saveMqttNotificationToDatabase(
   topic: string,
   messageStr: string,
+  iban?: string,
 ): Promise<{
   success: boolean
   error?: any
@@ -52,33 +69,30 @@ async function saveMqttNotificationToDatabase(
     const supabase = createClient(supabaseUrl, supabaseKey)
     console.log("[v0] ✅ Supabase client created with service role key")
 
-    // Parse topic
     const topicParts = topic.split("/")
     let vatsk = null
     let pokladnica = null
     let transaction_id = null
 
     if (topicParts.length >= 3) {
-      // Extract VATSK (remove "VATSK-" prefix)
       if (topicParts[0].startsWith("VATSK-")) {
         vatsk = topicParts[0].substring(6)
       }
-      // Extract POKLADNICA (remove "POKLADNICA-" prefix)
       if (topicParts[1].startsWith("POKLADNICA-")) {
         pokladnica = topicParts[1].substring(11)
       }
-      transaction_id = topicParts[2] // Keep full "QR-..." format
+      transaction_id = topicParts[2]
     }
 
     console.log("[v0] 📝 Parsed topic parts:", { vatsk, pokladnica, transaction_id })
 
-    // Parse JSON payload
     let amount = null
     let currency = null
     let transaction_status = null
     let integrity_hash = null
     let end_to_end_id = null
     let payload_received_at = null
+    let integrity_validation = null
 
     try {
       const parsedPayload = JSON.parse(messageStr)
@@ -92,11 +106,28 @@ async function saveMqttNotificationToDatabase(
       integrity_hash = parsedPayload.dataIntegrityHash
       end_to_end_id = parsedPayload.endToEndId
       payload_received_at = parsedPayload.receivedAt
+
+      if (iban && amount && currency && end_to_end_id && integrity_hash) {
+        try {
+          const expectedHash = await generateDataIntegrityHash(
+            iban.replace(/\s/g, ""),
+            amount.toFixed(2),
+            currency,
+            end_to_end_id,
+          )
+          integrity_validation = integrity_hash.toLowerCase() === expectedHash.toLowerCase()
+          console.log("[v0] 🔐 Integrity validation result:", integrity_validation)
+          console.log("[v0] 📝 Expected hash:", expectedHash)
+          console.log("[v0] 📝 Received hash:", integrity_hash)
+        } catch (validationError) {
+          console.warn("[v0] ⚠️ Could not perform integrity validation:", validationError)
+          integrity_validation = null
+        }
+      }
     } catch (parseError) {
       console.warn("[v0] ⚠️ Could not parse JSON payload, saving as raw text:", parseError)
     }
 
-    // Prepare data for database insert
     const insertData = {
       topic,
       raw_payload: messageStr,
@@ -109,6 +140,7 @@ async function saveMqttNotificationToDatabase(
       integrity_hash,
       end_to_end_id,
       payload_received_at,
+      integrity_validation,
     }
 
     console.log("[v0] 💾 Attempting to insert data into mqtt_notifications table...")
@@ -161,27 +193,23 @@ async function saveMqttSubscriptionToDatabase(
     const supabase = createClient(supabaseUrl, supabaseKey)
     console.log("[v0] ✅ Supabase client created for subscription save")
 
-    // Parse topic
     const topicParts = topic.split("/")
     let vatsk = null
     let pokladnica = null
     let end_to_end_id = null
 
     if (topicParts.length >= 3) {
-      // Extract VATSK (remove "VATSK-" prefix)
       if (topicParts[0].startsWith("VATSK-")) {
         vatsk = topicParts[0].substring(6)
       }
-      // Extract POKLADNICA (remove "POKLADNICA-" prefix)
       if (topicParts[1].startsWith("POKLADNICA-")) {
         pokladnica = topicParts[1].substring(11)
       }
-      end_to_end_id = topicParts[2] // Keep full "QR-..." format
+      end_to_end_id = topicParts[2]
     }
 
     console.log("[v0] 📝 Parsed subscription topic parts:", { vatsk, pokladnica, end_to_end_id, qos })
 
-    // Prepare data for database insert
     const insertData = {
       topic,
       vatsk,
@@ -193,7 +221,6 @@ async function saveMqttSubscriptionToDatabase(
     console.log("[v0] 💾 Attempting to insert subscription data into mqtt_subscriptions table...")
     console.log("[v0] 📋 Insert data:", JSON.stringify(insertData, null, 2))
 
-    // Insert into database
     const { data, error } = await supabase.from("mqtt_subscriptions").insert(insertData).select()
 
     if (error) {
@@ -224,6 +251,7 @@ export async function POST(request: NextRequest) {
     const transactionId = formData.get("transactionId") as string
     const vatsk = formData.get("vatsk") as string
     const pokladnica = formData.get("pokladnica") as string
+    const iban = formData.get("iban") as string
 
     if (!clientCert || !clientKey || !caCert) {
       console.log("[v0] Missing certificate files")
@@ -382,7 +410,7 @@ export async function POST(request: NextRequest) {
 
         console.log("[v0] 🔄 Saving MQTT notification to database...")
         try {
-          const dbResult = await saveMqttNotificationToDatabase(topic, messageStr)
+          const dbResult = await saveMqttNotificationToDatabase(topic, messageStr, iban)
 
           if (dbResult.success) {
             console.log("[v0] ✅ MQTT notification successfully saved to database!")
