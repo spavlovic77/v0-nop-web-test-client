@@ -98,9 +98,9 @@ BgNVHRMBAf8EBTADAQH/MA4GA1UdDwEB/wQEAwIBhjAdBgNVHQ4EFgQUTiJUIBiV
 5uNu5g/6+rkS7QYXjzkwDQYJKoZIhvcNAQELBQADggEBAGBnKJRvDkhj6zHd6mcY
 1Yl9PMWLSn/pvtsrF9+wX3N3KjITOYFnQoQj8kVnNeyIv/iPsGEMNKSuIEyExtv4
 NeF22d+mQrvHRAiGfzZ0JFrabA0UWTW98kndth/Jsw1HKj2ZL7tcu7XUIOGZX1NG
-Fdtom/DzMNU+MeKNhJ7jitralj41E6Vf8PlwUHBHQRFXGU7Aj64GxJUTFy8bJZ91
+Fdtom/DzMNU+MeKNhJ7jitralj41E6Vf8PlwUHBHQRFU0GU7Aj64GxJUTFy8bJZ91
 8rGOmaFvE7FBcf6IKshPECBV1/MUReXgRPTqh5Uykw7+U0b6LJ3/iyK5S9kJRaTe
-pLiaWN0bfVKfjllDiIGknibVb63dDcY3fe0Dkhvld1927jyNxF1WW6LZZm6zNTfl
+pLiaWN0bfVKfjllDiIGknibVb63dDcY3fe0Dkhvld1927jyNxF1WW6zNTfl
 MrY=
 -----END CERTIFICATE-----`
 
@@ -208,6 +208,8 @@ const Home: FunctionComponent = () => {
 
   const [showDisputeConfirmModal, setShowDisputeConfirmModal] = useState(false)
   const [currentTransactionId, setCurrentTransactionId] = useState<string | null>(null)
+  const [disputeSortField, setDisputeSortField] = useState<"time" | "amount">("time")
+  const [disputeSortDirection, setDisputeSortDirection] = useState<"asc" | "desc">("desc")
   // </CHANGE>
 
   const [certificateInfo, setCertificateInfo] = useState<{
@@ -1239,6 +1241,39 @@ const Home: FunctionComponent = () => {
     return (numAmount / 100).toFixed(2)
   }
 
+  const truncateTransactionId = (id: string) => {
+    if (id.length <= 10) return id
+    return `${id.slice(0, 6)}...${id.slice(-4)}`
+  }
+
+  const handleDisputeSort = (field: "time" | "amount") => {
+    if (disputeSortField === field) {
+      // Toggle direction if same field
+      setDisputeSortDirection(disputeSortDirection === "asc" ? "desc" : "asc")
+    } else {
+      // Set new field with default desc direction
+      setDisputeSortField(field)
+      setDisputeSortDirection("desc")
+    }
+  }
+
+  const sortedDisputeTransactions = [...disputeTransactions].sort((a, b) => {
+    let comparison = 0
+
+    if (disputeSortField === "time") {
+      const timeA = new Date(a.response_timestamp).getTime()
+      const timeB = new Date(b.response_timestamp).getTime()
+      comparison = timeA - timeB
+    } else if (disputeSortField === "amount") {
+      const amountA = typeof a.amount === "string" ? Number.parseFloat(a.amount) : a.amount || 0
+      const amountB = typeof b.amount === "string" ? Number.parseFloat(b.amount) : b.amount || 0
+      comparison = amountA - amountB
+    }
+
+    return disputeSortDirection === "asc" ? comparison : -comparison
+  })
+  // </CHANGE>
+
   const handleQrModalClose = (open: boolean) => {
     // Do nothing - modal can only be closed via the "Zrušiť platbu" button
   }
@@ -2128,11 +2163,11 @@ const Home: FunctionComponent = () => {
             <Dialog open={showDisputeDateModal} onOpenChange={setShowDisputeDateModal}>
               <DialogContent className="max-w-md">
                 <div className="space-y-4">
-                  <h3 className="text-lg font-semibold text-center">Vyberte dátum pre spory</h3>
+                  <h3 className="text-lg font-semibold text-center">Vyberte dátum</h3>
 
                   <div className="space-y-2">
                     <Label htmlFor="disputeDate" className="text-sm font-medium">
-                      Dátum transakcií
+                      Dátum
                     </Label>
                     <Input
                       id="disputeDate"
@@ -2175,23 +2210,48 @@ const Home: FunctionComponent = () => {
                       <table className="w-full border-collapse">
                         <thead>
                           <tr className="bg-gray-50">
-                            <th className="border p-2 text-left text-sm font-medium">Čas</th>
+                            <th
+                              className="border p-2 text-left text-sm font-medium cursor-pointer hover:bg-gray-100"
+                              onClick={() => handleDisputeSort("time")}
+                            >
+                              <div className="flex items-center gap-1">
+                                Čas
+                                {disputeSortField === "time" && (
+                                  <span className="text-xs">{disputeSortDirection === "asc" ? "↑" : "↓"}</span>
+                                )}
+                              </div>
+                            </th>
+                            {/* </CHANGE> */}
                             <th className="border p-2 text-left text-sm font-medium">Transaction ID</th>
-                            <th className="border p-2 text-right text-sm font-medium">Suma (EUR)</th>
-                            <th className="border p-2 text-center text-sm font-medium">Spor</th>
+                            <th
+                              className="border p-2 text-right text-sm font-medium cursor-pointer hover:bg-gray-100"
+                              onClick={() => handleDisputeSort("amount")}
+                            >
+                              <div className="flex items-center justify-end gap-1">
+                                Suma (EUR)
+                                {disputeSortField === "amount" && (
+                                  <span className="text-xs">{disputeSortDirection === "asc" ? "↑" : "↓"}</span>
+                                )}
+                              </div>
+                            </th>
+                            {/* </CHANGE> */}
+                            <th className="border p-2 text-center text-sm font-medium">Rozpor</th>
                           </tr>
                         </thead>
                         <tbody>
-                          {disputeTransactions.map((transaction) => (
+                          {sortedDisputeTransactions.map((transaction) => (
                             <tr key={transaction.id} className="hover:bg-gray-50">
                               <td className="border p-2 text-sm">
                                 {new Date(transaction.response_timestamp).toLocaleTimeString("sk-SK")}
                               </td>
-                              <td className="border p-2 text-sm font-mono">{transaction.transaction_id}</td>
+                              <td className="border p-2 text-sm font-mono" title={transaction.transaction_id}>
+                                {truncateTransactionId(transaction.transaction_id)}
+                              </td>
+                              {/* </CHANGE> */}
                               <td className="border p-2 text-sm text-right">{formatAmount(transaction.amount)}</td>
                               <td className="border p-2 text-center">
                                 {transaction.dispute ? (
-                                  <span className="text-orange-500 text-xs font-medium">Oznámené</span>
+                                  <span className="text-orange-500 text-xs font-medium">Rozporované</span>
                                 ) : (
                                   <Button
                                     variant="ghost"
@@ -2206,6 +2266,7 @@ const Home: FunctionComponent = () => {
                               </td>
                             </tr>
                           ))}
+                          {/* </CHANGE> */}
                         </tbody>
                       </table>
                     </div>
@@ -2219,25 +2280,6 @@ const Home: FunctionComponent = () => {
 
                 <div className="flex justify-end mt-4">
                   <Button onClick={() => setShowDisputeListModal(false)}>Zavrieť</Button>
-                </div>
-              </DialogContent>
-            </Dialog>
-
-            <Dialog open={showDisputeActionModal} onOpenChange={setShowDisputeActionModal}>
-              <DialogContent className="sm:max-w-md">
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold text-center">Potvrdiť spor</h3>
-                  <p className="text-center text-muted-foreground">
-                    Chcete označiť túto transakciu ako spor a vytlačiť potvrdenie?
-                  </p>
-                  <div className="flex gap-2">
-                    <Button variant="outline" onClick={handleCancelDisputeAction} className="flex-1 bg-transparent">
-                      Nie
-                    </Button>
-                    <Button onClick={handleConfirmDisputeAction} className="flex-1">
-                      Áno
-                    </Button>
-                  </div>
                 </div>
               </DialogContent>
             </Dialog>
