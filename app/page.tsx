@@ -2,8 +2,8 @@
 
 import React from "react"
 import type { FunctionComponent } from "react"
-import { Copy, XCircle, FileText, Github } from "lucide-react" // Import Copy icon, AlertTriangle icon, FileText, Github
-import { Euro, LogOut, Printer, Calendar } from "lucide-react" // Import Euro, Printer, Calendar icons
+import { Copy, XCircle, FileText, Github, CheckCircle, Printer, Terminal, LogOut, User, Calendar } from "lucide-react" // Import Copy icon, AlertTriangle icon, FileText, Github, CheckCircle, Printer, Terminal, LogOut, User, Clock, Calendar, Check, AlertCircle
+import { Euro } from "lucide-react" // Import Euro, Printer, Calendar icons
 
 import { useState, useEffect, useCallback, useRef } from "react"
 import { Button } from "@/components/ui/button"
@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog" // Import DialogHeader and DialogTitle
 import { Tooltip, TooltipProvider, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
-import { CheckCircle, X, Terminal, WifiOff, User, Info, QrCode, MoveLeft } from "lucide-react"
+import { X, WifiOff, Info, QrCode, MoveLeft } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Loader2, Upload } from "lucide-react"
 import QRCode from "qrcode"
@@ -481,7 +481,6 @@ const Home: FunctionComponent = () => {
     }
 
     const topic = `VATSK-${certificateInfo.vatsk}/POKLADNICA-${certificateInfo.pokladnica}/${transactionId}`
-    // </CHANGE>
     console.log("[v0] Subscribing to MQTT topic:", topic)
 
     const startTime = Date.now()
@@ -793,7 +792,6 @@ const Home: FunctionComponent = () => {
     }
 
     const topic = `VATSK-${certificateInfo.vatsk}/POKLADNICA-${certificateInfo.pokladnica}/${transactionId}`
-    // </CHANGE>
     console.log("[v0] Subscribing to MQTT topic:", topic)
 
     const startTime = Date.now()
@@ -878,10 +876,8 @@ const Home: FunctionComponent = () => {
             console.log("[v0] Could not parse message as JSON:", message)
           }
         }
-        // </CHANGE>
 
         setConfirmedPaymentAmount(notificationAmount)
-        // </CHANGE>
         setShowQrModal(false)
         setShowPaymentReceivedModal(true)
         setVerifyingIntegrity(true)
@@ -923,6 +919,26 @@ const Home: FunctionComponent = () => {
             setIntegrityVerified(hashesMatch)
             setIntegrityError(!hashesMatch)
 
+            try {
+              const updateResponse = await fetch("/api/update-integrity-validation", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  transactionId: transactionId,
+                  isValid: hashesMatch,
+                }),
+              })
+
+              if (!updateResponse.ok) {
+                console.error("[v0] Failed to update integrity validation in database")
+              } else {
+                console.log("[v0] Integrity validation result saved to database")
+              }
+            } catch (error) {
+              console.error("[v0] Error updating integrity validation:", error)
+            }
+            // </CHANGE>
+
             if (hashesMatch) {
               console.log("[v0] Data integrity verification successful!")
             } else {
@@ -938,7 +954,7 @@ const Home: FunctionComponent = () => {
             setIntegrityError(true)
             setSubscriptionActive(false)
           }
-        }, 2000) // Fixed syntax error by combining split timeout value
+        }, 2000)
       } else {
         console.log("[v0] MQTT subscription completed but no messages received")
         setSubscriptionActive(false)
@@ -947,6 +963,7 @@ const Home: FunctionComponent = () => {
       console.error("[v0] Native MQTT subscription error:", err)
       logEntry.response = { error: err instanceof Error ? err.message : "Native MQTT subscription error" }
       setSubscriptionActive(false)
+      setError(err instanceof Error ? err.message : "Native MQTT subscription error")
     } finally {
       logApiCall(logEntry)
     }
@@ -1362,7 +1379,6 @@ const Home: FunctionComponent = () => {
       printWindow.print()
     }, 250)
   }
-  // </CHANGE>
 
   const handleQrModalClose = (open: boolean) => {
     // Do nothing - modal can only be closed via the "Zrušiť platbu" button
@@ -1388,7 +1404,7 @@ const Home: FunctionComponent = () => {
 
       const { data, error } = await supabase
         .from("mqtt_notifications")
-        .select("payload_received_at, end_to_end_id, amount")
+        .select("payload_received_at, end_to_end_id, amount, integrity_validation")
         .eq("pokladnica", certificateInfo.pokladnica)
         .gte("payload_received_at", startDate)
         .lte("payload_received_at", endDate)
@@ -1431,6 +1447,7 @@ const Home: FunctionComponent = () => {
         </head>
         <body>
           <h1>Súhrn transakcií</h1>
+          <p><strong>Dátum:</strong> ${new Date(selectedTransactionDate).toLocaleDateString("sk-SK")}</p>
           <div class="summary">
             <div class="summary-item"><strong>Dátum:</strong> ${new Date(selectedTransactionDate).toLocaleDateString("sk-SK")}</div>
             <div class="summary-item"><strong>Počet transakcií:</strong> ${transactionListData.length}</div>
@@ -1461,6 +1478,9 @@ const Home: FunctionComponent = () => {
             th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
             th { background-color: #f5f5f5; font-weight: bold; }
             .total { font-weight: bold; background-color: #e8f4fd; }
+            .verified { color: #16a34a; font-weight: bold; }
+            .failed { color: #dc2626; font-weight: bold; }
+            .pending { color: #9ca3af; }
           </style>
         </head>
         <body>
@@ -1473,22 +1493,31 @@ const Home: FunctionComponent = () => {
                 <th>Čas</th>
                 <th>Transaction ID</th>
                 <th>Suma (EUR)</th>
+                <th>Overenie</th>
               </tr>
             </thead>
             <tbody>
               ${transactionListData
-                .map(
-                  (transaction) => `
-                <tr>
-                  <td>${new Date(transaction.payload_received_at).toLocaleTimeString("sk-SK")}</td>
-                  <td>${transaction.end_to_end_id || "N/A"}</td>
-                  <td>${Number.parseFloat(transaction.amount || 0).toFixed(2)}</td>
-                </tr>
-              `,
-                )
+                .map((transaction) => {
+                  const verificationStatus =
+                    transaction.integrity_validation === true
+                      ? '<span class="verified">✓ OK</span>'
+                      : transaction.integrity_validation === false
+                        ? '<span class="failed">⚠ Chyba</span>'
+                        : '<span class="pending">-</span>'
+
+                  return `
+                      <tr>
+                        <td>${new Date(transaction.payload_received_at).toLocaleTimeString("sk-SK")}</td>
+                        <td>${transaction.end_to_end_id || "N/A"}</td>
+                        <td>${Number.parseFloat(transaction.amount || 0).toFixed(2)}</td>
+                        <td>${verificationStatus}</td>
+                      </tr>
+                    `
+                })
                 .join("")}
               <tr class="total">
-                <td colspan="2"><strong>Celková suma:</strong></td>
+                <td colspan="3"><strong>Celková suma:</strong></td>
                 <td><strong>${calculateTransactionTotal().toFixed(2)} EUR</strong></td>
               </tr>
             </tbody>
@@ -1726,7 +1755,6 @@ const Home: FunctionComponent = () => {
                           <span>Vibecoded in Vercel V0</span>
                         </a>
                       </div>
-                      {/* </CHANGE> */}
                     </CardContent>
                   </Card>
                 </div>
@@ -1947,11 +1975,9 @@ const Home: FunctionComponent = () => {
                         </div>
 
                         {/* Cancel payment button */}
-                        {/* Update Zrušiť platbu button onClick handler */}
                         <Button variant="destructive" className="w-full" onClick={handleCancelPayment}>
                           Zrušiť platbu
                         </Button>
-                        {/* </CHANGE> */}
                       </div>
                     </div>
                   ) : (
@@ -2063,7 +2089,6 @@ const Home: FunctionComponent = () => {
                               )
                             }
                           })()}
-                          {/* </CHANGE> */}
                         </>
                       ) : (
                         <>
@@ -2081,7 +2106,6 @@ const Home: FunctionComponent = () => {
                               return formatAmount(confirmedPaymentAmount)
                             })()} EUR overená
                           </span>
-                          {/* </CHANGE> */}
                         </>
                       )}
                     </div>
@@ -2280,7 +2304,6 @@ const Home: FunctionComponent = () => {
                 </div>
               </DialogContent>
             </Dialog>
-            {/* </CHANGE> */}
 
             {/* Dispute date picker modal */}
             <Dialog open={showDisputeDateModal} onOpenChange={setShowDisputeDateModal}>
@@ -2344,7 +2367,6 @@ const Home: FunctionComponent = () => {
                                 )}
                               </div>
                             </th>
-                            {/* </CHANGE> */}
                             <th className="border p-2 text-left text-sm font-medium">Transaction ID</th>
                             <th
                               className="border p-2 text-right text-sm font-medium cursor-pointer hover:bg-gray-100"
@@ -2357,7 +2379,6 @@ const Home: FunctionComponent = () => {
                                 )}
                               </div>
                             </th>
-                            {/* </CHANGE> */}
                             <th className="border p-2 text-center text-sm font-medium">Doklad</th>
                           </tr>
                         </thead>
@@ -2370,7 +2391,6 @@ const Home: FunctionComponent = () => {
                               <td className="border p-2 text-sm font-mono" title={transaction.transaction_id}>
                                 {truncateTransactionId(transaction.transaction_id)}
                               </td>
-                              {/* </CHANGE> */}
                               <td className="border p-2 text-sm text-right">{formatAmount(transaction.amount)}</td>
                               <td className="border p-2 text-center">
                                 {!transaction.dispute && (
@@ -2387,7 +2407,6 @@ const Home: FunctionComponent = () => {
                               </td>
                             </tr>
                           ))}
-                          {/* </CHANGE> */}
                         </tbody>
                       </table>
                     </div>
@@ -2410,7 +2429,6 @@ const Home: FunctionComponent = () => {
                   </Button>
                   <Button onClick={() => setShowDisputeListModal(false)}>Zavrieť</Button>
                 </div>
-                {/* </CHANGE> */}
               </DialogContent>
             </Dialog>
           </div>
