@@ -210,7 +210,6 @@ const Home: FunctionComponent = () => {
   const [currentTransactionId, setCurrentTransactionId] = useState<string | null>(null)
   const [disputeSortField, setDisputeSortField] = useState<"time" | "amount">("time")
   const [disputeSortDirection, setDisputeSortDirection] = useState<"asc" | "desc">("desc")
-  // </CHANGE>
 
   const [certificateInfo, setCertificateInfo] = useState<{
     vatsk: string | null
@@ -1158,7 +1157,6 @@ const Home: FunctionComponent = () => {
     setMqttTimeRemaining(120)
     setCurrentTransactionId(null)
   }
-  // </CHANGE>
 
   const handleDisputeClick = () => {
     setShowDisputeDateModal(true)
@@ -1272,7 +1270,6 @@ const Home: FunctionComponent = () => {
 
     return disputeSortDirection === "asc" ? comparison : -comparison
   })
-  // </CHANGE>
 
   const handleQrModalClose = (open: boolean) => {
     // Do nothing - modal can only be closed via the "Zrušiť platbu" button
@@ -2158,6 +2155,28 @@ const Home: FunctionComponent = () => {
                 </div>
               </DialogContent>
             </Dialog>
+
+            <Dialog open={showDisputeActionModal} onOpenChange={setShowDisputeActionModal}>
+              <DialogContent className="max-w-md">
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3">
+                    <AlertTriangle className="h-6 w-6 text-orange-500" />
+                    <h3 className="text-lg font-semibold">Potvrdenie sporu</h3>
+                  </div>
+
+                  <p className="text-sm text-muted-foreground">Ukončiť s potvrdením o neoznámenej úhrade?</p>
+
+                  <div className="flex justify-end gap-3 mt-6">
+                    <Button variant="outline" onClick={handleCancelDisputeAction}>
+                      Nie
+                    </Button>
+                    <Button onClick={handleConfirmDisputeAction} className="bg-orange-500 hover:bg-orange-600">
+                      Áno
+                    </Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
             {/* </CHANGE> */}
 
             <Dialog open={showDisputeDateModal} onOpenChange={setShowDisputeDateModal}>
@@ -2283,7 +2302,6 @@ const Home: FunctionComponent = () => {
                 </div>
               </DialogContent>
             </Dialog>
-            {/* </CHANGE> */}
           </div>
 
           {allRequiredFieldsComplete && (
