@@ -1758,7 +1758,7 @@ const Home: FunctionComponent = () => {
                               // Amounts match but integrity error - invalid payment
                               return (
                                 <span className="text-lg font-medium text-red-600">
-                                  Toto je neplatná platba. Kontaktujte banku.
+                                  Toto je neplatná platba. Môže ísť o podvod.
                                 </span>
                               )
                             }
