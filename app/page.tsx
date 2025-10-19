@@ -1752,7 +1752,7 @@ const Home: FunctionComponent = () => {
                           className="inline-flex items-center gap-2 text-xs text-gray-500 hover:text-gray-700 transition-colors"
                         >
                           <Github className="h-3 w-3" />
-                          <span>Vibecoded in Vercel V0</span>
+                          <span>Zdrojové kódy EUPL licencia</span>
                         </a>
                       </div>
                     </CardContent>
