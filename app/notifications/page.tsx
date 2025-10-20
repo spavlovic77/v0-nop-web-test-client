@@ -4,40 +4,28 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
-import {
-  ArrowLeft,
-  TrendingUp,
-  Users,
-  Building2,
-  Monitor,
-  CheckCircle2,
-  XCircle,
-  AlertTriangle,
-  Euro,
-  Clock,
-  Activity,
-  RefreshCw,
-  Wifi,
-  Database,
-  Search,
-  CheckCircle,
-} from "lucide-react"
+import { ArrowLeft, Users, Building2, Monitor, CheckCircle2, XCircle, Clock, Activity, RefreshCw } from "lucide-react"
 import { createBrowserClient } from "@supabase/ssr"
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
-import {
-  Bar,
-  BarChart,
-  Line,
-  LineChart,
-  Pie,
-  PieChart,
-  Cell,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Legend,
-  ResponsiveContainer,
-} from "recharts"
+import dynamic from "next/dynamic"
+
+const ChartContainer = dynamic(() => import("@/components/ui/chart").then((mod) => mod.ChartContainer), { ssr: false })
+const ChartTooltip = dynamic(() => import("@/components/ui/chart").then((mod) => mod.ChartTooltip), { ssr: false })
+const ChartTooltipContent = dynamic(() => import("@/components/ui/chart").then((mod) => mod.ChartTooltipContent), {
+  ssr: false,
+})
+
+const LineChart = dynamic(() => import("recharts").then((mod) => mod.LineChart), { ssr: false })
+const BarChart = dynamic(() => import("recharts").then((mod) => mod.BarChart), { ssr: false })
+const PieChart = dynamic(() => import("recharts").then((mod) => mod.PieChart), { ssr: false })
+const Line = dynamic(() => import("recharts").then((mod) => mod.Line), { ssr: false })
+const Bar = dynamic(() => import("recharts").then((mod) => mod.Bar), { ssr: false })
+const Pie = dynamic(() => import("recharts").then((mod) => mod.Pie), { ssr: false })
+const Cell = dynamic(() => import("recharts").then((mod) => mod.Cell), { ssr: false })
+const XAxis = dynamic(() => import("recharts").then((mod) => mod.XAxis), { ssr: false })
+const YAxis = dynamic(() => import("recharts").then((mod) => mod.YAxis), { ssr: false })
+const CartesianGrid = dynamic(() => import("recharts").then((mod) => mod.CartesianGrid), { ssr: false })
+const Legend = dynamic(() => import("recharts").then((mod) => mod.Legend), { ssr: false })
+const ResponsiveContainer = dynamic(() => import("recharts").then((mod) => mod.ResponsiveContainer), { ssr: false })
 
 interface MqttNotification {
   id: string
@@ -198,8 +186,10 @@ export default function NotificationsPage() {
       const txData = transactionsResult.data || []
       const notifData = notificationsResult.data || []
 
-      setTransactions(txData)
-      setNotifications(notifData)
+      // Keep existing notifications and transactions if fetchNotifications was called previously.
+      // Otherwise, set them here as well to ensure dashboard data is available.
+      if (notifications.length === 0) setNotifications(notifData)
+      if (transactions.length === 0) setTransactions(txData)
 
       const uniqueIPs = new Set(txData.map((t) => t.client_ip).filter(Boolean)).size
 
@@ -393,7 +383,7 @@ export default function NotificationsPage() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Search className="w-5 h-5" />
+            <Monitor className="w-5 h-5" />
             Vyhľadávanie časovej osi
           </CardTitle>
           <CardDescription>Zadajte EndToEnd ID pre zobrazenie kompletnej časovej osi transakcie</CardDescription>
@@ -412,7 +402,7 @@ export default function NotificationsPage() {
             </div>
             <div className="flex items-end">
               <Button onClick={handleSearch} disabled={!searchEndToEndId.trim()}>
-                <Search className="w-4 h-4 mr-2" />
+                <Activity className="w-4 h-4 mr-2" />
                 Vyhľadať
               </Button>
             </div>
@@ -442,9 +432,9 @@ export default function NotificationsPage() {
                             : "bg-yellow-100 border-yellow-500"
                       }`}
                     >
-                      {event.type === "generation" && <Database className="w-6 h-6 text-purple-600" />}
-                      {event.type === "subscription" && <Wifi className="w-6 h-6 text-blue-600" />}
-                      {event.type === "payment" && <Euro className="w-6 h-6 text-green-600" />}
+                      {event.type === "generation" && <Monitor className="w-6 h-6 text-purple-600" />}
+                      {event.type === "subscription" && <Users className="w-6 h-6 text-blue-600" />}
+                      {event.type === "payment" && <CheckCircle2 className="w-6 h-6 text-green-600" />}
                     </div>
 
                     <div className="flex-1 min-w-0">
@@ -456,9 +446,9 @@ export default function NotificationsPage() {
                             {event.type === "payment" && "Platobná notifikácia"}
                           </h3>
                           <div className="flex items-center gap-2">
-                            {event.status === "success" && <CheckCircle className="w-5 h-5 text-green-500" />}
+                            {event.status === "success" && <CheckCircle2 className="w-5 h-5 text-green-500" />}
                             {event.status === "error" && <XCircle className="w-5 h-5 text-red-500" />}
-                            {event.status === "pending" && <AlertTriangle className="w-5 h-5 text-yellow-500" />}
+                            {event.status === "pending" && <Clock className="w-5 h-5 text-yellow-500" />}
                             <span className="text-sm text-gray-500">{formatDate(event.timestamp)}</span>
                           </div>
                         </div>
@@ -513,7 +503,7 @@ export default function NotificationsPage() {
                         {index === timeline.length - 1 && timeline.length > 1 && (
                           <div className="mt-4 p-3 bg-green-50 rounded-lg border border-green-200">
                             <div className="flex items-center gap-2 text-sm text-green-700">
-                              <CheckCircle className="w-4 h-4" />
+                              <CheckCircle2 className="w-4 h-4" />
                               <span className="font-medium">
                                 Celkový čas od generovania po posledný krok:{" "}
                                 {calculateTimeDifference(timeline[0].timestamp, event.timestamp)}
@@ -667,7 +657,7 @@ export default function NotificationsPage() {
             <CardContent className="p-6">
               <div className="flex items-center gap-4">
                 <div className="p-3 bg-blue-100 rounded-lg">
-                  <TrendingUp className="w-6 h-6 text-blue-600" />
+                  <Activity className="w-6 h-6 text-blue-600" />
                 </div>
                 <div>
                   <p className="text-sm text-gray-600">Celkom transakcií</p>
