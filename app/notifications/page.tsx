@@ -2,29 +2,42 @@
 
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import Link from "next/link"
 import {
   ArrowLeft,
-  Bell,
-  MessageSquare,
-  RefreshCw,
+  TrendingUp,
+  Users,
+  Building2,
+  Monitor,
+  CheckCircle2,
+  XCircle,
+  AlertTriangle,
   Euro,
-  Hash,
+  Clock,
+  Activity,
+  RefreshCw,
   Wifi,
   Database,
   Search,
-  Clock,
   CheckCircle,
-  XCircle,
-  AlertCircle,
-  ChevronLeft,
-  ChevronRight,
 } from "lucide-react"
 import { createBrowserClient } from "@supabase/ssr"
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
+import {
+  Bar,
+  BarChart,
+  Line,
+  LineChart,
+  Pie,
+  PieChart,
+  Cell,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Legend,
+  ResponsiveContainer,
+} from "recharts"
 
 interface MqttNotification {
   id: string
@@ -40,6 +53,7 @@ interface MqttNotification {
   end_to_end_id?: string
   payload_received_at?: string
   created_at: string
+  integrity_validation: boolean
 }
 
 interface MqttSubscription {
@@ -64,6 +78,7 @@ interface TransactionGeneration {
   client_ip: string
   created_at: string
   response_timestamp: string
+  dispute: boolean
 }
 
 interface TimelineEvent {
@@ -72,6 +87,19 @@ interface TimelineEvent {
   timestamp: string
   status: "success" | "pending" | "error"
   data: any
+}
+
+interface DashboardStats {
+  uniqueIPs: number
+  uniqueOrganizations: number
+  uniqueCashiers: number
+  totalTransactions: number
+  totalPayments: number
+  successfulPayments: number
+  failedPayments: number
+  disputedTransactions: number
+  avgResponseTime: number
+  successRate: number
 }
 
 export default function NotificationsPage() {
@@ -87,6 +115,23 @@ export default function NotificationsPage() {
   const [timeline, setTimeline] = useState<TimelineEvent[]>([])
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 10
+
+  // Dashboard stats state
+  const [stats, setStats] = useState<DashboardStats>({
+    uniqueIPs: 0,
+    uniqueOrganizations: 0,
+    uniqueCashiers: 0,
+    totalTransactions: 0,
+    totalPayments: 0,
+    successfulPayments: 0,
+    failedPayments: 0,
+    disputedTransactions: 0,
+    avgResponseTime: 0,
+    successRate: 0,
+  })
+  const [topOrganizations, setTopOrganizations] = useState<{ name: string; count: number }[]>([])
+  const [topCashiers, setTopCashiers] = useState<{ name: string; count: number }[]>([])
+  const [hourlyActivity, setHourlyActivity] = useState<{ hour: string; transactions: number; payments: number }[]>([])
 
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -131,6 +176,110 @@ export default function NotificationsPage() {
     } catch (err) {
       console.error("[v0] Unexpected error:", err)
       setError(err instanceof Error ? err.message : "Unknown error")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true)
+
+      const [transactionsResult, notificationsResult] = await Promise.all([
+        supabase.from("transaction_generations").select("*").order("created_at", { ascending: false }),
+        supabase.from("mqtt_notifications").select("*").order("created_at", { ascending: false }),
+      ])
+
+      if (transactionsResult.error || notificationsResult.error) {
+        console.error("Error fetching data:", transactionsResult.error || notificationsResult.error)
+        return
+      }
+
+      const txData = transactionsResult.data || []
+      const notifData = notificationsResult.data || []
+
+      setTransactions(txData)
+      setNotifications(notifData)
+
+      const uniqueIPs = new Set(txData.map((t) => t.client_ip).filter(Boolean)).size
+
+      const allVatsks = [...txData.map((t) => t.vatsk), ...notifData.map((n) => n.vatsk)].filter(Boolean)
+      const uniqueOrgs = new Set(allVatsks).size
+
+      const allPokladnicas = [...txData.map((t) => t.pokladnica), ...notifData.map((n) => n.pokladnica)].filter(Boolean)
+      const uniqueCashiers = new Set(allPokladnicas).size
+
+      const successfulPayments = notifData.filter((n) => n.integrity_validation === true).length
+      const failedPayments = notifData.filter((n) => n.integrity_validation === false).length
+      const disputedTransactions = txData.filter((t) => t.dispute === true).length
+
+      const avgResponseTime =
+        txData.length > 0 ? txData.reduce((sum, t) => sum + (t.duration_ms || 0), 0) / txData.length : 0
+
+      const successRate = notifData.length > 0 ? (successfulPayments / notifData.length) * 100 : 0
+
+      setStats({
+        uniqueIPs,
+        uniqueOrganizations: uniqueOrgs,
+        uniqueCashiers,
+        totalTransactions: txData.length,
+        totalPayments: notifData.length,
+        successfulPayments,
+        failedPayments,
+        disputedTransactions,
+        avgResponseTime: Math.round(avgResponseTime),
+        successRate: Math.round(successRate),
+      })
+
+      const orgCounts = allVatsks.reduce(
+        (acc, vatsk) => {
+          acc[vatsk] = (acc[vatsk] || 0) + 1
+          return acc
+        },
+        {} as Record<string, number>,
+      )
+      const topOrgs = Object.entries(orgCounts)
+        .sort(([, a], [, b]) => b - a)
+        .slice(0, 5)
+        .map(([name, count]) => ({ name, count }))
+      setTopOrganizations(topOrgs)
+
+      const cashierCounts = allPokladnicas.reduce(
+        (acc, pokladnica) => {
+          acc[pokladnica] = (acc[pokladnica] || 0) + 1
+          return acc
+        },
+        {} as Record<string, number>,
+      )
+      const topCash = Object.entries(cashierCounts)
+        .sort(([, a], [, b]) => b - a)
+        .slice(0, 5)
+        .map(([name, count]) => ({ name: name.slice(3), count }))
+      setTopCashiers(topCash)
+
+      const hourlyData: Record<string, { transactions: number; payments: number }> = {}
+      for (let i = 0; i < 24; i++) {
+        hourlyData[i] = { transactions: 0, payments: 0 }
+      }
+
+      txData.forEach((t) => {
+        const hour = new Date(t.created_at).getHours()
+        hourlyData[hour].transactions++
+      })
+
+      notifData.forEach((n) => {
+        const hour = new Date(n.created_at).getHours()
+        hourlyData[hour].payments++
+      })
+
+      const hourlyArray = Object.entries(hourlyData).map(([hour, data]) => ({
+        hour: `${hour}:00`,
+        transactions: data.transactions,
+        payments: data.payments,
+      }))
+      setHourlyActivity(hourlyArray)
+    } catch (error) {
+      console.error("Error:", error)
     } finally {
       setLoading(false)
     }
@@ -206,8 +355,13 @@ export default function NotificationsPage() {
   const getTotalPages = (data: any[]) => Math.ceil(data.length / itemsPerPage)
 
   useEffect(() => {
-    fetchNotifications()
-  }, [])
+    // Fetch data based on the active tab
+    if (activeTab === "timeline") {
+      fetchNotifications() // Or a more specific timeline fetch if needed
+    } else {
+      fetchDashboardData() // Fetch dashboard data for other tabs
+    }
+  }, [activeTab]) // Re-run effect when activeTab changes
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleString("sk-SK", {
@@ -247,8 +401,8 @@ export default function NotificationsPage() {
         <CardContent>
           <div className="flex gap-4">
             <div className="flex-1">
-              <Label htmlFor="endToEndId">EndToEnd ID</Label>
-              <Input
+              <label htmlFor="endToEndId">EndToEnd ID</label>
+              <input
                 id="endToEndId"
                 placeholder="QR-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
                 value={searchEndToEndId}
@@ -304,7 +458,7 @@ export default function NotificationsPage() {
                           <div className="flex items-center gap-2">
                             {event.status === "success" && <CheckCircle className="w-5 h-5 text-green-500" />}
                             {event.status === "error" && <XCircle className="w-5 h-5 text-red-500" />}
-                            {event.status === "pending" && <AlertCircle className="w-5 h-5 text-yellow-500" />}
+                            {event.status === "pending" && <AlertTriangle className="w-5 h-5 text-yellow-500" />}
                             <span className="text-sm text-gray-500">{formatDate(event.timestamp)}</span>
                           </div>
                         </div>
@@ -420,428 +574,271 @@ export default function NotificationsPage() {
     }
   }
 
+  const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"]
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-6">
       <div className="max-w-7xl mx-auto">
         <div className="mb-8">
-          <div className="flex items-center gap-4 mb-4">
-            <Link href="/">
-              <Button variant="outline" size="sm">
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Späť
-              </Button>
-            </Link>
-            <div className="flex items-center gap-2">
-              <Bell className="w-6 h-6 text-blue-600" />
-              <h1 className="text-3xl font-bold text-gray-900">Systémové notifikácie</h1>
-            </div>
-          </div>
-          <p className="text-gray-600">Kompletný prehľad všetkých systémových udalostí a časových osí transakcií</p>
-        </div>
-
-        {error && (
-          <Card className="mb-8 border-red-200 bg-red-50">
-            <CardContent className="p-4">
-              <p className="text-red-600">Chyba: {error}</p>
-            </CardContent>
-          </Card>
-        )}
-
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2">
-                <Database className="w-5 h-5 text-purple-600" />
-                <div>
-                  <p className="text-sm text-gray-600">Generované transakcie</p>
-                  <p className="text-2xl font-bold">{transactions.length}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2">
-                <Wifi className="w-5 h-5 text-blue-600" />
-                <div>
-                  <p className="text-sm text-gray-600">MQTT pripojenia</p>
-                  <p className="text-2xl font-bold">{subscriptions.length}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2">
-                <MessageSquare className="w-5 h-5 text-green-600" />
-                <div>
-                  <p className="text-sm text-gray-600">Oznámení o platbe</p>
-                  <p className="text-2xl font-bold">{notifications.length}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Search className="w-5 h-5" />
-              Vyhľadávacie filtre a testovanie
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-4">
+              <Link href="/">
+                <Button variant="outline" size="sm">
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  Späť
+                </Button>
+              </Link>
               <div>
-                <Label htmlFor="vatskFilter">VATSK ID</Label>
-                <Input
-                  id="vatskFilter"
-                  placeholder="Filtrovať podľa VATSK..."
-                  value={searchVatsk}
-                  onChange={(e) => setSearchVatsk(e.target.value)}
-                />
-              </div>
-              <div>
-                <Label htmlFor="pokladnicaFilter">Pokladnica ID</Label>
-                <Input
-                  id="pokladnicaFilter"
-                  placeholder="Filtrovať podľa Pokladnica..."
-                  value={searchPokladnica}
-                  onChange={(e) => setSearchPokladnica(e.target.value)}
-                />
+                <h1 className="text-4xl font-bold text-gray-900 mb-2">Analytický Dashboard</h1>
+                <p className="text-gray-600">Prehľad systémových metrík a štatistík v reálnom čase</p>
               </div>
             </div>
-            <div className="flex gap-2">
-              <Button onClick={testNotification} variant="outline" size="sm">
-                Test notifikáciu
-              </Button>
-              <Button onClick={testTransactionGeneration} variant="outline" size="sm">
-                Test generovanie transakcie
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        <div className="mb-6">
-          <div className="flex gap-2 flex-wrap">
-            <Button
-              variant={activeTab === "timeline" ? "default" : "outline"}
-              onClick={() => setActiveTab("timeline")}
-              className="flex items-center gap-2"
-            >
-              <Clock className="w-4 h-4" />
-              Časová os
-            </Button>
-            <Button
-              variant={activeTab === "generations" ? "default" : "outline"}
-              onClick={() => setActiveTab("generations")}
-              className="flex items-center gap-2"
-            >
-              <Database className="w-4 h-4" />
-              Generované transakcie ({getFilteredData(transactions, "generations").length})
-            </Button>
-            <Button
-              variant={activeTab === "subscriptions" ? "default" : "outline"}
-              onClick={() => setActiveTab("subscriptions")}
-              className="flex items-center gap-2"
-            >
-              <Wifi className="w-4 h-4" />
-              MQTT pripojenia ({getFilteredData(subscriptions, "subscriptions").length})
-            </Button>
-            <Button
-              variant={activeTab === "payments" ? "default" : "outline"}
-              onClick={() => setActiveTab("payments")}
-              className="flex items-center gap-2"
-            >
-              <MessageSquare className="w-4 h-4" />
-              MQTT platobné notifikácie ({getFilteredData(notifications, "payments").length})
+            <Button onClick={fetchDashboardData} disabled={loading} size="lg">
+              <RefreshCw className={`w-5 h-5 mr-2 ${loading ? "animate-spin" : ""}`} />
+              Obnoviť
             </Button>
           </div>
         </div>
 
-        {activeTab === "timeline" && <TimelineView />}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white border-0 shadow-lg">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <Monitor className="w-10 h-10 opacity-80" />
+                <div className="text-right">
+                  <p className="text-sm opacity-90 mb-1">Unikátne IP adresy</p>
+                  <p className="text-4xl font-bold">{stats.uniqueIPs}</p>
+                </div>
+              </div>
+              <div className="h-2 bg-blue-400 rounded-full overflow-hidden">
+                <div className="h-full bg-white rounded-full" style={{ width: "75%" }} />
+              </div>
+            </CardContent>
+          </Card>
 
-        {activeTab !== "timeline" && (
+          <Card className="bg-gradient-to-br from-green-500 to-green-600 text-white border-0 shadow-lg">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <Building2 className="w-10 h-10 opacity-80" />
+                <div className="text-right">
+                  <p className="text-sm opacity-90 mb-1">Organizácie (VATSK)</p>
+                  <p className="text-4xl font-bold">{stats.uniqueOrganizations}</p>
+                </div>
+              </div>
+              <div className="h-2 bg-green-400 rounded-full overflow-hidden">
+                <div className="h-full bg-white rounded-full" style={{ width: "60%" }} />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-purple-500 to-purple-600 text-white border-0 shadow-lg">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <Users className="w-10 h-10 opacity-80" />
+                <div className="text-right">
+                  <p className="text-sm opacity-90 mb-1">Pokladnice</p>
+                  <p className="text-4xl font-bold">{stats.uniqueCashiers}</p>
+                </div>
+              </div>
+              <div className="h-2 bg-purple-400 rounded-full overflow-hidden">
+                <div className="h-full bg-white rounded-full" style={{ width: "85%" }} />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-orange-500 to-orange-600 text-white border-0 shadow-lg">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <Activity className="w-10 h-10 opacity-80" />
+                <div className="text-right">
+                  <p className="text-sm opacity-90 mb-1">Úspešnosť platieb</p>
+                  <p className="text-4xl font-bold">{stats.successRate}%</p>
+                </div>
+              </div>
+              <div className="h-2 bg-orange-400 rounded-full overflow-hidden">
+                <div className="h-full bg-white rounded-full" style={{ width: `${stats.successRate}%` }} />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-blue-100 rounded-lg">
+                  <TrendingUp className="w-6 h-6 text-blue-600" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Celkom transakcií</p>
+                  <p className="text-2xl font-bold text-gray-900">{stats.totalTransactions}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-green-100 rounded-lg">
+                  <CheckCircle2 className="w-6 h-6 text-green-600" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Úspešné platby</p>
+                  <p className="text-2xl font-bold text-gray-900">{stats.successfulPayments}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-red-100 rounded-lg">
+                  <XCircle className="w-6 h-6 text-red-600" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Neúspešné platby</p>
+                  <p className="text-2xl font-bold text-gray-900">{stats.failedPayments}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-yellow-100 rounded-lg">
+                  <Clock className="w-6 h-6 text-yellow-600" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Priem. čas odpovede</p>
+                  <p className="text-2xl font-bold text-gray-900">{stats.avgResponseTime}ms</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
           <Card>
             <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>
-                    {activeTab === "generations" && "Generované transakcie"}
-                    {activeTab === "subscriptions" && "MQTT pripojenia"}
-                    {activeTab === "payments" && "Oznámenia o platbe"}
-                  </CardTitle>
-                  <CardDescription>
-                    Posledných {itemsPerPage} záznamov (strana {currentPage} z{" "}
-                    {getTotalPages(
-                      activeTab === "generations"
-                        ? getFilteredData(transactions, "generations")
-                        : activeTab === "subscriptions"
-                          ? getFilteredData(subscriptions, "subscriptions")
-                          : getFilteredData(notifications, "payments"),
-                    )}
-                    )
-                  </CardDescription>
-                </div>
-                <Button onClick={fetchNotifications} variant="outline" size="sm" disabled={loading}>
-                  <RefreshCw className={`w-4 h-4 mr-2 ${loading ? "animate-spin" : ""}`} />
-                  Obnoviť
-                </Button>
-              </div>
+              <CardTitle>Aktivita podľa hodín</CardTitle>
+              <CardDescription>Transakcie a platby počas dňa</CardDescription>
             </CardHeader>
             <CardContent>
-              {loading ? (
-                <div className="text-center py-8">
-                  <RefreshCw className="w-8 h-8 text-gray-400 mx-auto mb-4 animate-spin" />
-                  <p className="text-gray-500">Načítavam notifikácie...</p>
-                </div>
-              ) : (
-                <>
-                  <div className="space-y-4 mb-6">
-                    {activeTab === "generations" &&
-                      getPaginatedData(getFilteredData(transactions, "generations")).map(
-                        (transaction: TransactionGeneration) => (
-                          <div
-                            key={transaction.id}
-                            className="border rounded-lg p-4 hover:bg-gray-50 transition-colors"
-                          >
-                            <div className="flex items-start justify-between mb-3">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <Badge variant="outline" className="text-xs">
-                                  {transaction.transaction_id}
-                                </Badge>
-                                <Badge
-                                  variant={transaction.status_code === 200 ? "default" : "destructive"}
-                                  className="text-xs"
-                                >
-                                  {transaction.status_code}
-                                </Badge>
-                                <Badge variant="secondary" className="text-xs">
-                                  {transaction.duration_ms}ms
-                                </Badge>
-                              </div>
-                              <span className="text-xs text-gray-500">{formatDate(transaction.created_at)}</span>
-                            </div>
-
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 p-3 bg-purple-50 rounded-lg">
-                              {transaction.vatsk && (
-                                <div className="flex items-center gap-2">
-                                  <Hash className="w-4 h-4 text-blue-600" />
-                                  <div>
-                                    <p className="text-xs text-gray-600">VATSK</p>
-                                    <p className="text-sm font-medium">{transaction.vatsk}</p>
-                                  </div>
-                                </div>
-                              )}
-                              {transaction.pokladnica && (
-                                <div className="flex items-center gap-2">
-                                  <Hash className="w-4 h-4 text-green-600" />
-                                  <div>
-                                    <p className="text-xs text-gray-600">Pokladnica</p>
-                                    <p className="text-sm font-medium">{transaction.pokladnica}</p>
-                                  </div>
-                                </div>
-                              )}
-                              <div className="flex items-center gap-2">
-                                <Hash className="w-4 h-4 text-gray-600" />
-                                <div>
-                                  <p className="text-xs text-gray-600">Client IP</p>
-                                  <p className="text-sm font-medium">{transaction.client_ip}</p>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        ),
-                      )}
-
-                    {activeTab === "subscriptions" &&
-                      getPaginatedData(getFilteredData(subscriptions, "subscriptions")).map(
-                        (subscription: MqttSubscription) => (
-                          <div
-                            key={subscription.id}
-                            className="border rounded-lg p-4 hover:bg-gray-50 transition-colors"
-                          >
-                            <div className="flex items-start justify-between mb-3">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <Badge variant="outline" className="text-xs">
-                                  {subscription.topic}
-                                </Badge>
-                                <Badge variant="secondary" className="text-xs">
-                                  QoS: {subscription.qos}
-                                </Badge>
-                              </div>
-                              <span className="text-xs text-gray-500">{formatDate(subscription.created_at)}</span>
-                            </div>
-
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 p-3 bg-green-50 rounded-lg">
-                              {subscription.vatsk && (
-                                <div className="flex items-center gap-2">
-                                  <Hash className="w-4 h-4 text-blue-600" />
-                                  <div>
-                                    <p className="text-xs text-gray-600">VATSK</p>
-                                    <p className="text-sm font-medium">{subscription.vatsk}</p>
-                                  </div>
-                                </div>
-                              )}
-                              {subscription.pokladnica && (
-                                <div className="flex items-center gap-2">
-                                  <Hash className="w-4 h-4 text-green-600" />
-                                  <div>
-                                    <p className="text-xs text-gray-600">Pokladnica</p>
-                                    <p className="text-sm font-medium">{subscription.pokladnica}</p>
-                                  </div>
-                                </div>
-                              )}
-                              {subscription.end_to_end_id && (
-                                <div className="flex items-center gap-2">
-                                  <Hash className="w-4 h-4 text-purple-600" />
-                                  <div>
-                                    <p className="text-xs text-gray-600">End-to-End ID</p>
-                                    <p className="text-sm font-medium">{subscription.end_to_end_id}</p>
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        ),
-                      )}
-
-                    {activeTab === "payments" &&
-                      getPaginatedData(getFilteredData(notifications, "payments")).map(
-                        (notification: MqttNotification) => (
-                          <div
-                            key={notification.id}
-                            className="border rounded-lg p-4 hover:bg-gray-50 transition-colors"
-                          >
-                            <div className="flex items-start justify-between mb-3">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <Badge variant="outline" className="text-xs">
-                                  {notification.topic}
-                                </Badge>
-                                {notification.transaction_status && (
-                                  <Badge
-                                    variant={notification.transaction_status === "ACCC" ? "default" : "destructive"}
-                                    className="text-xs"
-                                  >
-                                    {notification.transaction_status === "ACCC"
-                                      ? "Úspešná"
-                                      : notification.transaction_status}
-                                  </Badge>
-                                )}
-                              </div>
-                              <span className="text-xs text-gray-500">{formatDate(notification.created_at)}</span>
-                            </div>
-
-                            {(notification.vatsk ||
-                              notification.pokladnica ||
-                              notification.transaction_id ||
-                              notification.amount) && (
-                              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 mb-3 p-3 bg-blue-50 rounded-lg">
-                                {notification.vatsk && (
-                                  <div className="flex items-center gap-2">
-                                    <Hash className="w-4 h-4 text-blue-600" />
-                                    <div>
-                                      <p className="text-xs text-gray-600">VATSK</p>
-                                      <p className="text-sm font-medium">{notification.vatsk}</p>
-                                    </div>
-                                  </div>
-                                )}
-                                {notification.pokladnica && (
-                                  <div className="flex items-center gap-2">
-                                    <Hash className="w-4 h-4 text-green-600" />
-                                    <div>
-                                      <p className="text-xs text-gray-600">Pokladnica</p>
-                                      <p className="text-sm font-medium">{notification.pokladnica}</p>
-                                    </div>
-                                  </div>
-                                )}
-                                {notification.transaction_id && (
-                                  <div className="flex items-center gap-2">
-                                    <Hash className="w-4 h-4 text-purple-600" />
-                                    <div>
-                                      <p className="text-xs text-gray-600">Transakcia ID</p>
-                                      <p className="text-sm font-medium">{notification.transaction_id}</p>
-                                    </div>
-                                  </div>
-                                )}
-                                {notification.amount && notification.currency && (
-                                  <div className="flex items-center gap-2">
-                                    <Euro className="w-4 h-4 text-orange-600" />
-                                    <div>
-                                      <p className="text-xs text-gray-600">Suma</p>
-                                      <p className="text-sm font-medium">
-                                        {notification.amount.toFixed(2)} {notification.currency}
-                                      </p>
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-                            )}
-
-                            <div className="bg-gray-100 rounded p-3 mb-2">
-                              <pre className="text-sm text-gray-800 whitespace-pre-wrap break-words">
-                                {notification.raw_payload}
-                              </pre>
-                            </div>
-                          </div>
-                        ),
-                      )}
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="text-sm text-gray-500">
-                      Zobrazuje sa {(currentPage - 1) * itemsPerPage + 1} -{" "}
-                      {Math.min(
-                        currentPage * itemsPerPage,
-                        activeTab === "generations"
-                          ? getFilteredData(transactions, "generations").length
-                          : activeTab === "subscriptions"
-                            ? getFilteredData(subscriptions, "subscriptions").length
-                            : getFilteredData(notifications, "payments").length,
-                      )}{" "}
-                      z{" "}
-                      {activeTab === "generations"
-                        ? getFilteredData(transactions, "generations").length
-                        : activeTab === "subscriptions"
-                          ? getFilteredData(subscriptions, "subscriptions").length
-                          : getFilteredData(notifications, "payments").length}{" "}
-                      záznamov
-                    </div>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                        disabled={currentPage === 1}
-                      >
-                        <ChevronLeft className="w-4 h-4" />
-                        Predchádzajúca
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setCurrentPage(currentPage + 1)}
-                        disabled={
-                          currentPage >=
-                          getTotalPages(
-                            activeTab === "generations"
-                              ? getFilteredData(transactions, "generations")
-                              : activeTab === "subscriptions"
-                                ? getFilteredData(subscriptions, "subscriptions")
-                                : getFilteredData(notifications, "payments"),
-                          )
-                        }
-                      >
-                        Ďalšia
-                        <ChevronRight className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </>
-              )}
+              <ChartContainer
+                config={{
+                  transactions: { label: "Transakcie", color: "hsl(var(--chart-1))" },
+                  payments: { label: "Platby", color: "hsl(var(--chart-2))" },
+                }}
+                className="h-[300px]"
+              >
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={hourlyActivity}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="hour" />
+                    <YAxis />
+                    <ChartTooltip content={<ChartTooltipContent />} />
+                    <Legend />
+                    <Line type="monotone" dataKey="transactions" stroke="#3b82f6" strokeWidth={2} />
+                    <Line type="monotone" dataKey="payments" stroke="#10b981" strokeWidth={2} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </ChartContainer>
             </CardContent>
           </Card>
-        )}
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Stav platieb</CardTitle>
+              <CardDescription>Rozdelenie úspešných a neúspešných platieb</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ChartContainer
+                config={{
+                  successful: { label: "Úspešné", color: "hsl(var(--chart-2))" },
+                  failed: { label: "Neúspešné", color: "hsl(var(--chart-1))" },
+                }}
+                className="h-[300px]"
+              >
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={[
+                        { name: "Úspešné", value: stats.successfulPayments },
+                        { name: "Neúspešné", value: stats.failedPayments },
+                      ]}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                      outerRadius={100}
+                      fill="#8884d8"
+                      dataKey="value"
+                    >
+                      <Cell fill="#10b981" />
+                      <Cell fill="#ef4444" />
+                    </Pie>
+                    <ChartTooltip content={<ChartTooltipContent />} />
+                  </PieChart>
+                </ResponsiveContainer>
+              </ChartContainer>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Top 5 Organizácií (VATSK)</CardTitle>
+              <CardDescription>Najaktívnejšie organizácie v systéme</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ChartContainer
+                config={{
+                  count: { label: "Počet", color: "hsl(var(--chart-1))" },
+                }}
+                className="h-[300px]"
+              >
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={topOrganizations} layout="vertical">
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis type="number" />
+                    <YAxis dataKey="name" type="category" width={100} />
+                    <ChartTooltip content={<ChartTooltipContent />} />
+                    <Bar dataKey="count" fill="#3b82f6" radius={[0, 8, 8, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </ChartContainer>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Top 5 Pokladníc</CardTitle>
+              <CardDescription>Najvyužívanejšie pokladnice</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ChartContainer
+                config={{
+                  count: { label: "Počet", color: "hsl(var(--chart-2))" },
+                }}
+                className="h-[300px]"
+              >
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={topCashiers} layout="vertical">
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis type="number" />
+                    <YAxis dataKey="name" type="category" width={150} />
+                    <ChartTooltip content={<ChartTooltipContent />} />
+                    <Bar dataKey="count" fill="#10b981" radius={[0, 8, 8, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </ChartContainer>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   )
