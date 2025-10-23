@@ -42,6 +42,7 @@ interface MqttNotification {
   payload_received_at?: string
   created_at: string
   integrity_validation: boolean
+  timestamp: string // New: when record was saved to Supabase
 }
 
 interface MqttSubscription {
@@ -52,6 +53,7 @@ interface MqttSubscription {
   end_to_end_id?: string
   qos: number
   created_at: string
+  timestamp: string // New: when record was saved to Supabase
 }
 
 interface TransactionGeneration {
@@ -59,13 +61,14 @@ interface TransactionGeneration {
   transaction_id?: string
   vatsk?: string
   pokladnica?: string
-  endpoint: string
-  method: string
+  iban?: string
+  amount?: string
   status_code: number
   duration_ms: number
   client_ip: string
   created_at: string
-  response_timestamp: string
+  response_timestamp?: string // From external API's created_at field
+  timestamp: string // New: when record was saved to Supabase
   dispute: boolean
 }
 
@@ -283,7 +286,7 @@ export default function NotificationsPage() {
       events.push({
         id: `gen-${generation.id}`,
         type: "generation",
-        timestamp: generation.created_at,
+        timestamp: generation.timestamp,
         status: generation.status_code === 200 ? "success" : "error",
         data: generation,
       })
@@ -294,7 +297,7 @@ export default function NotificationsPage() {
       events.push({
         id: `sub-${subscription.id}`,
         type: "subscription",
-        timestamp: subscription.created_at,
+        timestamp: subscription.timestamp,
         status: "success",
         data: subscription,
       })
@@ -305,7 +308,7 @@ export default function NotificationsPage() {
       events.push({
         id: `pay-${payment.id}`,
         type: "payment",
-        timestamp: payment.created_at,
+        timestamp: payment.timestamp,
         status:
           payment.transaction_status === "ACCC"
             ? "success"
@@ -482,7 +485,7 @@ export default function NotificationsPage() {
                             <div>
                               <span className="font-medium text-gray-600">Suma:</span>
                               <span className="ml-2">
-                                {event.data.amount.toFixed(2)} {event.data.currency}
+                                {Number.parseFloat(event.data.amount).toFixed(2)} {event.data.currency}
                               </span>
                             </div>
                           )}
