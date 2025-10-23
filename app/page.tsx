@@ -15,6 +15,11 @@ import {
   Calendar,
   FileText,
   FileCheck,
+  Upload,
+  QrCode,
+  Loader2,
+  Info,
+  ExternalLink,
 } from "lucide-react" // Import Copy icon, AlertTriangle icon, FileText, Github, CheckCircle, Printer, Terminal, LogOut, User, Clock, Calendar, Check, AlertCircle
 import { Euro } from "lucide-react" // Import Euro, Printer, Calendar icons
 
@@ -25,9 +30,8 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog" // Import DialogHeader and DialogTitle
 import { Tooltip, TooltipProvider, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
-import { X, WifiOff, Info, QrCode, MoveLeft } from "lucide-react"
+import { X, WifiOff, MoveLeft } from "lucide-react" // Removed unused Info, QrCode, XCircle which are now imported above
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Loader2, Upload } from "lucide-react"
 import QRCode from "qrcode"
 import { createClient } from "@supabase/supabase-js"
 import { toast } from "@/hooks/use-toast" // Assuming you have a toast component
@@ -857,7 +861,7 @@ const Home: FunctionComponent = () => {
 
             for (const message of data.messages) {
               try {
-                const parsedMessage = JSON.parse(message)
+                const parsedMessage = JSON.JSON.parse(message)
                 if (parsedMessage.dataIntegrityHash) {
                   notificationHash = parsedMessage.dataIntegrityHash
                   break
@@ -1858,15 +1862,17 @@ const Home: FunctionComponent = () => {
                         </div>
                       )}
 
-                      <div className="text-center pt-4 border-t border-gray-200">
-                        <p className="text-xs text-gray-500 mb-2">Potrebujete XML autentifikačné údaje a heslo?</p>
-                        <Button
-                          variant="default"
-                          onClick={() => window.open("/download", "_blank")}
-                          className="w-full h-12 font-medium text-base transition-colors bg-blue-600 hover:bg-blue-700 text-white"
+                      <div className="text-center pt-6 border-t border-gray-200">
+                        <p className="text-sm text-gray-600 mb-3">Potrebujete XML autentifikačné údaje a heslo?</p>
+                        <a
+                          href="/download"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 hover:underline transition-colors font-medium"
                         >
-                          Získaj autentifikačné údaje
-                        </Button>
+                          <span>Získať autentifikačné údaje</span>
+                          <ExternalLink className="h-4 w-4" />
+                        </a>
                       </div>
 
                       <div className="text-center pt-4 mt-4 border-t border-gray-200">
