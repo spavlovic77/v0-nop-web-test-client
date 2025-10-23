@@ -676,7 +676,7 @@ const Home: FunctionComponent = () => {
         formData.append("caCert", files.caCert!)
         formData.append("certificateSecret", files.xmlPassword!)
         formData.append("iban", userIban)
-        formData.append("amount", eurAmount)
+        formData.append("amount", numericAmount)
 
         console.log("[v0] FormData prepared, making API call to generate transaction...")
         const res = await fetch("/api/generate-transaction", {

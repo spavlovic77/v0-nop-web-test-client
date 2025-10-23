@@ -86,7 +86,8 @@ async function saveMqttNotificationToDatabase(
 
       transaction_status = parsedPayload.transactionStatus
       if (parsedPayload.transactionAmount) {
-        amount = Number.parseFloat(parsedPayload.transactionAmount.amount)
+        const amountInCents = Number.parseFloat(parsedPayload.transactionAmount.amount)
+        amount = amountInCents / 100
         currency = parsedPayload.transactionAmount.currency
       }
       integrity_hash = parsedPayload.dataIntegrityHash
