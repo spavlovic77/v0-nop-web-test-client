@@ -415,12 +415,7 @@ export default function NotificationsPage() {
                   {formatPercentage(100 - metrics.invalidPaymentsPercentage)}
                 </p>
               </div>
-              <div className="text-center p-4 bg-white rounded-lg shadow-sm">
-                <p className="text-sm text-gray-600 mb-2">Celkom</p>
-                <p className="text-3xl font-bold text-purple-600">
-                  {formatCurrency(metrics.totalGeneratedAmount - metrics.totalPaidAmount)}
-                </p>
-              </div>
+              
             </div>
           </CardContent>
         </Card>
