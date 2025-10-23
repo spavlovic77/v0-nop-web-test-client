@@ -13,6 +13,8 @@ CREATE TABLE IF NOT EXISTS mqtt_notifications (
   currency TEXT,
   integrity_hash TEXT,
   end_to_end_id TEXT,
+  -- Changed from TIMESTAMPTZ to TEXT to preserve exact ISO 8601 format from payload
+  -- Reverted to TIMESTAMPTZ for efficient date range queries and performance
   payload_received_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   integrity_validation BOOLEAN,
@@ -25,6 +27,8 @@ CREATE INDEX IF NOT EXISTS idx_mqtt_notifications_pokladnica ON mqtt_notificatio
 CREATE INDEX IF NOT EXISTS idx_mqtt_notifications_transaction_id ON mqtt_notifications(transaction_id);
 CREATE INDEX IF NOT EXISTS idx_mqtt_notifications_created_at ON mqtt_notifications(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_mqtt_notifications_timestamp ON mqtt_notifications(timestamp DESC);
+-- Added index on payload_received_at for efficient date range queries
+CREATE INDEX IF NOT EXISTS idx_mqtt_notifications_payload_received_at ON mqtt_notifications(payload_received_at DESC);
 
 -- Adding Row Level Security policies
 -- Enable Row Level Security
