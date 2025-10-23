@@ -59,17 +59,33 @@ export default function NotificationsPage() {
       setLoading(true)
       setError(null)
 
+      console.log("[v0] Starting to fetch dashboard metrics...")
+
       // Fetch all data in parallel
       const [transactionsResult, paymentsResult] = await Promise.all([
         supabase.from("transaction_generations").select("*"),
         supabase.from("mqtt_notifications").select("*"),
       ])
 
-      if (transactionsResult.error) throw transactionsResult.error
-      if (paymentsResult.error) throw paymentsResult.error
+      console.log("[v0] Transactions result:", transactionsResult)
+      console.log("[v0] Payments result:", paymentsResult)
+
+      if (transactionsResult.error) {
+        console.error("[v0] Transactions error:", transactionsResult.error)
+        throw transactionsResult.error
+      }
+      if (paymentsResult.error) {
+        console.error("[v0] Payments error:", paymentsResult.error)
+        throw paymentsResult.error
+      }
 
       const transactions = transactionsResult.data || []
       const payments = paymentsResult.data || []
+
+      console.log("[v0] Transactions count:", transactions.length)
+      console.log("[v0] Payments count:", payments.length)
+      console.log("[v0] Sample transaction:", transactions[0])
+      console.log("[v0] Sample payment:", payments[0])
 
       // Calculate unique IPs
       const uniqueIPs = new Set(transactions.map((t) => t.client_ip).filter(Boolean)).size
@@ -105,7 +121,7 @@ export default function NotificationsPage() {
       const invalidPaymentsCount = invalidPayments.length
       const invalidPaymentsPercentage = payments.length > 0 ? (invalidPaymentsCount / payments.length) * 100 : 0
 
-      setMetrics({
+      const calculatedMetrics = {
         uniqueIPs,
         uniqueCompanies,
         uniqueCashRegisters,
@@ -117,9 +133,13 @@ export default function NotificationsPage() {
         invalidPaymentsPercentage,
         totalTransactions: transactions.length,
         totalPayments: payments.length,
-      })
+      }
+
+      console.log("[v0] Calculated metrics:", calculatedMetrics)
+
+      setMetrics(calculatedMetrics)
     } catch (err) {
-      console.error("Error fetching dashboard metrics:", err)
+      console.error("[v0] Error fetching dashboard metrics:", err)
       setError(err instanceof Error ? err.message : "Unknown error")
     } finally {
       setLoading(false)
