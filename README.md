@@ -1,6 +1,6 @@
 # NOP Web Test Client
 
-Webová aplikácia pre generovanie QR kódov na platby a správu transakcií s integráciou MQTT notifikácií z banky.
+Webová aplikácia pre generovanie QR kódov na platby a príjem potvrdení o platbe zo systému NOP, ktorý je integrovaný na banky.
 
 ## Čo táto aplikácia robí?
 
@@ -8,8 +8,8 @@ Táto aplikácia umožňuje:
 - Nahrať certifikát obchodníka (P12 súbor)
 - Generovať QR kódy pre platby
 - Prijímať notifikácie z banky cez MQTT
-- Tlačiť potvrdenia o platbách
-- Spravovať transakcie a označovať spory
+- Zobraziť potvrdenia o platbách
+- Správa nepotvrdených platieb
 
 ## Čo potrebuješ pred začatím
 
@@ -69,16 +69,88 @@ Pred inštaláciou aplikácie si musíš nainštalovať:
 3. Počkaj 2-3 minúty, kým sa projekt vytvorí
 
 4. Spusti SQL skripty na vytvorenie tabuliek:
+   
+   **DÔLEŽITÉ:** Skripty musíš spustiť v správnom poradí!
+   
    - V Supabase dashboarde klikni na "SQL Editor" v ľavom menu
    - Klikni na "New query"
-   - Otvor súbor `scripts/001_create_mqtt_notifications_table.sql` vo svojom editore
+   
+   **Krok 4.1 - Vyčistenie databázy (voliteľné, len ak chceš začať odznova):**
+   - Otvor súbor `scripts/000_drop_all_tables.sql` vo svojom editore
    - Skopíruj celý obsah a vlož ho do SQL editora
    - Klikni "Run" (alebo stlač F5)
-   - Opakuj to isté pre `scripts/002_create_transaction_generations_table.sql`
+   - **POZOR:** Tento skript vymaže všetky existujúce tabuľky a dáta!
+   
+   **Krok 4.2 - Vytvorenie tabuľky transaction_generations:**
+   - Otvor súbor `scripts/001_create_transaction_generations_table.sql`
+   - Skopíruj celý obsah a vlož ho do SQL editora
+   - Klikni "Run" (alebo stlač F5)
+   
+   **Krok 4.3 - Vytvorenie tabuľky mqtt_notifications:**
+   - Otvor súbor `scripts/002_create_mqtt_notifications_table.sql`
+   - Skopíruj celý obsah a vlož ho do SQL editora
+   - Klikni "Run" (alebo stlač F5)
+   
+   **Krok 4.4 - Vytvorenie tabuľky mqtt_subscriptions:**
+   - Otvor súbor `scripts/003_create_mqtt_subscriptions_table.sql`
+   - Skopíruj celý obsah a vlož ho do SQL editora
+   - Klikni "Run" (alebo stlač F5)
 
 5. Over, že sa tabuľky vytvorili:
    - Klikni na "Table Editor" v ľavom menu
-   - Mali by si vidieť tabuľky: `mqtt_notifications` a `transaction_generations`
+   - Mali by si vidieť tieto tabuľky:
+     - `transaction_generations` - ukladá vygenerované transakcie a QR kódy
+     - `mqtt_notifications` - ukladá prijaté MQTT notifikácie z banky
+     - `mqtt_subscriptions` - sleduje aktívne MQTT subscriptions
+
+### Štruktúra databázových tabuliek
+
+**transaction_generations:**
+- `id` - UUID primárny klúč
+- `transaction_id` - Unikátny identifikátor transakcie
+- `vatsk` - DIČO organizácie
+- `pokladnica` - Identifikátor pokladnice
+- `iban` - IBAN účtu
+- `amount` - Suma platby (NUMERIC 10,2)
+- `status_code` - HTTP status kód odpovede
+- `duration_ms` - Trvanie požiadavky v milisekundách
+- `client_ip` - IP adresa klienta
+- `response_timestamp` - Časová pečiatka odpovede (TIMESTAMPTZ)
+- `dispute` - Príznak sporu (BOOLEAN)
+- `created_at` - Čas vytvorenia záznamu (TIMESTAMPTZ)
+
+**mqtt_notifications:**
+- `id` - UUID primárny klúč
+- `topic` - MQTT topic
+- `raw_payload` - Surový payload z MQTT
+- `vatsk` - DIČO organizácie
+- `pokladnica` - Identifikátor pokladnice
+- `transaction_id` - ID transakcie
+- `transaction_status` - Status transakcie
+- `amount` - Suma platby (NUMERIC 10,2)
+- `currency` - Mena platby
+- `integrity_hash` - Hash pre overenie integrity
+- `end_to_end_id` - End-to-end identifikátor
+- `payload_received_at` - Čas prijatia payloadu (TIMESTAMPTZ)
+- `created_at` - Čas vytvorenia záznamu (TIMESTAMPTZ)
+- `integrity_validation` - Výsledok validácie integrity (BOOLEAN)
+
+**mqtt_subscriptions:**
+- `id` - UUID primárny klúč
+- `topic` - MQTT topic
+- `vatsk` - DIČO organizácie
+- `pokladnica` - Identifikátor pokladnice
+- `end_to_end_id` - End-to-end identifikátor
+- `qos` - Quality of Service level (INTEGER)
+- `timestamp` - Časová pečiatka subscription (TIMESTAMPTZ)
+- `created_at` - Čas vytvorenia záznamu (TIMESTAMPTZ)
+
+### Row Level Security (RLS)
+
+Všetky tabuľky majú nakonfigurované RLS politiky:
+- **Anonymous users** - môžu čítať všetky záznamy
+- **Authenticated users** - môžu čítať, vkladať a upravovať záznamy
+- **Service role** - má plný prístup ku všetkým operáciám
 
 ## Krok 3: Nastavenie premenných prostredia
 
@@ -105,6 +177,24 @@ Pred inštaláciou aplikácie si musíš nainštalovať:
 
 6. Nahraď hodnoty tými, ktoré si skopíroval z Supabase
 
+7. **CA certifikát:**
+   
+   Pridaj ho do `.env.local`:
+   \`\`\`
+   NEXT_PUBLIC_EMBEDDED_CA_BUNDLE=-----BEGIN CERTIFICATE-----
+   MIIDXTCCAkWgAwIBAgIJAKZ...
+   (celý obsah CA certifikátu)
+   ...
+   -----END CERTIFICATE-----
+   \`\`\`
+   
+   **Poznámka:** CA certifikát musí byť vo formáte PEM a môže obsahovať viacero certifikátov v reťazci.
+   Certifikát najdeš na https://crt.sh/
+   Zadaním: 
+   api-banka.kverkom.sk pre PROD
+   api-banka-i.kverkom.sk  pre INT prostredie
+
+
 ## Krok 4: Spustenie aplikácie lokálne
 
 1. V terminále (v priečinku projektu) spusti:
@@ -121,6 +211,13 @@ Pred inštaláciou aplikácie si musíš nainštalovať:
 
 4. Mala by sa ti zobraziť prihlasovacia stránka aplikácie!
 
+5. Nastav premenné prostredia:
+   - V sekcii "Environment Variables" pridaj tie isté premenné ako v `.env.local`
+   - `NEXT_PUBLIC_SUPABASE_URL`
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+   - `SUPABASE_SERVICE_ROLE_KEY`
+   - `NEXT_PUBLIC_EMBEDDED_CA_BUNDLE` 
+
 ## Krok 5: Nasadenie na Vercel (produkcia)
 
 1. Prihlás sa na https://vercel.com/
@@ -136,6 +233,7 @@ Pred inštaláciou aplikácie si musíš nainštalovať:
    - `NEXT_PUBLIC_SUPABASE_URL`
    - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
    - `SUPABASE_SERVICE_ROLE_KEY`
+   - `NEXT_PUBLIC_EMBEDDED_CA_BUNDLE`
 
 5. Klikni "Deploy"
 
@@ -145,6 +243,34 @@ Pred inštaláciou aplikácie si musíš nainštalovať:
 
 8. Otvor túto URL v prehliadači - aplikácia je teraz online!
 
+## Technické detaily
 
+### Použité technológie
+- **Next.js 16** - React framework s App Router
+- **TypeScript** - Type-safe JavaScript
+- **Tailwind CSS v4** - Utility-first CSS framework
+- **Supabase** - PostgreSQL databáza s real-time capabilities
+- **MQTT** - Message broker pre real-time notifikácie
+- **shadcn/ui** - UI komponenty
+
+### Štruktúra projektu
+\`\`\`
+nop-web-test-client/
+├── app/                    # Next.js App Router
+│   ├── api/               # API routes
+│   ├── notifications/     # Dashboard pre notifikácie
+│   └── page.tsx          # Hlavná stránka
+├── components/            # React komponenty
+├── lib/                   # Utility funkcie a Supabase klienti
+├── scripts/              # SQL skripty pre databázu
+└── public/               # Statické súbory
+\`\`\`
+
+### API Endpoints
+- `POST /api/generate-transaction` - Generuje novú transakciu a QR kód
+- `POST /api/mqtt/subscribe` - Vytvorí MQTT subscription
+- `POST /api/mqtt/save` - Uloží MQTT notifikáciu do databázy
+
+---
 
 **Vibecoded in Vercel V0** | [GitHub](https://github.com/tvoj-uzivatel/nop-web-test-client)
