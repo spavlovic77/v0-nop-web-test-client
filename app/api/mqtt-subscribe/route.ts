@@ -89,11 +89,8 @@ async function saveMqttNotificationToDatabase(
         console.log("[v0] 💰 Raw amount from payload:", parsedPayload.transactionAmount.amount)
         console.log("[v0] 💰 Amount type:", typeof parsedPayload.transactionAmount.amount)
 
-        const amountInCents = Number.parseFloat(parsedPayload.transactionAmount.amount)
-        console.log("[v0] 💰 Parsed amount (before division):", amountInCents)
-
-        amount = amountInCents / 100
-        console.log("[v0] 💰 Final amount (after /100):", amount)
+        amount = Number.parseFloat(parsedPayload.transactionAmount.amount)
+        console.log("[v0] 💰 Final amount (in EUR):", amount)
 
         currency = parsedPayload.transactionAmount.currency
       }
