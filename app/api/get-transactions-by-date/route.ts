@@ -16,13 +16,11 @@ export async function POST(request: NextRequest) {
     const startDate = `${date}T00:00:00Z`
     const endDate = `${date}T23:59:59Z`
 
-    const { data, error } = await supabase
-      .from("transaction_generations")
-      .select("id, transaction_id, response_timestamp, amount, iban, dispute")
-      .eq("pokladnica", pokladnica)
-      .gte("response_timestamp", startDate)
-      .lte("response_timestamp", endDate)
-      .order("response_timestamp", { ascending: false })
+    const { data, error } = await supabase.rpc("get_transactions_by_date", {
+      p_pokladnica: pokladnica,
+      p_start_date: startDate,
+      p_end_date: endDate,
+    })
 
     if (error) {
       console.error("[v0] Error fetching transactions:", error)

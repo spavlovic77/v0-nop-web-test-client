@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS mqtt_subscriptions (
   pokladnica TEXT NOT NULL,
   end_to_end_id TEXT NOT NULL,
   qos INTEGER NOT NULL DEFAULT 0,
+  -- Reverted to TIMESTAMPTZ for performance while formatting as Zulu time in queries
   timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -22,7 +23,6 @@ CREATE INDEX IF NOT EXISTS idx_mqtt_subscriptions_created_at ON mqtt_subscriptio
 ALTER TABLE mqtt_subscriptions ENABLE ROW LEVEL SECURITY;
 
 -- Create RLS policies
--- Added policy to allow anonymous users to read data for dashboard
 -- Policy: Allow anonymous users to read all mqtt subscriptions
 CREATE POLICY "Allow anonymous users to read mqtt_subscriptions"
   ON mqtt_subscriptions

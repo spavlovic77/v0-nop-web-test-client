@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS transaction_generations (
   status_code INTEGER NOT NULL,
   duration_ms INTEGER NOT NULL,
   client_ip TEXT,
+  -- Reverted to TIMESTAMPTZ for performance while formatting as Zulu time in queries
   response_timestamp TIMESTAMPTZ,
   dispute BOOLEAN DEFAULT false,
   timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -28,7 +29,6 @@ CREATE INDEX IF NOT EXISTS idx_transaction_generations_dispute ON transaction_ge
 ALTER TABLE transaction_generations ENABLE ROW LEVEL SECURITY;
 
 -- Create RLS policies
--- Added policy to allow anonymous users to read data for dashboard
 -- Policy: Allow anonymous users to read all transaction generations
 CREATE POLICY "Allow anonymous users to read transaction_generations"
   ON transaction_generations
