@@ -1550,7 +1550,7 @@ const Home: FunctionComponent = () => {
             setIntegrityError(true)
             setSubscriptionActive(false) // Ensure subscription is marked as inactive on error
           }
-        }, 2000) // Wait 2 seconds before starting verification
+        }, 300) // Wait 0,3 seconds before starting verification
       } else {
         console.log("[v0] No payment confirmation received within the time limit.")
         setSubscriptionActive(false)
