@@ -31,6 +31,14 @@ CREATE INDEX IF NOT EXISTS idx_mqtt_notifications_timestamp ON mqtt_notification
 ALTER TABLE mqtt_notifications ENABLE ROW LEVEL SECURITY;
 
 -- Create RLS policies
+-- Added policy to allow anonymous users to read data for dashboard
+-- Policy: Allow anonymous users to read all mqtt notifications
+CREATE POLICY "Allow anonymous users to read mqtt_notifications"
+  ON mqtt_notifications
+  FOR SELECT
+  TO anon
+  USING (true);
+
 -- Policy: Allow authenticated users to read all mqtt notifications
 CREATE POLICY "Allow authenticated users to read mqtt_notifications"
   ON mqtt_notifications

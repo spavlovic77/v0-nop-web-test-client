@@ -28,6 +28,14 @@ CREATE INDEX IF NOT EXISTS idx_transaction_generations_dispute ON transaction_ge
 ALTER TABLE transaction_generations ENABLE ROW LEVEL SECURITY;
 
 -- Create RLS policies
+-- Added policy to allow anonymous users to read data for dashboard
+-- Policy: Allow anonymous users to read all transaction generations
+CREATE POLICY "Allow anonymous users to read transaction_generations"
+  ON transaction_generations
+  FOR SELECT
+  TO anon
+  USING (true);
+
 -- Policy: Allow authenticated users to read all transaction generations
 CREATE POLICY "Allow authenticated users to read transaction_generations"
   ON transaction_generations

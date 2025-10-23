@@ -22,6 +22,14 @@ CREATE INDEX IF NOT EXISTS idx_mqtt_subscriptions_created_at ON mqtt_subscriptio
 ALTER TABLE mqtt_subscriptions ENABLE ROW LEVEL SECURITY;
 
 -- Create RLS policies
+-- Added policy to allow anonymous users to read data for dashboard
+-- Policy: Allow anonymous users to read all mqtt subscriptions
+CREATE POLICY "Allow anonymous users to read mqtt_subscriptions"
+  ON mqtt_subscriptions
+  FOR SELECT
+  TO anon
+  USING (true);
+
 -- Policy: Allow authenticated users to read all mqtt subscriptions
 CREATE POLICY "Allow authenticated users to read mqtt_subscriptions"
   ON mqtt_subscriptions
