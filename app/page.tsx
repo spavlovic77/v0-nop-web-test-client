@@ -954,7 +954,7 @@ const Home: FunctionComponent = () => {
             setIntegrityError(true)
             setSubscriptionActive(false)
           }
-        }, 2000)
+        }, 500)
       } else {
         console.log("[v0] MQTT subscription completed but no messages received")
         setSubscriptionActive(false)
