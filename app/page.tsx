@@ -1141,6 +1141,8 @@ const Home: FunctionComponent = () => {
   }
 
   const handleDisputeClick = () => {
+    const today = new Date().toISOString().split("T")[0]
+    setSelectedDisputeDate(today)
     setShowDisputeDateModal(true)
   }
 
