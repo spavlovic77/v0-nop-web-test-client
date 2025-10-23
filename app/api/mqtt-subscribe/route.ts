@@ -86,9 +86,7 @@ async function saveMqttNotificationToDatabase(
 
       transaction_status = parsedPayload.transactionStatus
       if (parsedPayload.transactionAmount) {
-        // The API sends amount as integer cents (e.g., 14 for 0.14 EUR)
-        const amountInCents = Number.parseFloat(parsedPayload.transactionAmount.amount)
-        amount = amountInCents / 100 // Convert cents to EUR
+        amount = Number.parseFloat(parsedPayload.transactionAmount.amount)
         currency = parsedPayload.transactionAmount.currency
       }
       integrity_hash = parsedPayload.dataIntegrityHash
