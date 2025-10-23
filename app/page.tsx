@@ -2,7 +2,20 @@
 
 import React from "react"
 import type { FunctionComponent } from "react"
-import { Copy, XCircle, FileText, Github, CheckCircle, Printer, Terminal, LogOut, User, Calendar } from "lucide-react" // Import Copy icon, AlertTriangle icon, FileText, Github, CheckCircle, Printer, Terminal, LogOut, User, Clock, Calendar, Check, AlertCircle
+import {
+  Copy,
+  XCircle,
+  FilePlus,
+  Github,
+  CheckCircle,
+  Printer,
+  Terminal,
+  LogOut,
+  User,
+  Calendar,
+  FileText,
+  FileCheck,
+} from "lucide-react" // Import Copy icon, AlertTriangle icon, FileText, Github, CheckCircle, Printer, Terminal, LogOut, User, Clock, Calendar, Check, AlertCircle
 import { Euro } from "lucide-react" // Import Euro, Printer, Calendar icons
 
 import { useState, useEffect, useCallback, useRef } from "react"
@@ -17,7 +30,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Loader2, Upload } from "lucide-react"
 import QRCode from "qrcode"
 import { createClient } from "@supabase/supabase-js"
-import { toast } from "@/components/ui/use-toast" // Assuming you have a toast component
+import { toast } from "@/hooks/use-toast" // Assuming you have a toast component
 
 class ErrorBoundary extends React.Component<
   { children: React.ReactNode; fallback?: React.ReactNode },
@@ -98,7 +111,7 @@ BgNVHRMBAf8EBTADAQH/MA4GA1UdDwEB/wQEAwIBhjAdBgNVHQ4EFgQUTiJUIBiV
 5uNu5g/6+rkS7QYXjzkwDQYJKoZIhvcNAQELBQADggEBAGBnKJRvDkhj6zHd6mcY
 1Yl9PMWLSn/pvtsrF9+wX3N3KjITOYFnQoQj8kVnNeyIv/iPsGEMNKSuIEyExtv4
 NeF22d+mQrvHRAiGfzZ0JFrabA0UWTW98kndth/Jsw1HKj2ZL7tcu7XUIOGZX1NG
-Fdtom/DzMNU+MeKNhJ7jitralj41E6Vf8PlwUHBHQRFXGU7Aj64GxJUTFy8bJZ91
+Fdtom/DzMNU+MeKNhJ7jitralj41E6Vf8PlwUHBHQRFUGU7Aj64GxJUTFy8bJZ91
 8rGOmaFvE7FBcf6IKshPECBV1/MUReXgRPTqh5Uykw7+U0b6LJ3/iyK5S9kJRaTe
 pLiaWN0bfVKfjllDiIGknibVb63dDcY3fe0Dkhvld1927jyNxF1WW6LZZm6zNTfl
 MrY=
@@ -2494,7 +2507,7 @@ const Home: FunctionComponent = () => {
               <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-semibold">
-                    Generované ID transakcií -{" "}
+                    Vyber transakciu -{" "}
                     {selectedDisputeDate ? new Date(selectedDisputeDate).toLocaleDateString("sk-SK") : ""}
                   </h3>
                 </div>
@@ -2521,7 +2534,7 @@ const Home: FunctionComponent = () => {
                                 )}
                               </div>
                             </th>
-                            <th className="border p-2 text-left text-sm font-medium">Transaction ID</th>
+                            <th className="border p-2 text-left text-sm font-medium">ID transakcie</th>
                             <th
                               className="border p-2 text-right text-sm font-medium cursor-pointer hover:bg-gray-100"
                               onClick={() => handleDisputeSort("amount")}
@@ -2533,7 +2546,7 @@ const Home: FunctionComponent = () => {
                                 )}
                               </div>
                             </th>
-                            <th className="border p-2 text-center text-sm font-medium">Doklad</th>
+                            <th className="border p-2 text-center text-sm font-medium">Akcia</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -2547,15 +2560,25 @@ const Home: FunctionComponent = () => {
                               </td>
                               <td className="border p-2 text-sm text-right">{formatAmount(transaction.amount)}</td>
                               <td className="border p-2 text-center">
-                                {!transaction.dispute && (
+                                {!transaction.dispute ? (
                                   <Button
                                     variant="ghost"
                                     size="sm"
                                     onClick={() => handleTransactionDisputeClick(transaction.transaction_id)}
                                     className="p-1"
-                                    title="Vyhotoviť doklad"
+                                    title="Vyhotoviť doklad o nepotvrdenej platbe"
                                   >
-                                    <FileText className="h-4 w-4 text-orange-500" />
+                                    <FilePlus className="h-4 w-4 text-orange-500" />
+                                  </Button>
+                                ) : (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => window.open(`/confirmation/${transaction.transaction_id}`, "_blank")}
+                                    className="p-1"
+                                    title="Zobraziť potvrdenie"
+                                  >
+                                    <FileCheck className="h-4 w-4 text-green-600" />
                                   </Button>
                                 )}
                               </td>
@@ -2616,7 +2639,7 @@ const Home: FunctionComponent = () => {
                     size="sm"
                     onClick={handleDisputeClick}
                     className="p-3 mx-1"
-                    title="Vyhotovenie dokladov"
+                    title="Doklady o nepotvrdených platbách"
                   >
                     <FileText className="h-5 w-5" />
                   </Button>
