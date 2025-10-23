@@ -104,7 +104,7 @@ b20xIDAeBgNVBAMTF0RpZ2lDZXJ0IEdsb2JhbCBSb290IEcyMIIBIjANBgkqhkiG
 9w0BAQEFAAOCAQ8AMIIBCgKCAQEAuzfNNNx7a8myaJCtSnX/RrohCgiN9RlUyfuI
 2/Ou8jqJkTx65qsGGmvPrC3oXgkkRLpimn7Wo6h+4FR1IAWsULecYxpsMNzaHxmx
 1x7e/dfgy5SDN67sH0NO3Xss0r0upS/kqbitOtSZpLYl6ZtrAGCSYP9PIUkY92eQ
-q2EGnI/yuum06ZIya7XzV+hdG82MHauVBJVJ8zUtluNJbd134/tJS7SsVQepj5Wz
+q2EGnI/RRO06ZIya7XzV+hdG82MHauVBJVJ8zUtluNJbd134/tJS7SsVQepj5Wz
 tCO7TG1F8PapspUwtP1MVYwnSlcUfIKdzXOS0xZKBgyMUNGPHgm+F6HmIcr9g+UQ
 vIOlCsRnKPZzFBQ9RnbDhxSJITRNrw9FDKZJobq7nMWxM4MphQIDAQABo0IwQDAP
 BgNVHRMBAf8EBTADAQH/MA4GA1UdDwEB/wQEAwIBhjAdBgNVHQ4EFgQUTiJUIBiV
@@ -1417,6 +1417,9 @@ const Home: FunctionComponent = () => {
   }
 
   const handleTransactionListClick = () => {
+    // Set default date to today
+    const today = new Date().toISOString().split("T")[0]
+    setSelectedTransactionDate(today)
     setShowTransactionDateModal(true)
   }
 
@@ -2355,13 +2358,18 @@ const Home: FunctionComponent = () => {
                     <Label htmlFor="transactionDate" className="text-sm font-medium">
                       Dátum
                     </Label>
-                    <Input
-                      id="transactionDate"
-                      type="date"
-                      value={selectedTransactionDate}
-                      onChange={(e) => setSelectedTransactionDate(e.target.value)}
-                      className="w-full"
-                    />
+                    <div
+                      className="cursor-pointer"
+                      onClick={() => document.getElementById("transactionDate")?.showPicker?.()}
+                    >
+                      <Input
+                        id="transactionDate"
+                        type="date"
+                        value={selectedTransactionDate}
+                        onChange={(e) => setSelectedTransactionDate(e.target.value)}
+                        className="w-full cursor-pointer"
+                      />
+                    </div>
                   </div>
 
                   <div className="flex gap-2">
@@ -2387,16 +2395,6 @@ const Home: FunctionComponent = () => {
                     Zoznam platieb -{" "}
                     {selectedTransactionDate ? new Date(selectedTransactionDate).toLocaleDateString("sk-SK") : ""}
                   </h3>
-                  <div className="flex gap-2">
-                    <Button onClick={printTransactionSummary} variant="outline" size="sm">
-                      <Printer className="h-4 w-4 mr-2" />
-                      Tlačiť súhrn
-                    </Button>
-                    <Button onClick={printAllTransactions} variant="outline" size="sm">
-                      <Printer className="h-4 w-4 mr-2" />
-                      Tlačiť všetky
-                    </Button>
-                  </div>
                 </div>
 
                 <div className="flex-1 overflow-y-auto">
@@ -2428,7 +2426,17 @@ const Home: FunctionComponent = () => {
                   )}
                 </div>
 
-                <div className="flex justify-end mt-4">
+                <div className="flex justify-between gap-2 mt-4">
+                  <div className="flex gap-2">
+                    <Button onClick={printTransactionSummary} variant="outline" size="sm">
+                      <Printer className="h-4 w-4 mr-2" />
+                      Tlačiť súhrn
+                    </Button>
+                    <Button onClick={printAllTransactions} variant="outline" size="sm">
+                      <Printer className="h-4 w-4 mr-2" />
+                      Tlačiť všetky
+                    </Button>
+                  </div>
                   <Button onClick={() => setShowTransactionListModal(false)}>Zavrieť</Button>
                 </div>
               </DialogContent>
