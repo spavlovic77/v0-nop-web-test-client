@@ -14,7 +14,6 @@ CREATE TABLE IF NOT EXISTS transaction_generations (
   -- Reverted to TIMESTAMPTZ for performance while formatting as Zulu time in queries
   response_timestamp TIMESTAMPTZ,
   dispute BOOLEAN DEFAULT false,
-  timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
