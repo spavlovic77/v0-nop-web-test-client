@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS transaction_generations (
   vatsk TEXT NOT NULL,
   pokladnica TEXT NOT NULL,
   iban TEXT,
-  amount TEXT,
+  amount NUMERIC(10, 2),
   status_code INTEGER NOT NULL,
   duration_ms INTEGER NOT NULL,
   client_ip TEXT,
