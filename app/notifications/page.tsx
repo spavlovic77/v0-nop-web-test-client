@@ -331,14 +331,14 @@ export default function NotificationsPage() {
                 <div className="p-2 bg-orange-100 rounded-lg">
                   <AlertTriangle className="w-5 h-5 text-orange-600" />
                 </div>
-                Sporné transakcie
+                Nepotvrdené platby
               </CardTitle>
-              <CardDescription>Transakcie označené ako sporné</CardDescription>
+              <CardDescription>Transakcie označené ako nepotvrdené</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
                 <div>
-                  <p className="text-sm text-gray-600 mb-1">Celková suma sporných transakcií</p>
+                  <p className="text-sm text-gray-600 mb-1">Celková suma</p>
                   <p className="text-3xl font-bold text-orange-600">{formatCurrency(metrics.totalDisputedAmount)}</p>
                 </div>
                 <div className="flex items-center justify-between p-4 bg-orange-50 rounded-lg">
@@ -416,7 +416,7 @@ export default function NotificationsPage() {
                 </p>
               </div>
               <div className="text-center p-4 bg-white rounded-lg shadow-sm">
-                <p className="text-sm text-gray-600 mb-2">Rozdiel</p>
+                <p className="text-sm text-gray-600 mb-2">Celkom</p>
                 <p className="text-3xl font-bold text-purple-600">
                   {formatCurrency(metrics.totalGeneratedAmount - metrics.totalPaidAmount)}
                 </p>
