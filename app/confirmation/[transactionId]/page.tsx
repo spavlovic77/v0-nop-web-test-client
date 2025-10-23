@@ -65,9 +65,9 @@ export default function ConfirmationPage() {
     window.print()
   }
 
-  const formatAmount = (amountInCents: string | null): string => {
-    if (!amountInCents) return "N/A"
-    const euros = Number.parseInt(amountInCents) / 100
+  const formatAmount = (amount: string | null): string => {
+    if (!amount) return "N/A"
+    const euros = Number.parseFloat(amount)
     return `${euros.toFixed(2)} €`
   }
 

@@ -1222,7 +1222,7 @@ const Home: FunctionComponent = () => {
   const formatAmount = (amount: string | number | null) => {
     if (!amount) return "0.00"
     const numAmount = typeof amount === "string" ? Number.parseFloat(amount) : amount
-    return (numAmount / 100).toFixed(2)
+    return numAmount.toFixed(2)
   }
 
   const truncateTransactionId = (id: string) => {
@@ -1334,7 +1334,7 @@ const Home: FunctionComponent = () => {
             <tbody>
               ${disputedTransactions
                 .map((transaction) => {
-                  const amount = transaction.amount ? (Number.parseInt(transaction.amount)).toFixed(2) : "0.00"
+                  const amount = transaction.amount ? Number.parseFloat(transaction.amount).toFixed(2) : "0.00"
                   return `
                     <tr>
                       <td>${new Date(transaction.response_timestamp).toLocaleTimeString("sk-SK", { hour: "2-digit", minute: "2-digit" })}</td>
