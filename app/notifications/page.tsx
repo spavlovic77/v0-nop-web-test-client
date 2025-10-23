@@ -356,6 +356,10 @@ export default function NotificationsPage() {
     }
   }, [activeTab]) // Re-run effect when activeTab changes
 
+  useEffect(() => {
+    fetchDashboardData()
+  }, []) // Empty dependency array = run once on mount
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleString("sk-SK", {
       year: "numeric",
