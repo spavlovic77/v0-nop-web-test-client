@@ -683,10 +683,15 @@ const Home: FunctionComponent = () => {
       try {
         console.log("[v0] Starting QR generation process...")
 
+        const caBundleContent = isProductionMode ? EMBEDDED_CA_BUNDLE_PROD : EMBEDDED_CA_BUNDLE
+        const caBundleBlob = new Blob([caBundleContent], { type: "application/x-pem-file" })
+        const caBundleFile = new File([caBundleBlob], "ca-bundle.pem", { type: "application/x-pem-file" })
+        console.log("[v0] Using CA certificate for mode:", isProductionMode ? "PRODUCTION" : "TEST")
+
         const formData = new FormData()
         formData.append("clientCert", files.convertedCertPem)
         formData.append("clientKey", files.convertedKeyPem)
-        formData.append("caCert", files.caCert!)
+        formData.append("caCert", caBundleFile)
         formData.append("certificateSecret", files.xmlPassword!)
         formData.append("iban", userIban)
         formData.append("amount", numericAmount)
@@ -799,6 +804,11 @@ const Home: FunctionComponent = () => {
       setSubscriptionActive(false)
       return
     }
+    if (!files.convertedCertPem || !files.convertedKeyPem) {
+      setError("Certificate files not properly converted")
+      setSubscriptionActive(false)
+      return
+    }
 
     if (!transactionId) {
       setError("Transaction ID nie je k dispozícii.")
@@ -832,7 +842,12 @@ const Home: FunctionComponent = () => {
           return prev - 1
         })
       }, 1000)
-      cleanupRef.current.push(() => clearInterval(timerInterval)) // Add cleanup for the interval
+      cleanupRef.current.push(() => clearInterval(timerInterval))
+
+      const caBundleContent = isProductionMode ? EMBEDDED_CA_BUNDLE_PROD : EMBEDDED_CA_BUNDLE
+      const caBundleBlob = new Blob([caBundleContent], { type: "application/x-pem-file" })
+      const caBundleFile = new File([caBundleBlob], "ca-bundle.pem", { type: "application/x-pem-file" })
+      console.log("[v0] Using CA certificate for MQTT mode:", isProductionMode ? "PRODUCTION" : "TEST")
 
       const formData = new FormData()
       if (files.convertedCertPem && files.convertedKeyPem) {
@@ -841,7 +856,7 @@ const Home: FunctionComponent = () => {
       } else {
         throw new Error("Certificate files not properly converted")
       }
-      formData.append("caCert", files.caCert!)
+      formData.append("caCert", caBundleFile)
       formData.append("certificateSecret", files.xmlPassword!)
       formData.append("transactionId", transactionId)
       formData.append("vatsk", certificateInfo.vatsk)
@@ -1046,6 +1061,7 @@ const Home: FunctionComponent = () => {
       const caBundleContent = isProductionMode ? EMBEDDED_CA_BUNDLE_PROD : EMBEDDED_CA_BUNDLE
       const caBundleBlob = new Blob([caBundleContent], { type: "application/x-pem-file" })
       const caBundleFile = new File([caBundleBlob], "ca-bundle.pem", { type: "application/x-pem-file" })
+      console.log("[v0] Using CA certificate for config save mode:", isProductionMode ? "PRODUCTION" : "TEST")
 
       setFiles((prev) => ({
         ...prev,
