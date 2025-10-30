@@ -1963,7 +1963,13 @@ const Home: FunctionComponent = () => {
                   <Card className="shadow-lg border-0 bg-white/95 backdrop-blur-sm">
                     <CardHeader className="text-center pb-6">
                       <CardTitle className="text-2xl font-bold text-gray-900">Prihlásenie</CardTitle>
-                      <div className="bg-yellow-100 border border-yellow-400 text-yellow-800 px-4 py-3 rounded-md mt-2">
+                      <div
+                        className={`${
+                          isProductionMode
+                            ? "bg-red-100 border-red-400 text-red-800"
+                            : "bg-yellow-100 border-yellow-400 text-yellow-800"
+                        } border px-4 py-3 rounded-md mt-2`}
+                      >
                         <div className="flex items-center justify-between gap-2">
                           <div className="flex items-center gap-2">
                             <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
@@ -1980,31 +1986,11 @@ const Home: FunctionComponent = () => {
                             </span>
                           </div>
                           <div className="flex items-center gap-2">
-                            <Label htmlFor="production-toggle" className="text-sm font-medium cursor-pointer">
-                              Prepojiť
-                            </Label>
                             <Switch
                               id="production-toggle"
                               checked={isProductionMode}
                               onCheckedChange={handleProductionToggle}
                             />
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="bg-gray-100 border border-gray-300 text-gray-700 px-4 py-3 rounded-md mt-2 text-xs font-mono">
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2">
-                            <span className="font-semibold">MQTT URL:</span>
-                            <span>{isProductionMode ? "mqtt.kverkom.sk" : "mqtt-i.kverkom.sk"}</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className="font-semibold">API URL:</span>
-                            <span>{isProductionMode ? "api-erp.kverkom.sk" : "api-erp-i.kverkom.sk"}</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className="font-semibold">CA Cert:</span>
-                            <span>{isProductionMode ? "PROD" : "TEST"}</span>
                           </div>
                         </div>
                       </div>
@@ -2050,7 +2036,7 @@ const Home: FunctionComponent = () => {
                             </TooltipTrigger>
                             <TooltipContent>
                               <p>
-                                Autentifikačné údajte vo forme XML súboru nájdete v e-kasa zóne na portály finančnej
+                                Autentifikačné údaje vo forme XML súboru nájdete v e-kasa zóne na portály finančnej
                                 správy.
                               </p>
                             </TooltipContent>
