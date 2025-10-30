@@ -424,6 +424,31 @@ export async function POST(request: NextRequest) {
           console.error("[v0] ❌ Database save exception:", dbError)
           communicationLog.push(`[${messageTime}] ❌ Database save exception`)
         }
+
+        const elapsedTime = Date.now() - new Date(startTime).getTime()
+        const elapsedSeconds = Math.round(elapsedTime / 1000)
+
+        console.log("[v0] ✅ Message received and saved, returning immediately")
+        communicationLog.push(`[${messageTime}] ✅ Returning response immediately after ${elapsedSeconds} seconds`)
+
+        resolveOnce(
+          new Response(
+            JSON.stringify({
+              success: true,
+              hasMessages: true,
+              messages: messages,
+              messageCount: messages.length,
+              communicationLog: communicationLog,
+              output: messageStr,
+              clientIP,
+              listeningDuration: `${elapsedSeconds} seconds`,
+            }),
+            {
+              status: 200,
+              headers: { "Content-Type": "application/json" },
+            },
+          ),
+        )
       })
 
       client.on("error", (err) => {
