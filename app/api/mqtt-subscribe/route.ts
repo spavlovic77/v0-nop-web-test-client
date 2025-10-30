@@ -229,7 +229,10 @@ export async function POST(request: NextRequest) {
     const transactionId = formData.get("transactionId") as string
     const vatsk = formData.get("vatsk") as string
     const pokladnica = formData.get("pokladnica") as string
-    const isProductionMode = formData.get("isProductionMode") as boolean
+    const isProductionMode = formData.get("isProductionMode") === "true"
+
+    console.log("[v0] Production mode:", isProductionMode)
+    console.log("[v0] isProductionMode raw value:", formData.get("isProductionMode"))
 
     if (!clientCert || !clientKey || !caCert) {
       console.log("[v0] Missing certificate files")
@@ -288,6 +291,8 @@ export async function POST(request: NextRequest) {
     console.log("[v0] Will listen for 120 seconds...")
 
     const mqttBroker = isProductionMode ? "mqtt.kverkom.sk" : "mqtt-i.kverkom.sk"
+    console.log("[v0] MQTT Broker URL:", mqttBroker)
+    console.log("[v0] Using", isProductionMode ? "PRODUCTION" : "TEST", "environment")
 
     const mqttOptions = {
       host: mqttBroker,

@@ -684,9 +684,15 @@ const Home: FunctionComponent = () => {
         console.log("[v0] Starting QR generation process...")
 
         const caBundleContent = isProductionMode ? EMBEDDED_CA_BUNDLE_PROD : EMBEDDED_CA_BUNDLE
+        console.log("[v0] Production mode:", isProductionMode)
+        console.log("[v0] Using CA certificate for mode:", isProductionMode ? "PRODUCTION" : "TEST")
+        console.log("[v0] CA certificate length:", caBundleContent.length)
+        console.log("[v0] CA certificate preview (first 100 chars):", caBundleContent.substring(0, 100))
+        console.log("[v0] Expected API URL:", isProductionMode ? "api-erp.kverkom.sk" : "api-erp-i.kverkom.sk")
+        console.log("[v0] Expected MQTT URL:", isProductionMode ? "mqtt.kverkom.sk" : "mqtt-i.kverkom.sk")
+
         const caBundleBlob = new Blob([caBundleContent], { type: "application/x-pem-file" })
         const caBundleFile = new File([caBundleBlob], "ca-bundle.pem", { type: "application/x-pem-file" })
-        console.log("[v0] Using CA certificate for mode:", isProductionMode ? "PRODUCTION" : "TEST")
 
         const formData = new FormData()
         formData.append("clientCert", files.convertedCertPem)
