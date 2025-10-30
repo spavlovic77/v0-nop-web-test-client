@@ -1,11 +1,6 @@
 import type { NextRequest } from "next/server"
-import { writeFile, unlink } from "fs/promises"
-import { exec } from "child_process"
-import { promisify } from "util"
-import path from "path"
 import { createClient } from "@supabase/supabase-js"
-
-const execAsync = promisify(exec)
+import mqtt from "mqtt"
 
 function getClientIP(request: NextRequest): string {
   const forwarded = request.headers.get("x-forwarded-for")
@@ -272,125 +267,192 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.log("[v0] Converting files to buffers...")
-    const sessionId = Date.now().toString()
-    const clientCertPath = path.join("/tmp", `${sessionId}-client.pem`)
-    const clientKeyPath = path.join("/tmp", `${sessionId}-client.key`)
-    const caCertPath = path.join("/tmp", `${sessionId}-ca.pem`)
-
-    console.log("[v0] Writing certificate files to disk...")
-    await Promise.all([
-      writeFile(clientCertPath, await getCertificateBuffer(clientCert)),
-      writeFile(clientKeyPath, await getCertificateBuffer(clientKey)),
-      writeFile(caCertPath, await getCertificateBuffer(caCert)),
-    ])
+    console.log("[v0] Converting certificates to buffers...")
+    const clientCertBuffer = await getCertificateBuffer(clientCert)
+    const clientKeyBuffer = await getCertificateBuffer(clientKey)
+    const caCertBuffer = await getCertificateBuffer(caCert)
 
     const mqttTopic = `VATSK-${vatsk}/POKLADNICA-${pokladnica}/${transactionId}`
 
     const mqttBroker = isProductionMode ? "mqtt.kverkom.sk" : "mqtt-i.kverkom.sk"
+    const mqttPort = 8883
+
     console.log("[v0] MQTT Broker:", mqttBroker)
+    console.log("[v0] MQTT Port:", mqttPort)
     console.log("[v0] Using", isProductionMode ? "PRODUCTION" : "TEST", "environment")
     console.log("[v0] MQTT topic:", mqttTopic)
 
-    const mosquittoCommand = `timeout 120 mosquitto_sub -h ${mqttBroker} -p 8883 -v -q 1 -t "${mqttTopic}" --cafile "${caCertPath}" --cert "${clientCertPath}" --key "${clientKeyPath}" -d`
-
-    console.log("[v0] Executing mosquitto_sub command...")
-    console.log("[v0] Command:", mosquittoCommand)
-
     const communicationLog: string[] = []
     const startTime = new Date().toISOString()
-    communicationLog.push(`[${startTime}] 🔄 Initiating MQTT connection to ${mqttBroker}:8883`)
-    communicationLog.push(`[${startTime}] 📡 Using TLS with client certificates`)
+    communicationLog.push(`[${startTime}] 🔄 Initiating MQTT connection to ${mqttBroker}:${mqttPort}`)
+    communicationLog.push(`[${startTime}] 📡 Using MQTT over TLS (mqtts://) with client certificates`)
     communicationLog.push(`[${startTime}] 🎯 Subscribing to topic: ${mqttTopic}`)
     communicationLog.push(`[${startTime}] ⏱️ Timeout: 120 seconds`)
 
-    try {
-      const { stdout, stderr } = await execAsync(mosquittoCommand)
-      const endTime = new Date().toISOString()
-
-      console.log("[v0] mosquitto_sub stdout:", stdout)
-      console.log("[v0] mosquitto_sub stderr:", stderr)
-
-      communicationLog.push(`[${endTime}] ✅ MQTT subscription completed`)
-
+    return new Promise((resolve) => {
       const messages: string[] = []
-      if (stdout.trim()) {
-        const lines = stdout.trim().split("\n")
-        for (const line of lines) {
-          const parts = line.split(" ", 2)
-          if (parts.length === 2) {
-            const [topic, message] = parts
-            messages.push(message)
-            communicationLog.push(`[${endTime}] 📨 Message received: ${message}`)
+      let timeoutHandle: NodeJS.Timeout
+      let isResolved = false
 
-            try {
-              const dbResult = await saveMqttNotificationToDatabase(topic, message)
-              if (dbResult.success) {
-                console.log("[v0] ✅ Message saved to database")
-                communicationLog.push(`[${endTime}] ✅ Message saved to database`)
-              } else {
-                console.error("[v0] ❌ Database save failed:", dbResult.error)
-                communicationLog.push(`[${endTime}] ❌ Database save failed`)
-              }
-            } catch (dbError) {
-              console.error("[v0] ❌ Database save exception:", dbError)
-              communicationLog.push(`[${endTime}] ❌ Database save exception`)
-            }
-          }
+      const mqttUrl = `mqtts://${mqttBroker}:${mqttPort}`
+      console.log("[v0] Connecting to MQTT broker:", mqttUrl)
+
+      const client = mqtt.connect(mqttUrl, {
+        cert: clientCertBuffer,
+        key: clientKeyBuffer,
+        ca: caCertBuffer,
+        rejectUnauthorized: true,
+        protocol: "mqtts",
+        port: mqttPort,
+        keepalive: 60,
+        connectTimeout: 30000,
+        reconnectPeriod: 0, // Disable auto-reconnect
+      })
+
+      const cleanup = () => {
+        if (timeoutHandle) {
+          clearTimeout(timeoutHandle)
+        }
+        if (client) {
+          client.end(true)
         }
       }
 
-      await Promise.all([
-        unlink(clientCertPath).catch(() => {}),
-        unlink(clientKeyPath).catch(() => {}),
-        unlink(caCertPath).catch(() => {}),
-      ])
-      console.log("[v0] Certificate files cleaned up")
-      communicationLog.push(`[${endTime}] 🧹 Certificate files cleaned up`)
+      const resolveOnce = (response: Response) => {
+        if (!isResolved) {
+          isResolved = true
+          cleanup()
+          resolve(response)
+        }
+      }
 
-      return new Response(
-        JSON.stringify({
-          success: true,
-          hasMessages: messages.length > 0,
-          messages: messages,
-          messageCount: messages.length,
-          communicationLog: communicationLog,
-          output: messages.length > 0 ? messages.join("\n") : "No messages received during 120-second listening period",
-          mqttCommand: mosquittoCommand,
-          clientIP,
-          listeningDuration: "120 seconds",
-        }),
-        {
-          status: 200,
-          headers: { "Content-Type": "application/json" },
-        },
-      )
-    } catch (error: any) {
-      const endTime = new Date().toISOString()
-      console.error("[v0] mosquitto_sub error:", error)
+      timeoutHandle = setTimeout(() => {
+        const endTime = new Date().toISOString()
+        console.log("[v0] MQTT subscription timeout reached (120 seconds)")
+        communicationLog.push(`[${endTime}] ⏱️ Timeout reached after 120 seconds`)
+        communicationLog.push(`[${endTime}] 📊 Total messages received: ${messages.length}`)
 
-      communicationLog.push(`[${endTime}] ❌ MQTT subscription error: ${error.message}`)
+        resolveOnce(
+          new Response(
+            JSON.stringify({
+              success: true,
+              hasMessages: messages.length > 0,
+              messages: messages,
+              messageCount: messages.length,
+              communicationLog: communicationLog,
+              output:
+                messages.length > 0 ? messages.join("\n") : "No messages received during 120-second listening period",
+              clientIP,
+              listeningDuration: "120 seconds",
+            }),
+            {
+              status: 200,
+              headers: { "Content-Type": "application/json" },
+            },
+          ),
+        )
+      }, 120000) // 120 seconds
 
-      await Promise.all([
-        unlink(clientCertPath).catch(() => {}),
-        unlink(clientKeyPath).catch(() => {}),
-        unlink(caCertPath).catch(() => {}),
-      ])
+      client.on("connect", () => {
+        const connectTime = new Date().toISOString()
+        console.log("[v0] ✅ Connected to MQTT broker")
+        communicationLog.push(`[${connectTime}] ✅ Connected to MQTT broker`)
 
-      return new Response(
-        JSON.stringify({
-          error: "MQTT subscription failed",
-          details: error.stderr || error.message,
-          communicationLog: communicationLog,
-          mqttCommand: mosquittoCommand,
-          clientIP,
-        }),
-        {
-          status: 500,
-          headers: { "Content-Type": "application/json" },
-        },
-      )
-    }
+        client.subscribe(mqttTopic, { qos: 1 }, (err, granted) => {
+          if (err) {
+            const errorTime = new Date().toISOString()
+            console.error("[v0] ❌ Subscription error:", err)
+            communicationLog.push(`[${errorTime}] ❌ Subscription error: ${err.message}`)
+
+            resolveOnce(
+              new Response(
+                JSON.stringify({
+                  error: "MQTT subscription failed",
+                  details: err.message,
+                  communicationLog: communicationLog,
+                  clientIP,
+                }),
+                {
+                  status: 500,
+                  headers: { "Content-Type": "application/json" },
+                },
+              ),
+            )
+          } else {
+            const subTime = new Date().toISOString()
+            console.log("[v0] ✅ Subscribed to topic:", granted)
+            communicationLog.push(`[${subTime}] ✅ Subscribed to topic with QoS ${granted[0].qos}`)
+
+            // Save subscription to database
+            saveMqttSubscriptionToDatabase(mqttTopic, granted[0].qos, subTime)
+              .then((dbResult) => {
+                if (dbResult.success) {
+                  console.log("[v0] ✅ Subscription saved to database")
+                  communicationLog.push(`[${subTime}] ✅ Subscription saved to database`)
+                } else {
+                  console.error("[v0] ❌ Subscription database save failed:", dbResult.error)
+                  communicationLog.push(`[${subTime}] ❌ Subscription database save failed`)
+                }
+              })
+              .catch((dbError) => {
+                console.error("[v0] ❌ Subscription database save exception:", dbError)
+              })
+          }
+        })
+      })
+
+      client.on("message", async (topic, message) => {
+        const messageTime = new Date().toISOString()
+        const messageStr = message.toString()
+        console.log("[v0] 📨 Message received on topic:", topic)
+        console.log("[v0] 📨 Message content:", messageStr)
+
+        messages.push(messageStr)
+        communicationLog.push(`[${messageTime}] 📨 Message received: ${messageStr}`)
+
+        // Save message to database
+        try {
+          const dbResult = await saveMqttNotificationToDatabase(topic, messageStr)
+          if (dbResult.success) {
+            console.log("[v0] ✅ Message saved to database")
+            communicationLog.push(`[${messageTime}] ✅ Message saved to database`)
+          } else {
+            console.error("[v0] ❌ Database save failed:", dbResult.error)
+            communicationLog.push(`[${messageTime}] ❌ Database save failed`)
+          }
+        } catch (dbError) {
+          console.error("[v0] ❌ Database save exception:", dbError)
+          communicationLog.push(`[${messageTime}] ❌ Database save exception`)
+        }
+      })
+
+      client.on("error", (err) => {
+        const errorTime = new Date().toISOString()
+        console.error("[v0] ❌ MQTT client error:", err)
+        communicationLog.push(`[${errorTime}] ❌ MQTT error: ${err.message}`)
+
+        resolveOnce(
+          new Response(
+            JSON.stringify({
+              error: "MQTT connection failed",
+              details: err.message,
+              communicationLog: communicationLog,
+              clientIP,
+            }),
+            {
+              status: 500,
+              headers: { "Content-Type": "application/json" },
+            },
+          ),
+        )
+      })
+
+      client.on("close", () => {
+        const closeTime = new Date().toISOString()
+        console.log("[v0] 🔌 MQTT connection closed")
+        communicationLog.push(`[${closeTime}] 🔌 Connection closed`)
+      })
+    })
   } catch (error) {
     console.error("[v0] MQTT subscription error:", error)
     return new Response(

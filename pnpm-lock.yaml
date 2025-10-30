@@ -57,7 +57,7 @@ importers:
         specifier: ^0.454.0
         version: 0.454.0(react@19.0.0)
       mqtt:
-        specifier: ^5.10.1
+        specifier: latest
         version: 5.14.1
       next:
         specifier: 15.2.4
