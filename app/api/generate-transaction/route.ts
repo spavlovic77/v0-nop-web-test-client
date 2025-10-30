@@ -248,11 +248,32 @@ export async function POST(request: NextRequest) {
       throw new Error(`Curl error: ${stderr}`)
     }
 
-    // Parse response
     let responseData
+    let statusCode = 200
     try {
-      responseData = stdout ? JSON.parse(stdout.trim()) : { message: "Empty response" }
-    } catch {
+      // Split headers and body (separated by \r\n\r\n or \n\n)
+      const parts = stdout.split(/\r?\n\r?\n/)
+
+      // The first part contains HTTP headers
+      const headers = parts[0]
+
+      // Extract status code from first line (e.g., "HTTP/1.1 200 OK")
+      const statusMatch = headers.match(/HTTP\/[\d.]+\s+(\d+)/)
+      if (statusMatch) {
+        statusCode = Number.parseInt(statusMatch[1])
+      }
+
+      // The rest is the body (join in case body contains empty lines)
+      const body = parts.slice(1).join("\n\n").trim()
+
+      if (body) {
+        responseData = JSON.parse(body)
+        console.log(`[v0] ✅ Response parsed - Transaction ID: ${responseData.transaction_id}`)
+      } else {
+        responseData = { error: "Empty response body" }
+      }
+    } catch (parseError) {
+      console.log(`[v0] ⚠️ Failed to parse response:`, parseError)
       responseData = { rawResponse: stdout.trim() }
     }
 
@@ -266,7 +287,7 @@ export async function POST(request: NextRequest) {
       pokladnica,
       iban: iban || undefined,
       amount: amount || undefined,
-      status_code: 200,
+      status_code: statusCode,
       duration_ms: duration,
       client_ip: clientIP,
       response_timestamp: apiCreatedAt,
