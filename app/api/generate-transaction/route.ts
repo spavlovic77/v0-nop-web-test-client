@@ -233,19 +233,12 @@ export async function POST(request: NextRequest) {
 
     const apiBaseUrl = isProductionMode ? "https://api-erp.kverkom.sk" : "https://api-erp-i.kverkom.sk"
 
-    // Prepare request body with transaction details
-    const requestBody = {
-      iban: iban || "",
-      amount: amount || "0.00",
-      vatsk: vatsk || "",
-      pokladnica: pokladnica || "",
-    }
+    console.log(
+      `[v0] 🌐 Using ${isProductionMode ? "PRODUCTION" : "TEST"} API: ${apiBaseUrl}/api/v1/generateNewTransactionId`,
+    )
 
-    const requestBodyJson = JSON.stringify(requestBody)
-    console.log(`[v0] 📦 Request body:`, requestBody)
-
-    // Execute API call with request body
-    const curlCommand = `curl -s -S -X POST ${apiBaseUrl}/api/v1/transactions --cert "${clientCertPath}" --key "${clientKeyPath}" --cacert "${caCertPath}" -H "Content-Type: application/json" -d '${requestBodyJson}'`
+    // Execute API call without request body (as per bank API specification)
+    const curlCommand = `curl -s -S -i -X POST ${apiBaseUrl}/api/v1/generateNewTransactionId --cert "${clientCertPath}" --key "${clientKeyPath}" --cacert "${caCertPath}"`
 
     console.log(`[v0] 🔄 Executing curl command...`)
     const { stdout, stderr } = await execAsync(curlCommand, { timeout: 30000 })
