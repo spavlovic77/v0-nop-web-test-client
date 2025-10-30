@@ -1957,6 +1957,23 @@ const Home: FunctionComponent = () => {
                           </div>
                         </div>
                       </div>
+
+                      <div className="bg-gray-100 border border-gray-300 text-gray-700 px-4 py-3 rounded-md mt-2 text-xs font-mono">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold">MQTT URL:</span>
+                            <span>{isProductionMode ? "mqtt.kverkom.sk" : "mqtt-i.kverkom.sk"}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold">API URL:</span>
+                            <span>{isProductionMode ? "api-erp.kverkom.sk" : "api-erp-i.kverkom.sk"}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold">CA Cert:</span>
+                            <span>{isProductionMode ? "PROD" : "TEST"}</span>
+                          </div>
+                        </div>
+                      </div>
                     </CardHeader>
 
                     <Dialog open={showProductionConfirmModal} onOpenChange={setShowProductionConfirmModal}>
