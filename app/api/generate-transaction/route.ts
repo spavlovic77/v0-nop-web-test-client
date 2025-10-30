@@ -195,6 +195,7 @@ export async function POST(request: NextRequest) {
     const caCert = formData.get("caCert")
     const iban = formData.get("iban") as string | null
     const amount = formData.get("amount") as string | null
+    const isProductionMode = formData.get("isProductionMode") === "true"
 
     if (!clientCert || !clientKey || !caCert) {
       console.log(`[v0] ❌ Missing certificate files`)
@@ -229,9 +230,6 @@ export async function POST(request: NextRequest) {
 
     // Extract VATSK and POKLADNICA from certificate
     const { vatsk, pokladnica } = await extractCertificateInfo(Buffer.from(validatedClientCert))
-
-    const body = await request.json()
-    const { isProductionMode, ...transactionData } = body
 
     const apiBaseUrl = isProductionMode ? "https://api-erp.kverkom.sk" : "https://api-erp-i.kverkom.sk"
 
