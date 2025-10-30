@@ -229,6 +229,7 @@ export async function POST(request: NextRequest) {
     const transactionId = formData.get("transactionId") as string
     const vatsk = formData.get("vatsk") as string
     const pokladnica = formData.get("pokladnica") as string
+    const isProductionMode = formData.get("isProductionMode") as boolean
 
     if (!clientCert || !clientKey || !caCert) {
       console.log("[v0] Missing certificate files")
@@ -286,10 +287,12 @@ export async function POST(request: NextRequest) {
     console.log("[v0] MQTT topic:", mqttTopic)
     console.log("[v0] Will listen for 120 seconds...")
 
+    const mqttBroker = isProductionMode ? "mqtt.kverkom.sk" : "mqtt-i.kverkom.sk"
+
     const mqttOptions = {
-      host: "mqtt-i.kverkom.sk",
-      port: 8883,
-      protocol: "mqtts" as const,
+      host: mqttBroker,
+      port: 8084,
+      protocol: "wss" as const,
       ca: readFileSync(caCertPath),
       cert: readFileSync(clientCertPath),
       key: readFileSync(clientKeyPath),
@@ -304,7 +307,7 @@ export async function POST(request: NextRequest) {
       const communicationLog: string[] = []
       let connectionEstablished = false
 
-      communicationLog.push(`[${new Date().toISOString()}] 🔄 Initiating MQTT connection to mqtt-i.kverkom.sk:8883`)
+      communicationLog.push(`[${new Date().toISOString()}] 🔄 Initiating MQTT connection to ${mqttBroker}:8084`)
       communicationLog.push(`[${new Date().toISOString()}] 📡 Using SSL/TLS with client certificates`)
       communicationLog.push(`[${new Date().toISOString()}] 🎯 Subscribing to topic: ${mqttTopic}`)
 
@@ -419,7 +422,7 @@ export async function POST(request: NextRequest) {
                 messageCount: messages.length,
                 communicationLog: communicationLog,
                 output: messages.join("\n"),
-                mqttCommand: `MQTT.js subscription to mqtts://mqtt-i.kverkom.sk:8883 topic: ${mqttTopic}`,
+                mqttCommand: `MQTT.js subscription to wss://${mqttBroker}:8084/mqtt topic: ${mqttTopic}`,
                 clientIP,
                 listeningDuration: "Message received immediately",
               }),
@@ -473,7 +476,7 @@ export async function POST(request: NextRequest) {
                 communicationLog: communicationLog,
                 output:
                   messages.length > 0 ? messages.join("\n") : "No messages received during 120-second listening period",
-                mqttCommand: `MQTT.js subscription to mqtts://mqtt-i.kverkom.sk:8883 topic: ${mqttTopic}`,
+                mqttCommand: `MQTT.js subscription to wss://${mqttBroker}:8084/mqtt topic: ${mqttTopic}`,
                 clientIP,
                 listeningDuration: "120 seconds",
               }),

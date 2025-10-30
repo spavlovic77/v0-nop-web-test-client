@@ -20,6 +20,9 @@ import {
   Loader2,
   Info,
   ExternalLink,
+  WifiOff,
+  MoveLeft,
+  X,
 } from "lucide-react" // Import Copy icon, AlertTriangle icon, FileText, Github, CheckCircle, Printer, Terminal, LogOut, User, Clock, Calendar, Check, AlertCircle
 import { Euro } from "lucide-react" // Import Euro, Printer, Calendar icons
 
@@ -30,7 +33,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog" // Import DialogHeader and DialogTitle
 import { Tooltip, TooltipProvider, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
-import { X, WifiOff, MoveLeft } from "lucide-react" // Removed unused Info, QrCode, XCircle which are now imported above
+import { Switch } from "@/components/ui/switch"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import QRCode from "qrcode"
 import { createClient, createBrowserClient } from "@supabase/supabase-js"
@@ -72,6 +75,7 @@ class ErrorBoundary extends React.Component<
 }
 
 const EMBEDDED_CA_BUNDLE = process.env.NEXT_PUBLIC_EMBEDDED_CA_BUNDLE || ""
+const EMBEDDED_CA_BUNDLE_PROD = process.env.NEXT_PUBLIC_EMBEDDED_CA_BUNDLE_PROD || ""
 
 interface CertificateFiles {
   xmlAuthData: File | null
@@ -194,6 +198,46 @@ const Home: FunctionComponent = () => {
   // Add new state for MQTT timer
   const [mqttTimeRemaining, setMqttTimeRemaining] = useState(120)
   const [mqttTimerActive, setMqttTimerActive] = useState(false)
+
+  const [isProductionMode, setIsProductionMode] = useState(false)
+  const [showProductionConfirmModal, setShowProductionConfirmModal] = useState(false)
+
+  useEffect(() => {
+    const savedMode = localStorage.getItem("productionMode")
+    if (savedMode === "true") {
+      setIsProductionMode(true)
+    }
+  }, [])
+
+  const handleProductionToggle = (checked: boolean) => {
+    if (checked) {
+      // Switching to production - show confirmation
+      setShowProductionConfirmModal(true)
+    } else {
+      // Switching to test - no confirmation needed
+      setIsProductionMode(false)
+      localStorage.setItem("productionMode", "false")
+      toast({
+        title: "Prepnuté na testovacie prostredie",
+        description: "Používate testovacie URL adresy",
+      })
+    }
+  }
+
+  const confirmProductionSwitch = () => {
+    setIsProductionMode(true)
+    localStorage.setItem("productionMode", "true")
+    setShowProductionConfirmModal(false)
+    toast({
+      title: "Prepnuté na produkčné prostredie",
+      description: "Používate produkčné URL adresy pripojené k bankám",
+      variant: "default",
+    })
+  }
+
+  const cancelProductionSwitch = () => {
+    setShowProductionConfirmModal(false)
+  }
 
   const logApiCall = (log: ApiCallLog) => {
     setApiCallLogs((prev) => [...prev, log].slice(-20)) // Keep only last 20 logs
@@ -995,7 +1039,8 @@ const Home: FunctionComponent = () => {
         throw new Error("Konverzia XML na PEM zlyhala")
       }
 
-      const caBundleBlob = new Blob([EMBEDDED_CA_BUNDLE], { type: "application/x-pem-file" })
+      const caBundleContent = isProductionMode ? EMBEDDED_CA_BUNDLE_PROD : EMBEDDED_CA_BUNDLE
+      const caBundleBlob = new Blob([caBundleContent], { type: "application/x-pem-file" })
       const caBundleFile = new File([caBundleBlob], "ca-bundle.pem", { type: "application/x-pem-file" })
 
       setFiles((prev) => ({
@@ -1015,7 +1060,7 @@ const Home: FunctionComponent = () => {
       setSavingConfiguration(false)
       setIsProcessing(false)
     }
-  }, [files.xmlAuthData, files.xmlPassword, handleApiCallWithRetry, convertXmlToPem])
+  }, [files.xmlAuthData, files.xmlPassword, handleApiCallWithRetry, convertXmlToPem, isProductionMode])
 
   const canSaveConfiguration =
     files.xmlAuthData &&
@@ -1815,7 +1860,7 @@ const Home: FunctionComponent = () => {
               <tr>
                 <th style="width: 15%;">Čas</th>
                 <th style="width: 40%;">Transaction ID</th>
-                <th class="amount" style="width: 20%;">Suma (EUR)</th>
+                <th class="amount" style="width: 40%;">Suma (EUR)</th>
                 <th style="width: 25%;">Overenie</th>
               </tr>
             </thead>
@@ -1884,17 +1929,61 @@ const Home: FunctionComponent = () => {
                   <Card className="shadow-lg border-0 bg-white/95 backdrop-blur-sm">
                     <CardHeader className="text-center pb-6">
                       <CardTitle className="text-2xl font-bold text-gray-900">Prihlásenie</CardTitle>
-                      <div className="bg-yellow-100 border border-yellow-400 text-yellow-800 px-4 py-3 rounded-md mt-2 flex items-center gap-2">
-                        <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                          <path
-                            fillRule="evenodd"
-                            d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-                            clipRule="evenodd"
-                          />
-                        </svg>
-                        <span className="text-sm font-medium">Testovacie prostredie neprepojené s bankami</span>
+                      <div className="bg-yellow-100 border border-yellow-400 text-yellow-800 px-4 py-3 rounded-md mt-2">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2">
+                            <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                              <path
+                                fillRule="evenodd"
+                                d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                                clipRule="evenodd"
+                              />
+                            </svg>
+                            <span className="text-sm font-medium">
+                              {isProductionMode
+                                ? "Produkčné prostredie pripojené k bankám"
+                                : "Testovacie prostredie neprepojené s bankami"}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Label htmlFor="production-toggle" className="text-sm font-medium cursor-pointer">
+                              Prepojiť
+                            </Label>
+                            <Switch
+                              id="production-toggle"
+                              checked={isProductionMode}
+                              onCheckedChange={handleProductionToggle}
+                            />
+                          </div>
+                        </div>
                       </div>
                     </CardHeader>
+
+                    <Dialog open={showProductionConfirmModal} onOpenChange={setShowProductionConfirmModal}>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Prepnúť na produkčné prostredie?</DialogTitle>
+                        </DialogHeader>
+                        <div className="space-y-4">
+                          <p className="text-sm text-muted-foreground">
+                            Prepnutím na produkčné prostredie budete používať skutočné bankové pripojenie. Všetky
+                            transakcie budú reálne a nezvratné.
+                          </p>
+                          <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-md">
+                            <p className="text-sm font-medium">Ste si istí, že chcete pokračovať?</p>
+                          </div>
+                          <div className="flex gap-2 justify-end">
+                            <Button variant="outline" onClick={cancelProductionSwitch}>
+                              Zrušiť
+                            </Button>
+                            <Button onClick={confirmProductionSwitch} className="bg-red-600 hover:bg-red-700">
+                              Áno, prepnúť
+                            </Button>
+                          </div>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+
                     <CardContent className="space-y-6">
                       <div className="space-y-2">
                         <TooltipProvider>
@@ -2741,7 +2830,7 @@ const Home: FunctionComponent = () => {
                                     size="sm"
                                     onClick={() => handleTransactionDisputeClick(transaction.transaction_id)}
                                     className="p-1"
-                                    title="Vyhotoviť doklad o nepotvrdenej platbe"
+                                    title="Vyhotoviť doklad o nepotvrdennej platbe"
                                   >
                                     <FilePlus className="h-4 w-4 text-orange-500" />
                                   </Button>

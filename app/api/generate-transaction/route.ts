@@ -230,8 +230,13 @@ export async function POST(request: NextRequest) {
     // Extract VATSK and POKLADNICA from certificate
     const { vatsk, pokladnica } = await extractCertificateInfo(Buffer.from(validatedClientCert))
 
+    const body = await request.json()
+    const { isProductionMode, ...transactionData } = body
+
+    const apiBaseUrl = isProductionMode ? "https://api-erp.kverkom.sk" : "https://api-erp-i.kverkom.sk"
+
     // Execute API call
-    const curlCommand = `curl -s -S -X POST https://api-erp-i.kverkom.sk/api/v1/generateNewTransactionId --cert "${clientCertPath}" --key "${clientKeyPath}" --cacert "${caCertPath}"`
+    const curlCommand = `curl -s -S -X POST ${apiBaseUrl}/api/v1/transactions --cert "${clientCertPath}" --key "${clientKeyPath}" --cacert "${caCertPath}"`
 
     console.log(`[v0] 🔄 Executing curl command...`)
     const { stdout, stderr } = await execAsync(curlCommand, { timeout: 30000 })
