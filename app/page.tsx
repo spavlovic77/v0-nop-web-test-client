@@ -690,8 +690,10 @@ const Home: FunctionComponent = () => {
         formData.append("certificateSecret", files.xmlPassword!)
         formData.append("iban", userIban)
         formData.append("amount", numericAmount)
+        formData.append("isProductionMode", isProductionMode.toString())
 
         console.log("[v0] FormData prepared, making API call to generate transaction...")
+        console.log("[v0] Production mode:", isProductionMode)
         const res = await fetch("/api/generate-transaction", {
           method: "POST",
           body: formData,
@@ -844,8 +846,10 @@ const Home: FunctionComponent = () => {
       formData.append("transactionId", transactionId)
       formData.append("vatsk", certificateInfo.vatsk)
       formData.append("pokladnica", certificateInfo.pokladnica)
+      formData.append("isProductionMode", isProductionMode.toString())
 
       console.log("[v0] Starting MQTT subscription...")
+      console.log("[v0] Production mode:", isProductionMode)
 
       const res = await fetch("/api/mqtt-subscribe", {
         method: "POST",
