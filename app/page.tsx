@@ -248,11 +248,19 @@ const Home: FunctionComponent = () => {
   }
 
   const generatePaymentLink = (amount: string, transactionId: string) => {
+    // Format: YYYYMMDD (ISO 8601)
+    const today = new Date()
+    const year = today.getFullYear()
+    const month = String(today.getMonth() + 1).padStart(2, "0")
+    const day = String(today.getDate()).padStart(2, "0")
+    const dueDate = `${year}${month}${day}`
+
     const params = new URLSearchParams({
       V: "1", // Version
       IBAN: userIban.replace(/\s/g, ""), // Remove spaces from IBAN for payment link
       AM: amount, // Amount from user
       CC: "EUR", // Currency
+      DT: dueDate, // Due date in YYYYMMDD format
       CN: merchantAccountName || "Kverkom s.r.o.", // Creditor name
       PI: transactionId, // Payment identification (EndToEnd as Transaction ID)
       MSG: "Payment+via+mobile+app", // Fabricated message
