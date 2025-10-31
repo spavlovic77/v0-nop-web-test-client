@@ -658,6 +658,13 @@ const Home: FunctionComponent = () => {
   }
 
   const handleQrGeneration = async () => {
+    console.log("[v0] 🎯 Generate QR button clicked")
+
+    if (qrLoading) {
+      console.log("[v0] ⚠️ QR generation already in progress, ignoring duplicate call")
+      return
+    }
+
     const validationLogEntry: ApiCallLog = {
       timestamp: new Date(),
       endpoint: "/api/generate-transaction",
@@ -1975,6 +1982,12 @@ const Home: FunctionComponent = () => {
   // Updated handleGenerateQR function
   const handleGenerateQR = async () => {
     console.log("[v0] 🎯 Generate QR button clicked")
+
+    if (qrLoading) {
+      console.log("[v0] ⚠️ QR generation already in progress, ignoring duplicate call")
+      return
+    }
+
     const validationLogEntry: ApiCallLog = {
       timestamp: new Date(),
       endpoint: "/api/generate-transaction",
@@ -2320,7 +2333,9 @@ const Home: FunctionComponent = () => {
       formData.append("vatsk", certificateInfo.vatsk)
       formData.append("pokladnica", certificateInfo.pokladnica)
 
-      console.log("[v0] Sending MQTT subscription request...")
+      console.log("[v0] Starting MQTT subscription...")
+      console.log("[v0] Production mode:", isProductionMode)
+
       const res = await fetch("/api/mqtt-subscribe", {
         method: "POST",
         body: formData,
@@ -2803,7 +2818,7 @@ const Home: FunctionComponent = () => {
                           "[v0] Button disabled state:",
                           !eurAmount || Number.parseFloat(getEurAmountValue()) <= 0,
                         )
-                        handleQrGeneration()
+                        handleGenerateQR() // Changed from handleQrGeneration to handleGenerateQR
                       }}
                     >
                       <QrCode className="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 lg:w-24 lg:h-24" />
