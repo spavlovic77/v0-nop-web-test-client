@@ -1945,6 +1945,400 @@ const Home: FunctionComponent = () => {
     }
   }
 
+  // </CHANGE>
+  // Updated handleGenerateQR function
+  const handleGenerateQR = async () => {
+    const validationLogEntry: ApiCallLog = {
+      timestamp: new Date(),
+      endpoint: "/api/generate-transaction",
+      method: "POST",
+      status: 0,
+      error: "",
+    }
+
+    if (!configurationSaved) {
+      console.log("[v0] EARLY RETURN: Configuration not saved yet")
+      validationLogEntry.error = "Configuration not saved yet"
+      logApiCall(validationLogEntry)
+      setError("Please save configuration first")
+      return
+    }
+
+    if (!files.convertedCertPem || !files.convertedKeyPem) {
+      console.log("[v0] EARLY RETURN: PEM files not available")
+      console.log("[v0] convertedCertPem length:", files.convertedCertPem?.length || 0)
+      console.log("[v0] convertedKeyPem length:", files.convertedKeyPem?.length || 0)
+      validationLogEntry.error = "Certificate files not properly converted"
+      logApiCall(validationLogEntry)
+      setError("Certificate files not properly converted")
+      return
+    }
+
+    const numericAmount = getEurAmountValue()
+    console.log("[v0] numericAmount:", numericAmount)
+    console.log("[v0] parsed amount:", Number.parseFloat(numericAmount))
+    console.log("[v0] amount > 0:", Number.parseFloat(numericAmount) > 0)
+
+    if (numericAmount && Number.parseFloat(numericAmount) > 0) {
+      console.log("[v0] VALIDATION PASSED - Starting QR generation process...")
+      setShowQrModal(true)
+      setQrLoading(true)
+      setQrTransactionId(null)
+      setQrCode(null)
+      setSubscriptionActive(false)
+
+      const startTime = Date.now()
+      const logEntry: ApiCallLog = {
+        timestamp: new Date(),
+        endpoint: "/api/generate-transaction",
+        method: "POST",
+        status: 0,
+      }
+
+      try {
+        console.log("[v0] Starting QR generation process...")
+
+        const caBundleContent = isProductionMode ? EMBEDDED_CA_BUNDLE_PROD : EMBEDDED_CA_BUNDLE
+        console.log("[v0] Production mode:", isProductionMode)
+        console.log("[v0] Using CA certificate for mode:", isProductionMode ? "PRODUCTION" : "TEST")
+        console.log("[v0] CA certificate length:", caBundleContent.length)
+        console.log("[v0] CA certificate preview (first 100 chars):", caBundleContent.substring(0, 100))
+        console.log("[v0] Expected API URL:", isProductionMode ? "api-erp.kverkom.sk" : "api-erp-i.kverkom.sk")
+        console.log("[v0] Expected MQTT URL:", isProductionMode ? "mqtt.kverkom.sk" : "mqtt-i.kverkom.sk")
+
+        const caBundleBlob = new Blob([caBundleContent], { type: "application/x-pem-file" })
+        const caBundleFile = new File([caBundleBlob], "ca-bundle.pem", { type: "application/x-pem-file" })
+
+        const formData = new FormData()
+        formData.append("clientCert", files.convertedCertPem)
+        formData.append("clientKey", files.convertedKeyPem)
+        formData.append("caCert", caBundleFile)
+        formData.append("certificateSecret", files.xmlPassword!)
+        formData.append("iban", userIban)
+        formData.append("amount", numericAmount)
+        formData.append("isProductionMode", isProductionMode.toString())
+
+        const mqttApiUrl = `${window.location.origin}/api/mqtt-subscribe`
+        const mqttBroker = isProductionMode ? "mqtt.kverkom.sk" : "mqtt-i.kverkom.sk"
+        console.log("=".repeat(80))
+        console.log("[v0] 🔔 MQTT SUBSCRIPTION REQUEST")
+        console.log("[v0] API URL:", mqttApiUrl)
+        console.log("[v0] Environment:", isProductionMode ? "PRODUCTION" : "TEST")
+        console.log("[v0] MQTT Broker:", `mqtts://${mqttBroker}:8883`)
+        console.log("[v0] VATSK:", certificateInfo.vatsk)
+        console.log("[v0] POKLADNICA:", certificateInfo.pokladnica)
+        console.log("=".repeat(80))
+
+        const res = await fetch("/api/mqtt-subscribe", {
+          method: "POST",
+          body: formData,
+        })
+
+        console.log("[v0] API response received, status:", res.status)
+
+        logEntry.status = res.status
+        logEntry.duration = Date.now() - startTime
+
+        const contentType = res.headers.get("content-type")
+        let data
+
+        if (contentType && contentType.includes("application/json")) {
+          data = await res.json()
+          console.log("[v0] Parsed JSON response:", data)
+        } else {
+          const text = await res.text()
+          console.log("[v0] Non-JSON response:", text)
+          throw new Error(`Server returned non-JSON response (${res.status}): ${text.substring(0, 200)}`)
+        }
+
+        logEntry.response = data
+
+        if (!res.ok) {
+          console.log("[v0] API call failed with error:", data.error)
+          throw new Error(data.error || `HTTP ${res.status}: ${res.statusText}`)
+        }
+
+        console.log("[v0] Logging generate-transaction API call to console...")
+        logApiCall(logEntry)
+        console.log("[v0] Generate-transaction API call logged successfully")
+
+        let transactionId = null
+        if (data.data && data.data.transactionId) {
+          transactionId = data.data.transactionId
+          console.log("[v0] Found transaction ID in data.transactionId:", transactionId)
+        } else if (data.data && typeof data.data === "object") {
+          transactionId = data.data.transactionId || data.data.id || data.data.transaction_id
+          console.log("[v0] Found transaction ID in nested object:", transactionId)
+        } else if (data.transactionId) {
+          transactionId = data.transactionId
+          console.log("[v0] Found transaction ID at root level:", transactionId)
+        } else {
+          console.log("[v0] Full response structure:", JSON.stringify(data, null, 2))
+          throw new Error("No transaction ID found in response")
+        }
+
+        if (transactionId) {
+          console.log("[v0] Using transaction ID:", transactionId)
+          setQrTransactionId(transactionId)
+
+          console.log("[v0] Generating payment link...")
+          const paymentLink = generatePaymentLink(numericAmount, transactionId)
+          console.log("[v0] Payment link generated:", paymentLink)
+
+          console.log("[v0] Generating QR code...")
+          const qrCodeDataUrl = await generateQRCode(paymentLink)
+          console.log("[v0] QR code generated successfully")
+          setQrCode(qrCodeDataUrl)
+
+          setQrLoading(false)
+
+          console.log("[v0] Starting native MQTT subscription...")
+          await subscribeToQrBankNotifications(transactionId)
+        } else {
+          throw new Error("Transaction ID is null or undefined")
+        }
+      } catch (err) {
+        console.error("[v0] QR generation error:", err)
+        logEntry.error = err instanceof Error ? err.message : "Failed to generate QR code"
+        logApiCall(logEntry)
+        setError(err instanceof Error ? err.message : "Failed to generate QR code")
+        setQrLoading(false)
+        setShowQrModal(false)
+      }
+    } else {
+      console.log("[v0] EARLY RETURN: handleQrGeneration validation failed - invalid amount")
+      console.log("[v0] numericAmount:", numericAmount)
+      console.log("[v0] parsed amount:", Number.parseFloat(numericAmount))
+      validationLogEntry.error = `Invalid amount: ${numericAmount} (parsed: ${Number.parseFloat(numericAmount)})`
+      logApiCall(validationLogEntry)
+    }
+    console.log("[v0] ========== handleQrGeneration END ==========")
+  }
+
+  const handleMqttSubscribe = async () => {
+    if (!validateFiles()) return
+
+    setMqttLoading(true)
+    setError(null)
+    setMqttMessages([])
+    setMqttConnected(false)
+
+    if (!certificateInfo.vatsk || !certificateInfo.pokladnica) {
+      setError("VATSK alebo POKLADNICA nie sú k dispozícii. Prosím, nahrajte platné certifikáty.")
+      setMqttLoading(false)
+      return
+    }
+
+    if (!transactionId) {
+      setError("Transaction ID nie je k dispozícii.")
+      setMqttLoading(false)
+      return
+    }
+
+    const topic = `VATSK-${certificateInfo.vatsk}/POKLADNICA-${certificateInfo.pokladnica}/${transactionId}`
+    console.log("[v0] Subscribing to MQTT topic:", topic)
+
+    const startTime = Date.now()
+    const logEntry: ApiCallLog = {
+      timestamp: new Date(),
+      endpoint: "/api/mqtt-subscribe",
+      method: "POST",
+      status: 0,
+    }
+
+    try {
+      setMqttConnected(true)
+      setMqttMessages([`🔄 Starting MQTT subscription to topic: ${topic}`])
+      setMqttLoading(false)
+
+      const mqttApiUrl = `${window.location.origin}/api/mqtt-subscribe`
+      const mqttBroker = isProductionMode ? "mqtt.kverkom.sk" : "mqtt-i.kverkom.sk"
+      console.log("=".repeat(80))
+      console.log("[v0] 🔔 MQTT SUBSCRIPTION REQUEST (Manual)")
+      console.log("[v0] API URL:", mqttApiUrl)
+      console.log("[v0] Environment:", isProductionMode ? "PRODUCTION" : "TEST")
+      console.log("[v0] MQTT Broker:", `mqtts://${mqttBroker}:8883`)
+      console.log("[v0] VATSK:", certificateInfo.vatsk)
+      console.log("[v0] POKLADNICA:", certificateInfo.pokladnica)
+      console.log("=".repeat(80))
+
+      const formData = new FormData()
+      if (files.convertedCertPem && files.convertedKeyPem) {
+        formData.append("clientCert", files.convertedCertPem)
+        formData.append("clientKey", files.convertedKeyPem)
+      } else {
+        throw new Error("Certificate files not properly converted")
+      }
+      formData.append("caCert", files.caCert!)
+      formData.append("certificateSecret", files.xmlPassword!)
+      if (transactionId) {
+        formData.append("transactionId", transactionId)
+      }
+      formData.append("vatsk", certificateInfo.vatsk)
+      formData.append("pokladnica", certificateInfo.pokladnica)
+
+      console.log("[v0] Starting MQTT subscription...")
+      console.log("[v0] Production mode:", isProductionMode)
+
+      const res = await fetch("/api/mqtt-subscribe", {
+        method: "POST",
+        body: formData,
+      })
+
+      logEntry.status = res.status
+      logEntry.duration = Date.now() - startTime
+
+      const data = await res.json()
+      console.log("[v0] MQTT subscribe API response data:", data)
+
+      if (data.databaseOperation) {
+        console.log("[v0] Database operation status:", data.databaseOperation.status)
+        console.log("[v0] Database operation attempted:", data.databaseOperation.attempted)
+        if (data.databaseOperation.error) {
+          console.log("[v0] Database operation error:", data.databaseOperation.error)
+        }
+        if (data.databaseOperation.result) {
+          console.log("[v0] Database operation result:", data.databaseOperation.result)
+        }
+      } else {
+        console.log("[v0] No database operation field in response")
+      }
+
+      logEntry.response = data
+
+      if (data.communicationLog && Array.isArray(data.communicationLog)) {
+        setMqttMessages(data.communicationLog)
+      } else {
+        setMqttMessages((prev) => [...prev, `📡 MQTT subscription completed`])
+      }
+
+      if (data.hasMessages && data.messages && data.messages.length > 0) {
+        console.log("[v0] MQTT messages found:", data.messages)
+        setMqttPayload(data.messages)
+        setShowMqttModal(true)
+        setMqttMessages((prev) => [...prev, `🎉 ${data.messages.length} message(s) received - showing modal`])
+      } else {
+        setMqttMessages((prev) => [...prev, `📭 No messages received during listening period`])
+      }
+
+      setMqttConnected(false)
+    } catch (err) {
+      console.log("[v0] MQTT subscription error:", err)
+      logEntry.response = { error: err instanceof Error ? err.message : "An error occurred" }
+      setError(err instanceof Error ? err.message : "An error occurred")
+      setMqttLoading(false)
+      setMqttConnected(false)
+      setMqttMessages((prev) => [...prev, `❌ Error: ${err instanceof Error ? err.message : "Unknown error"}`])
+    } finally {
+      logApiCall(logEntry)
+    }
+  }
+
+  const handleManualMqttCheck = async () => {
+    if (!validateFiles()) return
+
+    setMqttLoading(true)
+    setError(null)
+    setMqttMessages([])
+    setMqttConnected(false)
+
+    if (!certificateInfo.vatsk || !certificateInfo.pokladnica) {
+      setError("VATSK alebo POKLADNICA nie sú k dispozícii. Prosím, nahrajte platné certifikáty.")
+      setMqttLoading(false)
+      return
+    }
+
+    if (!transactionId) {
+      setError("Transaction ID nie je k dispozícii.")
+      setMqttLoading(false)
+      return
+    }
+
+    const topic = `VATSK-${certificateInfo.vatsk}/POKLADNICA-${certificateInfo.pokladnica}/${transactionId}`
+    console.log("[v0] Subscribing to MQTT topic:", topic)
+
+    const startTime = Date.now()
+    const logEntry: ApiCallLog = {
+      timestamp: new Date(),
+      endpoint: "/api/mqtt-subscribe",
+      method: "POST",
+      status: 0,
+    }
+
+    try {
+      setMqttConnected(true)
+      setMqttMessages([`🔄 Starting MQTT subscription to topic: ${topic}`])
+      setMqttLoading(false)
+
+      const mqttApiUrl = `${window.location.origin}/api/mqtt-subscribe`
+      const mqttBroker = isProductionMode ? "mqtt.kverkom.sk" : "mqtt-i.kverkom.sk"
+      console.log("=".repeat(80))
+      console.log("[v0] 🔔 MQTT SUBSCRIPTION REQUEST (Manual Check)")
+      console.log("[v0] API URL:", mqttApiUrl)
+      console.log("[v0] Environment:", isProductionMode ? "PRODUCTION" : "TEST")
+      console.log("[v0] MQTT Broker:", `mqtts://${mqttBroker}:8883`)
+      console.log("[v0] Transaction ID:", transactionId)
+      console.log("[v0] VATSK:", certificateInfo.vatsk)
+      console.log("[v0] POKLADNICA:", certificateInfo.pokladnica)
+      console.log("=".repeat(80))
+
+      const formData = new FormData()
+      if (files.convertedCertPem && files.convertedKeyPem) {
+        formData.append("clientCert", files.convertedCertPem)
+        formData.append("clientKey", files.convertedKeyPem)
+      } else {
+        throw new Error("Certificate files not properly converted")
+      }
+      formData.append("caCert", files.caCert!)
+      formData.append("certificateSecret", files.xmlPassword!)
+      if (transactionId) {
+        formData.append("transactionId", transactionId)
+      }
+      formData.append("vatsk", certificateInfo.vatsk)
+      formData.append("pokladnica", certificateInfo.pokladnica)
+
+      console.log("[v0] Sending MQTT subscription request...")
+      const res = await fetch("/api/mqtt-subscribe", {
+        method: "POST",
+        body: formData,
+      })
+
+      logEntry.status = res.status
+      logEntry.duration = Date.now() - startTime
+
+      const data = await res.json()
+      console.log("[v0] MQTT subscribe API response data:", data)
+
+      logEntry.response = data
+
+      if (data.communicationLog && Array.isArray(data.communicationLog)) {
+        setMqttMessages(data.communicationLog)
+      } else {
+        setMqttMessages((prev) => [...prev, `📡 MQTT subscription completed`])
+      }
+
+      if (data.hasMessages && data.messages && data.messages.length > 0) {
+        console.log("[v0] MQTT messages found:", data.messages)
+        setMqttPayload(data.messages)
+        setShowMqttModal(true)
+        setMqttMessages((prev) => [...prev, `🎉 ${data.messages.length} message(s) received - showing modal`])
+      } else {
+        setMqttMessages((prev) => [...prev, `📭 No messages received during listening period`])
+      }
+
+      setMqttConnected(false)
+    } catch (err) {
+      console.log("[v0] MQTT subscription error:", err)
+      logEntry.response = { error: err instanceof Error ? err.message : "An error occurred" }
+      setError(err instanceof Error ? err.message : "An error occurred")
+      setMqttLoading(false)
+      setMqttConnected(false)
+      setMqttMessages((prev) => [...prev, `❌ Error: ${err instanceof Error ? err.message : "Unknown error"}`])
+    } finally {
+      logApiCall(logEntry)
+    }
+  }
+
   return (
     <ErrorBoundary>
       <TooltipProvider>
