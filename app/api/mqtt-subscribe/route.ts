@@ -1,6 +1,7 @@
 import type { NextRequest } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 import mqtt from "mqtt"
+import { rateLimit, getClientIp } from "@/lib/rate-limit"
 
 function getClientIP(request: NextRequest): string {
   const forwarded = request.headers.get("x-forwarded-for")
@@ -213,8 +214,32 @@ async function saveMqttSubscriptionToDatabase(
 
 export async function POST(request: NextRequest) {
   console.log("[v0] MQTT Subscribe route called")
-  const clientIP = getClientIP(request)
+  const clientIP = getClientIp(request)
   console.log("[v0] Client IP:", clientIP)
+
+  const rateLimitResult = rateLimit(clientIP, 1, 60000)
+
+  if (!rateLimitResult.success) {
+    const resetTime = new Date(rateLimitResult.reset).toISOString()
+    console.log(`[v0] ⚠️ Rate limit exceeded for IP: ${clientIP}`)
+    return Response.json(
+      {
+        error: "Too many requests",
+        message: "Please try again later",
+        retryAfter: Math.ceil((rateLimitResult.reset - Date.now()) / 1000),
+        resetTime,
+      },
+      {
+        status: 429,
+        headers: {
+          "X-RateLimit-Limit": rateLimitResult.limit.toString(),
+          "X-RateLimit-Remaining": rateLimitResult.remaining.toString(),
+          "X-RateLimit-Reset": rateLimitResult.reset.toString(),
+          "Retry-After": Math.ceil((rateLimitResult.reset - Date.now()) / 1000).toString(),
+        },
+      },
+    )
+  }
 
   try {
     console.log("[v0] Parsing form data...")

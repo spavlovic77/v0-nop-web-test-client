@@ -6,6 +6,7 @@ import { randomUUID } from "crypto"
 import { exec } from "child_process"
 import { promisify } from "util"
 import { createClient } from "@supabase/supabase-js"
+import { rateLimit, getClientIp } from "@/lib/rate-limit"
 
 const execAsync = promisify(exec)
 
@@ -181,12 +182,36 @@ async function saveTransactionGeneration(data: {
 }
 
 export async function POST(request: NextRequest) {
+  const clientIP = getClientIp(request)
+  const rateLimitResult = rateLimit(clientIP, 1, 60000)
+
+  if (!rateLimitResult.success) {
+    const resetTime = new Date(rateLimitResult.reset).toISOString()
+    console.log(`[v0] ⚠️ Rate limit exceeded for IP: ${clientIP}`)
+    return NextResponse.json(
+      {
+        error: "Too many requests",
+        message: "Please try again later",
+        retryAfter: Math.ceil((rateLimitResult.reset - Date.now()) / 1000),
+        resetTime,
+      },
+      {
+        status: 429,
+        headers: {
+          "X-RateLimit-Limit": rateLimitResult.limit.toString(),
+          "X-RateLimit-Remaining": rateLimitResult.remaining.toString(),
+          "X-RateLimit-Reset": rateLimitResult.reset.toString(),
+          "Retry-After": Math.ceil((rateLimitResult.reset - Date.now()) / 1000).toString(),
+        },
+      },
+    )
+  }
+
   const sessionId = randomUUID()
   let tempFiles: string[] = []
   const startTime = Date.now()
 
   try {
-    const clientIP = request.headers.get("x-forwarded-for") || request.ip || "unknown"
     console.log(`[v0] 🚀 Transaction generation started - Session: ${sessionId}, IP: ${clientIP}`)
 
     const formData = await request.formData()

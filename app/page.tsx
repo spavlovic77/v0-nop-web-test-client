@@ -202,6 +202,9 @@ const Home: FunctionComponent = () => {
   const [isProductionMode, setIsProductionMode] = useState(false)
   const [showProductionConfirmModal, setShowProductionConfirmModal] = useState(false)
 
+  const [showRateLimitModal, setShowRateLimitModal] = useState(false)
+  const [rateLimitRetryAfter, setRateLimitRetryAfter] = useState(0)
+
   useEffect(() => {
     const savedMode = localStorage.getItem("productionMode")
     if (savedMode === "true") {
@@ -245,6 +248,20 @@ const Home: FunctionComponent = () => {
 
   const clearApiLogs = () => {
     setApiCallLogs([])
+  }
+
+  const handleRateLimitError = (retryAfter: number) => {
+    setRateLimitRetryAfter(retryAfter)
+    setShowRateLimitModal(true)
+  }
+
+  const handleApiResponse = async (response: Response) => {
+    if (response.status === 429) {
+      const data = await response.json()
+      handleRateLimitError(data.retryAfter || 60)
+      throw new Error("Rate limit exceeded")
+    }
+    return response
   }
 
   const generatePaymentLink = (amount: string, transactionId: string) => {
@@ -657,7 +674,12 @@ const Home: FunctionComponent = () => {
       return
     }
 
-    if (!files.convertedCertPem || !files.convertedKeyPem) {
+    // Check if convertedCertPem and convertedKeyPem are available
+    const clientCert = files.convertedCertPem
+    const clientKey = files.convertedKeyPem
+    const caCert = files.caCert
+
+    if (!clientCert || !clientKey || !caCert) {
       console.log("[v0] EARLY RETURN: PEM files not available")
       console.log("[v0] convertedCertPem length:", files.convertedCertPem?.length || 0)
       console.log("[v0] convertedKeyPem length:", files.convertedKeyPem?.length || 0)
@@ -961,7 +983,7 @@ const Home: FunctionComponent = () => {
             console.log("[v0] Expected hash:", expectedHash)
 
             // Verify integrity
-            const hashesMatch = notificationHash.toLowerCase() === expectedHash.toLowerCase()
+            let hashesMatch = notificationHash.toLowerCase() === expectedHash.toLowerCase()
             setIntegrityVerified(hashesMatch)
             setIntegrityError(!hashesMatch)
 
@@ -984,6 +1006,10 @@ const Home: FunctionComponent = () => {
               console.error("[v0] Error updating integrity validation:", error)
             }
             // </CHANGE>
+            // Verify integrity
+            hashesMatch = notificationHash.toLowerCase() === expectedHash.toLowerCase()
+            setIntegrityVerified(hashesMatch)
+            setIntegrityError(!hashesMatch)
 
             if (hashesMatch) {
               console.log("[v0] Data integrity verification successful!")
@@ -1629,7 +1655,7 @@ const Home: FunctionComponent = () => {
             setIntegrityError(true)
             setSubscriptionActive(false) // Ensure subscription is marked as inactive on error
           }
-        }, 300) // Wait 0,3 seconds before starting verification
+        }, 300)
       } else {
         console.log("[v0] No payment confirmation received within the time limit.")
         setSubscriptionActive(false)
@@ -1948,6 +1974,7 @@ const Home: FunctionComponent = () => {
   // </CHANGE>
   // Updated handleGenerateQR function
   const handleGenerateQR = async () => {
+    console.log("[v0] 🎯 Generate QR button clicked")
     const validationLogEntry: ApiCallLog = {
       timestamp: new Date(),
       endpoint: "/api/generate-transaction",
@@ -1964,7 +1991,12 @@ const Home: FunctionComponent = () => {
       return
     }
 
-    if (!files.convertedCertPem || !files.convertedKeyPem) {
+    // Check if convertedCertPem and convertedKeyPem are available
+    const clientCert = files.convertedCertPem
+    const clientKey = files.convertedKeyPem
+    const caCert = files.caCert
+
+    if (!clientCert || !clientKey || !caCert) {
       console.log("[v0] EARLY RETURN: PEM files not available")
       console.log("[v0] convertedCertPem length:", files.convertedCertPem?.length || 0)
       console.log("[v0] convertedKeyPem length:", files.convertedKeyPem?.length || 0)
@@ -2018,18 +2050,9 @@ const Home: FunctionComponent = () => {
         formData.append("amount", numericAmount)
         formData.append("isProductionMode", isProductionMode.toString())
 
-        const mqttApiUrl = `${window.location.origin}/api/mqtt-subscribe`
-        const mqttBroker = isProductionMode ? "mqtt.kverkom.sk" : "mqtt-i.kverkom.sk"
-        console.log("=".repeat(80))
-        console.log("[v0] 🔔 MQTT SUBSCRIPTION REQUEST")
-        console.log("[v0] API URL:", mqttApiUrl)
-        console.log("[v0] Environment:", isProductionMode ? "PRODUCTION" : "TEST")
-        console.log("[v0] MQTT Broker:", `mqtts://${mqttBroker}:8883`)
-        console.log("[v0] VATSK:", certificateInfo.vatsk)
-        console.log("[v0] POKLADNICA:", certificateInfo.pokladnica)
-        console.log("=".repeat(80))
-
-        const res = await fetch("/api/mqtt-subscribe", {
+        console.log("[v0] FormData prepared, making API call to generate transaction...")
+        console.log("[v0] Production mode:", isProductionMode)
+        const res = await fetch("/api/generate-transaction", {
           method: "POST",
           body: formData,
         })
@@ -3379,6 +3402,23 @@ const Home: FunctionComponent = () => {
             </footer>
           )}
         </div>
+
+        {/* Rate Limit Modal */}
+        <Dialog open={showRateLimitModal} onOpenChange={setShowRateLimitModal}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Príliš veľa požiadaviek</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <p className="text-center text-lg">
+                Dosiahli ste limit požiadaviek. Prosím, skúste to znova o {rateLimitRetryAfter} sekúnd.
+              </p>
+              <Button onClick={() => setShowRateLimitModal(false)} className="w-full">
+                Zavrieť
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </TooltipProvider>
     </ErrorBoundary>
   )
