@@ -23,6 +23,7 @@ import {
   WifiOff,
   MoveLeft,
   X,
+  Clock,
 } from "lucide-react" // Import Copy icon, AlertTriangle icon, FileText, Github, CheckCircle, Printer, Terminal, LogOut, User, Clock, Calendar, Check, AlertCircle
 import { Euro } from "lucide-react" // Import Euro, Printer, Calendar icons
 
@@ -36,7 +37,7 @@ import { Tooltip, TooltipProvider, TooltipContent, TooltipTrigger } from "@/comp
 import { Switch } from "@/components/ui/switch"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import QRCode from "qrcode"
-import { createClient, createBrowserClient } from "@supabase/supabase-js"
+import { createClient } from "@supabase/supabase-js"
 import { toast } from "@/hooks/use-toast" // Assuming you have a toast component
 
 class ErrorBoundary extends React.Component<
@@ -1393,326 +1394,12 @@ const Home: FunctionComponent = () => {
     return disputeSortDirection === "asc" ? comparison : -comparison
   })
 
-  const handlePrintDisputedTransactions = () => {
-    const printContent = `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <meta charset="utf-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>Doklady o neoznámených úhradách - ${selectedDisputeDate}</title>
-          <style>
-            * { margin: 0; padding: 0; box-sizing: border-box; }
-            body { 
-              font-family: Arial, sans-serif; 
-              padding: 15px;
-              font-size: 12px;
-              line-height: 1.4;
-            }
-            h1 { 
-              font-size: 18px;
-              color: #333; 
-              border-bottom: 2px solid #333; 
-              padding-bottom: 8px;
-              margin-bottom: 15px;
-            }
-            p { margin-bottom: 8px; }
-            table { 
-              width: 100%; 
-              border-collapse: collapse; 
-              margin: 15px 0;
-              font-size: 11px;
-            }
-            th, td { 
-              border: 1px solid #ddd; 
-              padding: 6px 4px;
-              text-align: left;
-              word-wrap: break-word;
-            }
-            th { 
-              background-color: #f5f5f5; 
-              font-weight: bold;
-              font-size: 11px;
-            }
-            .total { 
-              font-weight: bold; 
-              background-color: #e8f4fd;
-            }
-            .verified { color: #16a34a; font-weight: bold; }
-            .failed { color: #dc2626; font-weight: bold; }
-            .pending { color: #9ca3af; }
-            .amount { text-align: right; }
-            
-            @media print {
-              body { padding: 10px; }
-              table { page-break-inside: auto; }
-              tr { page-break-inside: avoid; page-break-after: auto; }
-            }
-            
-            @media screen and (max-width: 600px) {
-              body { font-size: 11px; }
-              h1 { font-size: 16px; }
-              th, td { padding: 4px 2px; font-size: 10px; }
-            }
-          </style>
-        </head>
-        <body>
-          <h1>Doklady o neoznámených úhradách</h1>
-          <p><strong>Dátum:</strong> ${new Date(selectedDisputeDate).toLocaleDateString("sk-SK")}</p>
-          
-          <table>
-            <thead>
-              <tr>
-                <th style="width: 25%;">Čas</th>
-                <th style="width: 35%;">Transaction ID</th>
-                <th class="amount" style="width: 25%;">Suma (EUR)</th>
-                <th style="width: 15%;">Stav</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${sortedDisputeTransactions
-                .filter((t) => t.dispute === true)
-                .map((transaction) => {
-                  const status = transaction.dispute ? "Neoznámené" : "N/A"
-                  return `
-                      <tr>
-                        <td>${new Date(transaction.response_timestamp).toLocaleTimeString("sk-SK", { hour: "2-digit", minute: "2-digit" })}</td>
-                        <td style="font-family: monospace; font-size: 10px; word-break: break-all;">${transaction.transaction_id || "N/A"}</td>
-                        <td class="amount">${formatAmount(transaction.amount)}</td>
-                        <td>${status}</td>
-                      </tr>
-                    `
-                })
-                .join("")}
-            </tbody>
-          </table>
-          
-          <p style="margin-top: 15px;"><strong>Vygenerované:</strong> ${new Date().toLocaleString("sk-SK")}</p>
-          <script>
-            window.onload = function() {
-              setTimeout(function() {
-                window.print();
-              }, 250);
-            };
-          </script>
-        </body>
-      </html>
-    `
-
-    const printWindow = window.open("", "_blank")
-    if (printWindow) {
-      printWindow.document.write(printContent)
-      printWindow.document.close()
-    }
-  }
-
-  const handleWaitForPayment = async () => {
-    console.log("[v0] handleWaitForPayment called")
-    if (!certificateInfo.vatsk || !certificateInfo.pokladnica) {
-      setError("VATSK alebo POKLADNICA nie sú k dispozícii. Prosím, nahrajte platné certifikáty.")
-      return
-    }
-
-    if (!qrTransactionId) {
-      setError("Transaction ID nie je k dispozícii.")
-      return
-    }
-
-    const transactionId = qrTransactionId
-    const topic = `VATSK-${certificateInfo.vatsk}/POKLADNICA-${certificateInfo.pokladnica}/${transactionId}`
-    console.log("[v0] Subscribing to MQTT topic:", topic)
-
-    const startTime = Date.now()
-    const logEntry: ApiCallLog = {
-      timestamp: new Date(),
-      endpoint: "/api/mqtt-subscribe",
-      method: "POST",
-      status: 0,
-      request: { transactionId, topic },
-    }
-
-    try {
-      // Reset states
-      setMqttConnected(true)
-      setMqttMessages([`🔄 Waiting for payment confirmation on topic: ${topic}`])
-      setMqttTimerActive(true)
-      setMqttTimeRemaining(120) // Reset timer
-
-      // Start the countdown timer
-      const timerInterval = setInterval(() => {
-        setMqttTimeRemaining((prev) => {
-          if (prev <= 1) {
-            clearInterval(timerInterval)
-            setMqttTimerActive(false)
-            console.log("[v0] MQTT timer expired.")
-            return 0
-          }
-          return prev - 1
-        })
-      }, 1000)
-      cleanupRef.current.push(() => clearInterval(timerInterval)) // Add cleanup for the interval
-
-      const formData = new FormData()
-      if (files.convertedCertPem && files.convertedKeyPem) {
-        formData.append("clientCert", files.convertedCertPem)
-        formData.append("clientKey", files.convertedKeyPem)
-      } else {
-        throw new Error("Certificate files not properly converted")
-      }
-      formData.append("caCert", files.caCert!)
-      formData.append("certificateSecret", files.xmlPassword!)
-      formData.append("transactionId", transactionId)
-      formData.append("vatsk", certificateInfo.vatsk)
-      formData.append("pokladnica", certificateInfo.pokladnica)
-
-      console.log("[v0] Sending MQTT subscription request...")
-      const res = await fetch("/api/mqtt-subscribe", {
-        method: "POST",
-        body: formData,
-      })
-
-      console.log("[v0] MQTT subscribe API response status:", res.status)
-
-      if (res.status === 429) {
-        const data = await res.json()
-        console.log("[v0] Rate limit exceeded:", data)
-        setRateLimitRetryAfter(data.retryAfter || 60)
-        setShowRateLimitModal(true)
-        setMqttTimerActive(false)
-        setSubscriptionActive(false)
-        return
-      }
-
-      logEntry.status = res.status
-      logEntry.duration = Date.now() - startTime
-
-      const data = await res.json()
-      console.log("[v0] MQTT subscribe API response data:", data)
-
-      logEntry.response = data
-
-      if (data.success && data.hasMessages) {
-        console.log("[v0] Payment notification received via MQTT!")
-
-        // Clear the interval timer once a message is received
-        clearInterval(timerInterval)
-        setMqttTimerActive(false)
-        setMqttTimeRemaining(0)
-
-        // Extract and display messages
-        if (data.messages && data.messages.length > 0) {
-          setMqttMessages((prev) => [...prev, ...data.messages])
-          setShowMqttModal(true)
-        }
-
-        setSubscriptionActive(false)
-        setMqttConnected(false)
-
-        // Start the verification process
-        setTimeout(async () => {
-          try {
-            console.log("[v0] Starting integrity verification...")
-
-            const supabase = createBrowserClient(
-              process.env.NEXT_PUBLIC_SUPABASE_URL!,
-              process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-            )
-
-            const { data: notification, error: fetchError } = await supabase
-              .from("mqtt_notifications")
-              .select("integrity_hash")
-              .eq("transaction_id", transactionId)
-              .order("created_at", { ascending: false })
-              .limit(1)
-              .single()
-
-            if (fetchError || !notification) {
-              console.error("[v0] Failed to fetch notification from database:", fetchError)
-              setIntegrityError(true)
-              return
-            }
-
-            const notificationHash = notification.integrity_hash || "ABCDEF" // Fallback if null
-            console.log("[v0] Notification hash from database:", notificationHash)
-
-            const numericAmount = formatEurAmountForApi(eurAmount)
-            const iban = userIban || ""
-            const expectedHash = await generateDataIntegrityHash(
-              iban.replace(/\s/g, ""),
-              numericAmount.toFixed(2),
-              "EUR",
-              transactionId,
-            )
-
-            console.log("[v0] Expected hash:", expectedHash)
-
-            // Verify integrity
-            const hashesMatch = notificationHash.toLowerCase() === expectedHash.toLowerCase()
-            setIntegrityVerified(hashesMatch)
-            setIntegrityError(!hashesMatch)
-
-            try {
-              const updateResponse = await fetch("/api/update-integrity-validation", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  transactionId: transactionId,
-                  isValid: hashesMatch,
-                }),
-              })
-
-              if (!updateResponse.ok) {
-                console.error("[v0] Failed to update integrity validation in database")
-              } else {
-                console.log("[v0] Integrity validation result saved to database")
-              }
-            } catch (error) {
-              console.error("[v0] Error updating integrity validation:", error)
-            }
-
-            if (hashesMatch) {
-              console.log("[v0] Data integrity verification successful!")
-              // Show success modal
-              setConfirmedPaymentAmount(eurAmount) // Use the amount entered by user as confirmation
-              setShowQrModal(false) // Close QR modal
-              setShowPaymentReceivedModal(true)
-            } else {
-              console.log("[v0] Data integrity verification failed!")
-              // Show error modal
-              setConfirmedPaymentAmount(eurAmount)
-              setShowQrModal(false)
-              setShowPaymentReceivedModal(true)
-            }
-
-            setVerifyingIntegrity(false)
-          } catch (error) {
-            console.error("[v0] Data integrity verification error:", error)
-            setVerifyingIntegrity(false)
-            setIntegrityVerified(false)
-            setIntegrityError(true)
-            setSubscriptionActive(false) // Ensure subscription is marked as inactive on error
-          }
-        }, 300) // Wait 0,3 seconds before starting verification
-      } else {
-        console.log("[v0] No payment confirmation received within the time limit.")
-        setSubscriptionActive(false)
-        setMqttConnected(false)
-        // Optionally show a "timeout" message to the user
-        if (!data.success) {
-          setError("Chyba pri prihlasovaní k odberu MQTT tém.")
-        } else {
-          setError("Nepodarilo sa prijať potvrdenie platby. Skúste znova.")
-        }
-      }
-    } catch (err) {
-      console.error("[v0] MQTT subscription error:", err)
-      logEntry.response = { error: err instanceof Error ? err.message : "Native MQTT subscription error" }
-      setSubscriptionActive(false)
-      setMqttConnected(false)
-      setError(err instanceof Error ? err.message : "Native MQTT subscription error")
-    } finally {
-      logApiCall(logEntry)
-    }
+  // Define calculateTransactionTotal here
+  const calculateTransactionTotal = () => {
+    return transactionListData.reduce((total, transaction) => {
+      const amount = Number.parseFloat(transaction.amount || 0)
+      return total + amount
+    }, 0)
   }
 
   // Define printTransactionSummary here
@@ -1829,70 +1516,14 @@ const Home: FunctionComponent = () => {
     }
   }
 
-  const handleQrModalClose = (open: boolean) => {
-    // Do nothing - modal can only be closed via the "Zrušiť platbu" button
-  }
-
-  const handleTransactionListClick = () => {
-    // Set default date to today
-    const today = new Date().toISOString().split("T")[0]
-    setSelectedTransactionDate(today)
-    setShowTransactionDateModal(true)
-  }
-
-  const handleTransactionDateSelect = async () => {
-    if (!selectedTransactionDate) return
-
-    setShowTransactionDateModal(false)
-    setShowTransactionListModal(true)
-    setTransactionListLoading(true)
-
-    try {
-      // Use date range filtering instead of ::date cast for better timezone handling
-      const startDate = `${selectedTransactionDate}T00:00:00Z`
-      const endDate = `${selectedTransactionDate}T23:59:59Z`
-
-      console.log("[v0] Date range:", startDate, "to", endDate)
-
-      const { data, error } = await supabase
-        .from("mqtt_notifications")
-        .select("payload_received_at, end_to_end_id, amount, integrity_validation")
-        .eq("pokladnica", certificateInfo.pokladnica)
-        .gte("payload_received_at", startDate)
-        .lte("payload_received_at", endDate)
-        .order("payload_received_at", { ascending: false })
-
-      if (error) {
-        console.error("[v0] Supabase query error:", error)
-        setTransactionListData([])
-      } else {
-        console.log("[v0] Query successful, found", data?.length || 0, "transactions")
-        console.log("[v0] Transaction data:", data)
-        setTransactionListData(data || [])
-      }
-    } catch (error) {
-      console.error("[v0] Error fetching transaction data:", error)
-      setTransactionListData([])
-    } finally {
-      setTransactionListLoading(false)
-    }
-  }
-
-  const calculateTransactionTotal = () => {
-    return transactionListData.reduce((total, transaction) => {
-      const amount = Number.parseFloat(transaction.amount || 0)
-      return total + amount
-    }, 0)
-  }
-
-  const printAllTransactions = () => {
+  const handlePrintDisputedTransactions = () => {
     const printContent = `
       <!DOCTYPE html>
       <html>
         <head>
           <meta charset="utf-8">
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>Všetky transakcie - ${selectedTransactionDate}</title>
+          <title>Doklady o neoznámených úhradách - ${selectedDisputeDate}</title>
           <style>
             * { margin: 0; padding: 0; box-sizing: border-box; }
             body { 
@@ -1949,34 +1580,139 @@ const Home: FunctionComponent = () => {
           </style>
         </head>
         <body>
-          <h1>Všetky transakcie</h1>
+          <h1>Doklady o neoznámených úhradách</h1>
+          <p><strong>Dátum:</strong> ${new Date(selectedDisputeDate).toLocaleDateString("sk-SK")}</p>
+          
+          <table>
+            <thead>
+              <tr>
+                <th style="width: 25%;">Čas</th>
+                <th style="width: 35%;">Transaction ID</th>
+                <th class="amount" style="width: 25%;">Suma (EUR)</th>
+                <th style="width: 15%;">Stav</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${sortedDisputeTransactions
+                .filter((t) => t.dispute === true)
+                .map((transaction) => {
+                  const status = transaction.dispute ? "Neoznámené" : "N/A"
+                  return `
+                      <tr>
+                        <td>${new Date(transaction.response_timestamp).toLocaleTimeString("sk-SK", { hour: "2-digit", minute: "2-digit" })}</td>
+                        <td style="font-family: monospace; font-size: 10px; word-break: break-all;">${transaction.transaction_id || "N/A"}</td>
+                        <td class="amount">${formatAmount(transaction.amount)}</td>
+                        <td>${status}</td>
+                      </tr>
+                    `
+                })
+                .join("")}
+            </tbody>
+          </table>
+          
+          <p style="margin-top: 15px;"><strong>Vygenerované:</strong> ${new Date().toLocaleString("sk-SK")}</p>
+          <script>
+            window.onload = function() {
+              setTimeout(function() {
+                window.print();
+              }, 250);
+            };
+          </script>
+        </body>
+      </html>
+    `
+
+    const printWindow = window.open("", "_blank")
+    if (printWindow) {
+      printWindow.document.write(printContent)
+      printWindow.document.close()
+    }
+  }
+
+  // Define printAllTransactions here
+  const printAllTransactions = () => {
+    const printContent = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Súhrn transakcií - ${selectedTransactionDate}</title>
+          <style>
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body { 
+              font-family: Arial, sans-serif; 
+              padding: 15px;
+              font-size: 12px;
+              line-height: 1.4;
+            }
+            h1 { 
+              font-size: 18px;
+              color: #333; 
+              border-bottom: 2px solid #333; 
+              padding-bottom: 8px;
+              margin-bottom: 15px;
+            }
+            p { margin-bottom: 8px; }
+            table { 
+              width: 100%; 
+              border-collapse: collapse; 
+              margin: 15px 0;
+              font-size: 11px;
+            }
+            th, td { 
+              border: 1px solid #ddd; 
+              padding: 6px 4px;
+              text-align: left;
+              word-wrap: break-word;
+            }
+            th { 
+              background-color: #f5f5f5; 
+              font-weight: bold;
+              font-size: 11px;
+            }
+            .total { 
+              font-weight: bold; 
+              background-color: #e8f4fd;
+            }
+            .verified { color: #16a34a; font-weight: bold; }
+            .failed { color: #dc2626; font-weight: bold; }
+            .pending { color: #9ca3af; }
+            .amount { text-align: right; }
+            
+            @media print {
+              body { padding: 10px; }
+              table { page-break-inside: auto; }
+              tr { page-break-inside: avoid; page-break-after: auto; }
+            }
+            
+            @media screen and (max-width: 600px) {
+              body { font-size: 11px; }
+              h1 { font-size: 16px; }
+              th, td { padding: 4px 2px; font-size: 10px; }
+            }
+          </style>
+        </head>
+        <body>
+          <h1>Súhrn transakcií</h1>
           <p><strong>Dátum:</strong> ${new Date(selectedTransactionDate).toLocaleDateString("sk-SK")}</p>
           
           <table>
             <thead>
               <tr>
-                <th style="width: 15%;">Čas</th>
+                <th style="width: 25%;">Čas</th>
                 <th style="width: 40%;">Transaction ID</th>
                 <th class="amount" style="width: 40%;">Suma (EUR)</th>
-                <th style="width: 25%;">Overenie</th>
               </tr>
             </thead>
             <tbody>
               ${transactionListData
                 .map((transaction) => {
-                  const verificationStatus =
-                    transaction.integrity_validation === true
-                      ? '<span class="verified">✓ OK</span>'
-                      : transaction.integrity_validation === false
-                        ? '<span class="failed">⚠ Chyba</span>'
-                        : '<span class="pending">-</span>'
-
                   return `
                       <tr>
                         <td>${new Date(transaction.payload_received_at).toLocaleTimeString("sk-SK", { hour: "2-digit", minute: "2-digit" })}</td>
                         <td style="font-family: monospace; font-size: 10px; word-break: break-all;">${transaction.end_to_end_id || "N/A"}</td>
                         <td class="amount">${Number.parseFloat(transaction.amount || 0).toFixed(2)}</td>
-                        <td>${verificationStatus}</td>
                       </tr>
                     `
                 })
@@ -1984,7 +1720,6 @@ const Home: FunctionComponent = () => {
               <tr class="total">
                 <td colspan="2"><strong>Celková suma:</strong></td>
                 <td class="amount"><strong>${calculateTransactionTotal().toFixed(2)} EUR</strong></td>
-                <td></td>
               </tr>
             </tbody>
           </table>
@@ -2041,6 +1776,64 @@ const Home: FunctionComponent = () => {
         }))
       }
     }
+  }
+
+  // Define handleQrModalClose here
+  const handleQrModalClose = () => {
+    setShowQrModal(false)
+    // Reset any state related to the QR modal if necessary
+    // For example, if there's a timer or loading state specific to the modal
+    setQrLoading(false)
+    setQrCode(null)
+    setSubscriptionActive(false)
+    setMqttTimerActive(false)
+    setMqttTimeRemaining(120)
+  }
+
+  // Define handleTransactionDateSelect here
+  const handleTransactionDateSelect = () => {
+    if (!selectedTransactionDate) return
+    setShowTransactionDateModal(false)
+    setShowTransactionListModal(true)
+    setTransactionListLoading(true)
+
+    fetch("/api/get-transactions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ date: selectedTransactionDate }),
+    })
+      .then((res) => {
+        if (res.status === 429) {
+          res.json().then((data) => {
+            console.log("[v0] Rate limit exceeded:", data)
+            setRateLimitRetryAfter(data.retryAfter || 60)
+            setShowRateLimitModal(true)
+            setTransactionListLoading(false)
+          })
+          throw new Error("Rate limit exceeded")
+        }
+        if (!res.ok) {
+          throw new Error("Failed to fetch transactions")
+        }
+        return res.json()
+      })
+      .then((data) => {
+        setTransactionListData(data.transactions || [])
+      })
+      .catch((error) => {
+        console.error("Error fetching transactions:", error)
+        setTransactionListData([])
+      })
+      .finally(() => {
+        setTransactionListLoading(false)
+      })
+  }
+
+  // Define handleTransactionListClick here
+  const handleTransactionListClick = () => {
+    const today = new Date().toISOString().split("T")[0]
+    setSelectedTransactionDate(today)
+    setShowTransactionDateModal(true)
   }
 
   return (
@@ -2654,7 +2447,7 @@ const Home: FunctionComponent = () => {
                               // Amounts match but integrity error - invalid payment
                               return (
                                 <span className="text-lg font-medium text-red-600">
-                                  Toto je neplatná platba. Môže ísť o podvod.
+                                  Toto je neplatná platba. Môže šlo o podvod.
                                 </span>
                               )
                             }
@@ -2751,18 +2544,21 @@ const Home: FunctionComponent = () => {
 
             <Dialog open={showRateLimitModal} onOpenChange={setShowRateLimitModal}>
               <DialogContent className="sm:max-w-md">
-                <DialogHeader>
-                  <DialogTitle>Príliš veľa požiadaviek</DialogTitle>
-                </DialogHeader>
-                <div className="space-y-4">
-                  <p className="text-sm text-muted-foreground">
-                    Dosiahli ste limit požiadaviek. Prosím, skúste to znova o {rateLimitRetryAfter} sekúnd.
-                  </p>
-                  <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded-md">
-                    <p className="text-sm font-medium">Limit: 2 požiadavky za minútu na každý API endpoint</p>
+                <div className="space-y-6 py-4">
+                  <div className="flex justify-center">
+                    <div className="relative">
+                      <Clock className="h-16 w-16 text-amber-500 animate-pulse" />
+                      <div className="absolute inset-0 h-16 w-16 rounded-full bg-amber-500/20 animate-ping" />
+                    </div>
                   </div>
-                  <Button onClick={() => setShowRateLimitModal(false)} className="w-full">
-                    Zavrieť
+                  <div className="text-center space-y-2">
+                    <p className="text-base text-foreground font-medium">Dosiahli ste limit požiadaviek</p>
+                    <p className="text-sm text-muted-foreground">
+                      Prosím, skúste to znova o {rateLimitRetryAfter} sekúnd
+                    </p>
+                  </div>
+                  <Button onClick={() => setShowRateLimitModal(false)} className="w-full" variant="default">
+                    Rozumiem
                   </Button>
                 </div>
               </DialogContent>
