@@ -233,6 +233,11 @@ export async function POST(request: NextRequest) {
 
     const apiBaseUrl = isProductionMode ? "https://api-erp.kverkom.sk" : "https://api-erp-i.kverkom.sk"
 
+    const fullApiUrl = `${apiBaseUrl}/api/v1/generateNewTransactionId`
+    console.log(`[v0] 🌐 API URL: ${fullApiUrl}`)
+    console.log(`[v0] 🌐 Environment: ${isProductionMode ? "PRODUCTION" : "TEST"}`)
+    console.log(`[v0] 🌐 Base URL: ${apiBaseUrl}`)
+
     console.log(
       `[v0] 🌐 Using ${isProductionMode ? "PRODUCTION" : "TEST"} API: ${apiBaseUrl}/api/v1/generateNewTransactionId`,
     )

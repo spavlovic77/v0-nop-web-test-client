@@ -277,10 +277,12 @@ export async function POST(request: NextRequest) {
     const mqttBroker = isProductionMode ? "mqtt.kverkom.sk" : "mqtt-i.kverkom.sk"
     const mqttPort = 8883
 
-    console.log("[v0] MQTT Broker:", mqttBroker)
-    console.log("[v0] MQTT Port:", mqttPort)
-    console.log("[v0] Using", isProductionMode ? "PRODUCTION" : "TEST", "environment")
-    console.log("[v0] MQTT topic:", mqttTopic)
+    const mqttUrl = `mqtts://${mqttBroker}:${mqttPort}`
+    console.log("[v0] 🌐 MQTT URL:", mqttUrl)
+    console.log("[v0] 🌐 MQTT Broker:", mqttBroker)
+    console.log("[v0] 🌐 MQTT Port:", mqttPort)
+    console.log("[v0] 🌐 Environment:", isProductionMode ? "PRODUCTION" : "TEST")
+    console.log("[v0] 🌐 Topic:", mqttTopic)
 
     const communicationLog: string[] = []
     const startTime = new Date().toISOString()
@@ -294,7 +296,6 @@ export async function POST(request: NextRequest) {
       let timeoutHandle: NodeJS.Timeout
       let isResolved = false
 
-      const mqttUrl = `mqtts://${mqttBroker}:${mqttPort}`
       console.log("[v0] Connecting to MQTT broker:", mqttUrl)
 
       const client = mqtt.connect(mqttUrl, {
@@ -460,7 +461,7 @@ export async function POST(request: NextRequest) {
           new Response(
             JSON.stringify({
               error: "MQTT connection failed",
-              details: err.message,
+              details: err instanceof Error ? err.message : "Unknown error",
               communicationLog: communicationLog,
               clientIP,
             }),
