@@ -2972,22 +2972,6 @@ const Home: FunctionComponent = () => {
             </div>
           </DialogContent>
         </Dialog>
-
-        {allRequiredFieldsComplete && (
-          <footer className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-sm border-t border-gray-200 py-3 px-4 z-50">
-            <div className="max-w-4xl mx-auto text-center">
-              <a
-                href="https://github.com/spavlovic77/v0-nop-web-test-client"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 text-xs text-gray-500 hover:text-gray-700 transition-colors"
-              >
-                <Github className="h-3 w-3" />
-                <span>Zdrojové kódy - skopíruj a vytvor si vlastný QR Terminál</span>
-              </a>
-            </div>
-          </footer>
-        )}
       </div>
     </ErrorBoundary>
   )
