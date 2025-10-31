@@ -37,9 +37,17 @@ export async function POST(request: NextRequest) {
     // Create Supabase client with service role key
     const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 
-    // Query transaction_generations table
-    const startDate = `${date}T00:00:00Z`
-    const endDate = `${date}T23:59:59Z`
+    // User selects "2025-10-31" in Bratislava (UTC+1/+2)
+    // We need to query for transactions that occurred on that calendar day in their timezone
+    const userDate = new Date(date)
+    const startOfDay = new Date(userDate.setHours(0, 0, 0, 0))
+    const endOfDay = new Date(userDate.setHours(23, 59, 59, 999))
+
+    const startDate = startOfDay.toISOString()
+    const endDate = endOfDay.toISOString()
+
+    console.log("[v0] Querying transactions for date:", date)
+    console.log("[v0] UTC range:", startDate, "to", endDate)
 
     const { data, error } = await supabase.rpc("get_transactions_by_date", {
       p_pokladnica: pokladnica,
@@ -51,6 +59,8 @@ export async function POST(request: NextRequest) {
       console.error("[v0] Error fetching transactions:", error)
       return NextResponse.json({ error: "Failed to fetch transactions", details: error.message }, { status: 500 })
     }
+
+    console.log("[v0] Found transactions:", data?.length || 0)
 
     return NextResponse.json({ transactions: data || [] })
   } catch (error) {

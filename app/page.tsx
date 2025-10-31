@@ -1797,10 +1797,13 @@ const Home: FunctionComponent = () => {
     setShowTransactionListModal(true)
     setTransactionListLoading(true)
 
-    fetch("/api/get-transactions", {
+    fetch("/api/get-transactions-by-date", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ date: selectedTransactionDate }),
+      body: JSON.stringify({
+        date: selectedTransactionDate,
+        pokladnica: certificateInfo.pokladnica,
+      }),
     })
       .then((res) => {
         if (res.status === 429) {
@@ -1809,6 +1812,7 @@ const Home: FunctionComponent = () => {
             setRateLimitRetryAfter(data.retryAfter || 60)
             setShowRateLimitModal(true)
             setTransactionListLoading(false)
+            setShowTransactionListModal(false)
           })
           throw new Error("Rate limit exceeded")
         }
