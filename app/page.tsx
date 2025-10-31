@@ -1402,6 +1402,32 @@ const Home: FunctionComponent = () => {
     }, 0)
   }
 
+  // Define formatTransactionDate here
+  const formatTransactionDate = (dateString: string | null | undefined) => {
+    if (!dateString) return "N/A"
+    try {
+      const date = new Date(dateString)
+      if (isNaN(date.getTime())) return "N/A"
+      return date.toLocaleTimeString("sk-SK", { hour: "2-digit", minute: "2-digit", second: "2-digit" })
+    } catch (error) {
+      console.error("[v0] Error formatting date:", error)
+      return "N/A"
+    }
+  }
+
+  // Define formatTransactionDateTime here
+  const formatTransactionDateTime = (dateString: string | null | undefined) => {
+    if (!dateString) return "N/A"
+    try {
+      const date = new Date(dateString)
+      if (isNaN(date.getTime())) return "N/A"
+      return date.toLocaleString("sk-SK")
+    } catch (error) {
+      console.error("[v0] Error formatting date:", error)
+      return "N/A"
+    }
+  }
+
   // Define printTransactionSummary here
   const printTransactionSummary = () => {
     const printContent = `
@@ -1468,7 +1494,7 @@ const Home: FunctionComponent = () => {
         </head>
         <body>
           <h1>Súhrn transakcií</h1>
-          <p><strong>Dátum:</strong> ${new Date(selectedTransactionDate).toLocaleDateString("sk-SK")}</p>
+          <p><strong>Dátum:</strong> ${formatTransactionDateTime(selectedTransactionDate)}</p>
           
           <table>
             <thead>
@@ -1483,7 +1509,7 @@ const Home: FunctionComponent = () => {
                 .map((transaction) => {
                   return `
                       <tr>
-                        <td>${new Date(transaction.payload_received_at).toLocaleTimeString("sk-SK", { hour: "2-digit", minute: "2-digit" })}</td>
+                        <td>${formatTransactionDate(transaction.payload_received_at)}</td>
                         <td style="font-family: monospace; font-size: 10px; word-break: break-all;">${transaction.end_to_end_id || "N/A"}</td>
                         <td class="amount">${Number.parseFloat(transaction.amount || 0).toFixed(2)}</td>
                       </tr>
@@ -1497,127 +1523,7 @@ const Home: FunctionComponent = () => {
             </tbody>
           </table>
           
-          <p style="margin-top: 15px;"><strong>Vygenerované:</strong> ${new Date().toLocaleString("sk-SK")}</p>
-          <script>
-            window.onload = function() {
-              setTimeout(function() {
-                window.print();
-              }, 250);
-            };
-          </script>
-        </body>
-      </html>
-    `
-
-    const printWindow = window.open("", "_blank")
-    if (printWindow) {
-      printWindow.document.write(printContent)
-      printWindow.document.close()
-    }
-  }
-
-  const handlePrintDisputedTransactions = () => {
-    const printContent = `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <meta charset="utf-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>Doklady o neoznámených úhradách - ${selectedDisputeDate}</title>
-          <style>
-            * { margin: 0; padding: 0; box-sizing: border-box; }
-            body { 
-              font-family: Arial, sans-serif; 
-              padding: 15px;
-              font-size: 12px;
-              line-height: 1.4;
-            }
-            h1 { 
-              font-size: 18px;
-              color: #333; 
-              border-bottom: 2px solid #333; 
-              padding-bottom: 8px;
-              margin-bottom: 15px;
-            }
-            p { margin-bottom: 8px; }
-            table { 
-              width: 100%; 
-              border-collapse: collapse; 
-              margin: 15px 0;
-              font-size: 11px;
-            }
-            th, td { 
-              border: 1px solid #ddd; 
-              padding: 6px 4px;
-              text-align: left;
-              word-wrap: break-word;
-            }
-            th { 
-              background-color: #f5f5f5; 
-              font-weight: bold;
-              font-size: 11px;
-            }
-            .total { 
-              font-weight: bold; 
-              background-color: #e8f4fd;
-            }
-            .verified { color: #16a34a; font-weight: bold; }
-            .failed { color: #dc2626; font-weight: bold; }
-            .pending { color: #9ca3af; }
-            .amount { text-align: right; }
-            
-            @media print {
-              body { padding: 10px; }
-              table { page-break-inside: auto; }
-              tr { page-break-inside: avoid; page-break-after: auto; }
-            }
-            
-            @media screen and (max-width: 600px) {
-              body { font-size: 11px; }
-              h1 { font-size: 16px; }
-              th, td { padding: 4px 2px; font-size: 10px; }
-            }
-          </style>
-        </head>
-        <body>
-          <h1>Doklady o neoznámených úhradách</h1>
-          <p><strong>Dátum:</strong> ${new Date(selectedDisputeDate).toLocaleDateString("sk-SK")}</p>
-          
-          <table>
-            <thead>
-              <tr>
-                <th style="width: 25%;">Čas</th>
-                <th style="width: 35%;">Transaction ID</th>
-                <th class="amount" style="width: 25%;">Suma (EUR)</th>
-                <th style="width: 15%;">Stav</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${sortedDisputeTransactions
-                .filter((t) => t.dispute === true)
-                .map((transaction) => {
-                  const status = transaction.dispute ? "Neoznámené" : "N/A"
-                  return `
-                      <tr>
-                        <td>${new Date(transaction.response_timestamp).toLocaleTimeString("sk-SK", { hour: "2-digit", minute: "2-digit" })}</td>
-                        <td style="font-family: monospace; font-size: 10px; word-break: break-all;">${transaction.transaction_id || "N/A"}</td>
-                        <td class="amount">${formatAmount(transaction.amount)}</td>
-                        <td>${status}</td>
-                      </tr>
-                    `
-                })
-                .join("")}
-            </tbody>
-          </table>
-          
-          <p style="margin-top: 15px;"><strong>Vygenerované:</strong> ${new Date().toLocaleString("sk-SK")}</p>
-          <script>
-            window.onload = function() {
-              setTimeout(function() {
-                window.print();
-              }, 250);
-            };
-          </script>
+          <p style="margin-top: 15px;"><strong>Vygenerované:</strong> ${formatTransactionDateTime(new Date().toISOString())}</p>
         </body>
       </html>
     `
@@ -1695,7 +1601,7 @@ const Home: FunctionComponent = () => {
         </head>
         <body>
           <h1>Súhrn transakcií</h1>
-          <p><strong>Dátum:</strong> ${new Date(selectedTransactionDate).toLocaleDateString("sk-SK")}</p>
+          <p><strong>Dátum:</strong> ${formatTransactionDateTime(selectedTransactionDate)}</p>
           
           <table>
             <thead>
@@ -1710,7 +1616,7 @@ const Home: FunctionComponent = () => {
                 .map((transaction) => {
                   return `
                       <tr>
-                        <td>${new Date(transaction.payload_received_at).toLocaleTimeString("sk-SK", { hour: "2-digit", minute: "2-digit" })}</td>
+                        <td>${formatTransactionDate(transaction.payload_received_at)}</td>
                         <td style="font-family: monospace; font-size: 10px; word-break: break-all;">${transaction.end_to_end_id || "N/A"}</td>
                         <td class="amount">${Number.parseFloat(transaction.amount || 0).toFixed(2)}</td>
                       </tr>
@@ -1724,14 +1630,7 @@ const Home: FunctionComponent = () => {
             </tbody>
           </table>
           
-          <p style="margin-top: 15px;"><strong>Vygenerované:</strong> ${new Date().toLocaleString("sk-SK")}</p>
-          <script>
-            window.onload = function() {
-              setTimeout(function() {
-                window.print();
-              }, 250);
-            };
-          </script>
+          <p style="margin-top: 15px;"><strong>Vygenerované:</strong> ${formatTransactionDateTime(new Date().toISOString())}</p>
         </body>
       </html>
     `
@@ -1838,6 +1737,113 @@ const Home: FunctionComponent = () => {
     const today = new Date().toISOString().split("T")[0]
     setSelectedTransactionDate(today)
     setShowTransactionDateModal(true)
+  }
+
+  const handlePrintDisputedTransactions = () => {
+    // Filter for transactions marked as disputed
+    const disputed = sortedDisputeTransactions.filter((t) => t.dispute === true)
+
+    if (disputed.length === 0) {
+      toast({
+        title: "Žiadne spory",
+        description: "Nenašli sa žiadne transakcie označené ako spor.",
+        variant: "default",
+      })
+      return
+    }
+
+    const printContent = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Zoznam sporov - ${selectedDisputeDate}</title>
+          <style>
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body { 
+              font-family: Arial, sans-serif; 
+              padding: 15px;
+              font-size: 12px;
+              line-height: 1.4;
+            }
+            h1 { 
+              font-size: 18px;
+              color: #333; 
+              border-bottom: 2px solid #333; 
+              padding-bottom: 8px;
+              margin-bottom: 15px;
+            }
+            p { margin-bottom: 8px; }
+            table { 
+              width: 100%; 
+              border-collapse: collapse; 
+              margin: 15px 0;
+              font-size: 11px;
+            }
+            th, td { 
+              border: 1px solid #ddd; 
+              padding: 6px 4px;
+              text-align: left;
+              word-wrap: break-word;
+            }
+            th { 
+              background-color: #f5f5f5; 
+              font-weight: bold;
+              font-size: 11px;
+            }
+            .amount { text-align: right; }
+            
+            @media print {
+              body { padding: 10px; }
+              table { page-break-inside: auto; }
+              tr { page-break-inside: avoid; page-break-after: auto; }
+            }
+            
+            @media screen and (max-width: 600px) {
+              body { font-size: 11px; }
+              h1 { font-size: 16px; }
+              th, td { padding: 4px 2px; font-size: 10px; }
+            }
+          </style>
+        </head>
+        <body>
+          <h1>Zoznam transakcií s nevyriešeným sporom</h1>
+          <p><strong>Dátum:</strong> ${selectedDisputeDate ? new Date(selectedDisputeDate).toLocaleDateString("sk-SK") : "Nezadaný"}</p>
+          
+          <table>
+            <thead>
+              <tr>
+                <th style="width: 25%;">Čas</th>
+                <th style="width: 40%;">Transaction ID</th>
+                <th class="amount" style="width: 40%;">Suma (EUR)</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${disputed
+                .map(
+                  (transaction) => `
+                  <tr>
+                    <td>${formatTransactionDate(transaction.response_timestamp)}</td>
+                    <td style="font-family: monospace; font-size: 10px; word-break: break-all;">${transaction.transaction_id}</td>
+                    <td class="amount">${formatAmount(transaction.amount)}</td>
+                  </tr>
+                `,
+                )
+                .join("")}
+            </tbody>
+          </table>
+          
+          <p style="margin-top: 15px;"><strong>Vygenerované:</strong> ${formatTransactionDateTime(new Date().toISOString())}</p>
+        </body>
+      </html>
+    `
+
+    const printWindow = window.open("", "_blank")
+    if (printWindow) {
+      printWindow.document.write(printContent)
+      printWindow.document.close()
+    }
   }
 
   return (
@@ -2785,7 +2791,7 @@ const Home: FunctionComponent = () => {
                           {sortedDisputeTransactions.map((transaction) => (
                             <tr key={transaction.id} className="hover:bg-gray-50">
                               <td className="border p-2 text-sm">
-                                {new Date(transaction.response_timestamp).toLocaleTimeString("sk-SK")}
+                                {formatTransactionDate(transaction.response_timestamp)}
                               </td>
                               <td className="border p-2 text-sm font-mono" title={transaction.transaction_id}>
                                 {truncateTransactionId(transaction.transaction_id)}
