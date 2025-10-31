@@ -731,19 +731,22 @@ const Home: FunctionComponent = () => {
 
         console.log("[v0] API response received, status:", res.status)
 
-        logEntry.status = res.status
-        logEntry.duration = Date.now() - startTime
-
         if (res.status === 429) {
           const data = await res.json()
           console.log("[v0] Rate limit exceeded:", data)
           setRateLimitRetryAfter(data.retryAfter || 60)
           setShowRateLimitModal(true)
+          // </CHANGE> Close QR modal and reset loading state when rate limit is hit
+          setShowQrModal(false)
+          setQrLoading(false)
           logEntry.error = "Rate limit exceeded"
           logEntry.response = data
           setApiCallLogs((prev) => [...prev, logEntry])
           return
         }
+
+        logEntry.status = res.status
+        logEntry.duration = Date.now() - startTime
 
         const contentType = res.headers.get("content-type")
         let data
@@ -1783,7 +1786,7 @@ const Home: FunctionComponent = () => {
           <table>
             <thead>
               <tr>
-                <th style="width: 20%;">Čas</th>
+                <th style="width: 25%;">Čas</th>
                 <th style="width: 40%;">Transaction ID</th>
                 <th class="amount" style="width: 40%;">Suma (EUR)</th>
               </tr>
