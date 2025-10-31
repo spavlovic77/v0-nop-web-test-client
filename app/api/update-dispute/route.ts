@@ -4,25 +4,24 @@ import { rateLimit, getClientIp } from "@/lib/rate-limit"
 
 export async function POST(request: NextRequest) {
   const clientIP = getClientIp(request)
-  const rateLimitResult = rateLimit(clientIP, 1, 60000)
+  const rateLimitResult = rateLimit("/api/update-dispute", clientIP, 1, 60000)
 
   if (!rateLimitResult.success) {
-    const resetTime = new Date(rateLimitResult.reset).toISOString()
-    console.log(`[v0] ⚠️ Rate limit exceeded for IP: ${clientIP}`)
+    const retryAfter = Math.ceil((rateLimitResult.reset - Date.now()) / 1000)
     return NextResponse.json(
       {
         error: "Too many requests",
         message: "Please try again later",
-        retryAfter: Math.ceil((rateLimitResult.reset - Date.now()) / 1000),
-        resetTime,
+        retryAfter,
+        resetTime: new Date(rateLimitResult.reset).toISOString(),
       },
       {
         status: 429,
         headers: {
+          "Retry-After": retryAfter.toString(),
           "X-RateLimit-Limit": rateLimitResult.limit.toString(),
-          "X-RateLimit-Remaining": rateLimitResult.remaining.toString(),
+          "X-RateLimit-Remaining": "0",
           "X-RateLimit-Reset": rateLimitResult.reset.toString(),
-          "Retry-After": Math.ceil((rateLimitResult.reset - Date.now()) / 1000).toString(),
         },
       },
     )

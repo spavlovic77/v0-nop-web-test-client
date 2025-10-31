@@ -9,11 +9,7 @@ import {
   Github,
   CheckCircle,
   Printer,
-  Terminal,
-  LogOut,
-  User,
   Calendar,
-  FileText,
   FileCheck,
   Upload,
   QrCode,
@@ -259,7 +255,7 @@ const Home: FunctionComponent = () => {
     if (response.status === 429) {
       const data = await response.json()
       handleRateLimitError(data.retryAfter || 60)
-      throw new Error("Rate limit exceeded")
+      throw new Error("Too many requests")
     }
     return response
   }
@@ -454,6 +450,8 @@ const Home: FunctionComponent = () => {
           body: formData,
         })
 
+        await handleApiResponse(response)
+
         if (!response.ok) {
           throw new Error("Failed to convert P12 to PEM")
         }
@@ -553,6 +551,8 @@ const Home: FunctionComponent = () => {
         method: "POST",
         body: formData,
       })
+
+      await handleApiResponse(res)
 
       logEntry.status = res.status
       logEntry.duration = Date.now() - startTime
@@ -658,13 +658,6 @@ const Home: FunctionComponent = () => {
   }
 
   const handleQrGeneration = async () => {
-    console.log("[v0] 🎯 Generate QR button clicked")
-
-    if (qrLoading) {
-      console.log("[v0] ⚠️ QR generation already in progress, ignoring duplicate call")
-      return
-    }
-
     const validationLogEntry: ApiCallLog = {
       timestamp: new Date(),
       endpoint: "/api/generate-transaction",
@@ -681,12 +674,7 @@ const Home: FunctionComponent = () => {
       return
     }
 
-    // Check if convertedCertPem and convertedKeyPem are available
-    const clientCert = files.convertedCertPem
-    const clientKey = files.convertedKeyPem
-    const caCert = files.caCert
-
-    if (!clientCert || !clientKey || !caCert) {
+    if (!files.convertedCertPem || !files.convertedKeyPem) {
       console.log("[v0] EARLY RETURN: PEM files not available")
       console.log("[v0] convertedCertPem length:", files.convertedCertPem?.length || 0)
       console.log("[v0] convertedKeyPem length:", files.convertedKeyPem?.length || 0)
@@ -746,6 +734,8 @@ const Home: FunctionComponent = () => {
           method: "POST",
           body: formData,
         })
+
+        await handleApiResponse(res)
 
         console.log("[v0] API response received, status:", res.status)
 
@@ -914,6 +904,8 @@ const Home: FunctionComponent = () => {
         body: formData,
       })
 
+      await handleApiResponse(res)
+
       console.log("[v0] MQTT subscribe API response status:", res.status)
 
       logEntry.status = res.status
@@ -990,7 +982,7 @@ const Home: FunctionComponent = () => {
             console.log("[v0] Expected hash:", expectedHash)
 
             // Verify integrity
-            let hashesMatch = notificationHash.toLowerCase() === expectedHash.toLowerCase()
+            const hashesMatch = notificationHash.toLowerCase() === expectedHash.toLowerCase()
             setIntegrityVerified(hashesMatch)
             setIntegrityError(!hashesMatch)
 
@@ -1013,10 +1005,6 @@ const Home: FunctionComponent = () => {
               console.error("[v0] Error updating integrity validation:", error)
             }
             // </CHANGE>
-            // Verify integrity
-            hashesMatch = notificationHash.toLowerCase() === expectedHash.toLowerCase()
-            setIntegrityVerified(hashesMatch)
-            setIntegrityError(!hashesMatch)
 
             if (hashesMatch) {
               console.log("[v0] Data integrity verification successful!")
@@ -1208,6 +1196,8 @@ const Home: FunctionComponent = () => {
         body: JSON.stringify({ transactionId: currentTransactionId }),
       })
 
+      await handleApiResponse(response)
+
       if (!response.ok) {
         throw new Error("Failed to update dispute flag")
       }
@@ -1279,6 +1269,8 @@ const Home: FunctionComponent = () => {
         }),
       })
 
+      await handleApiResponse(response)
+
       if (!response.ok) {
         throw new Error("Failed to fetch transactions")
       }
@@ -1310,6 +1302,8 @@ const Home: FunctionComponent = () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ transactionId: selectedDisputeTransaction }),
       })
+
+      await handleApiResponse(response)
 
       if (!response.ok) {
         throw new Error("Failed to update dispute flag")
@@ -1551,6 +1545,8 @@ const Home: FunctionComponent = () => {
         body: formData,
       })
 
+      await handleApiResponse(res)
+
       console.log("[v0] MQTT subscribe API response status:", res.status)
 
       logEntry.status = res.status
@@ -1662,7 +1658,7 @@ const Home: FunctionComponent = () => {
             setIntegrityError(true)
             setSubscriptionActive(false) // Ensure subscription is marked as inactive on error
           }
-        }, 300)
+        }, 300) // Wait 0,3 seconds before starting verification
       } else {
         console.log("[v0] No payment confirmation received within the time limit.")
         setSubscriptionActive(false)
@@ -1978,1463 +1974,1005 @@ const Home: FunctionComponent = () => {
     }
   }
 
-  // </CHANGE>
-  // Updated handleGenerateQR function
-  const handleGenerateQR = async () => {
-    console.log("[v0] 🎯 Generate QR button clicked")
-
-    if (qrLoading) {
-      console.log("[v0] ⚠️ QR generation already in progress, ignoring duplicate call")
-      return
-    }
-
-    const validationLogEntry: ApiCallLog = {
-      timestamp: new Date(),
-      endpoint: "/api/generate-transaction",
-      method: "POST",
-      status: 0,
-      error: "",
-    }
-
-    if (!configurationSaved) {
-      console.log("[v0] EARLY RETURN: Configuration not saved yet")
-      validationLogEntry.error = "Configuration not saved yet"
-      logApiCall(validationLogEntry)
-      setError("Please save configuration first")
-      return
-    }
-
-    // Check if convertedCertPem and convertedKeyPem are available
-    const clientCert = files.convertedCertPem
-    const clientKey = files.convertedKeyPem
-    const caCert = files.caCert
-
-    if (!clientCert || !clientKey || !caCert) {
-      console.log("[v0] EARLY RETURN: PEM files not available")
-      console.log("[v0] convertedCertPem length:", files.convertedCertPem?.length || 0)
-      console.log("[v0] convertedKeyPem length:", files.convertedKeyPem?.length || 0)
-      validationLogEntry.error = "Certificate files not properly converted"
-      logApiCall(validationLogEntry)
-      setError("Certificate files not properly converted")
-      return
-    }
-
-    const numericAmount = getEurAmountValue()
-    console.log("[v0] numericAmount:", numericAmount)
-    console.log("[v0] parsed amount:", Number.parseFloat(numericAmount))
-    console.log("[v0] amount > 0:", Number.parseFloat(numericAmount) > 0)
-
-    if (numericAmount && Number.parseFloat(numericAmount) > 0) {
-      console.log("[v0] VALIDATION PASSED - Starting QR generation process...")
-      setShowQrModal(true)
-      setQrLoading(true)
-      setQrTransactionId(null)
-      setQrCode(null)
-      setSubscriptionActive(false)
-
-      const startTime = Date.now()
-      const logEntry: ApiCallLog = {
-        timestamp: new Date(),
-        endpoint: "/api/generate-transaction",
-        method: "POST",
-        status: 0,
-      }
-
-      try {
-        console.log("[v0] Starting QR generation process...")
-
-        const caBundleContent = isProductionMode ? EMBEDDED_CA_BUNDLE_PROD : EMBEDDED_CA_BUNDLE
-        console.log("[v0] Production mode:", isProductionMode)
-        console.log("[v0] Using CA certificate for mode:", isProductionMode ? "PRODUCTION" : "TEST")
-        console.log("[v0] CA certificate length:", caBundleContent.length)
-        console.log("[v0] CA certificate preview (first 100 chars):", caBundleContent.substring(0, 100))
-        console.log("[v0] Expected API URL:", isProductionMode ? "api-erp.kverkom.sk" : "api-erp-i.kverkom.sk")
-        console.log("[v0] Expected MQTT URL:", isProductionMode ? "mqtt.kverkom.sk" : "mqtt-i.kverkom.sk")
-
-        const caBundleBlob = new Blob([caBundleContent], { type: "application/x-pem-file" })
-        const caBundleFile = new File([caBundleBlob], "ca-bundle.pem", { type: "application/x-pem-file" })
-
-        const formData = new FormData()
-        formData.append("clientCert", files.convertedCertPem)
-        formData.append("clientKey", files.convertedKeyPem)
-        formData.append("caCert", caBundleFile)
-        formData.append("certificateSecret", files.xmlPassword!)
-        formData.append("iban", userIban)
-        formData.append("amount", numericAmount)
-        formData.append("isProductionMode", isProductionMode.toString())
-
-        console.log("[v0] FormData prepared, making API call to generate transaction...")
-        console.log("[v0] Production mode:", isProductionMode)
-        const res = await fetch("/api/generate-transaction", {
-          method: "POST",
-          body: formData,
-        })
-
-        console.log("[v0] API response received, status:", res.status)
-
-        logEntry.status = res.status
-        logEntry.duration = Date.now() - startTime
-
-        const contentType = res.headers.get("content-type")
-        let data
-
-        if (contentType && contentType.includes("application/json")) {
-          data = await res.json()
-          console.log("[v0] Parsed JSON response:", data)
-        } else {
-          const text = await res.text()
-          console.log("[v0] Non-JSON response:", text)
-          throw new Error(`Server returned non-JSON response (${res.status}): ${text.substring(0, 200)}`)
-        }
-
-        logEntry.response = data
-
-        if (!res.ok) {
-          console.log("[v0] API call failed with error:", data.error)
-          throw new Error(data.error || `HTTP ${res.status}: ${res.statusText}`)
-        }
-
-        console.log("[v0] Logging generate-transaction API call to console...")
-        logApiCall(logEntry)
-        console.log("[v0] Generate-transaction API call logged successfully")
-
-        let transactionId = null
-        if (data.data && data.data.transactionId) {
-          transactionId = data.data.transactionId
-          console.log("[v0] Found transaction ID in data.transactionId:", transactionId)
-        } else if (data.data && typeof data.data === "object") {
-          transactionId = data.data.transactionId || data.data.id || data.data.transaction_id
-          console.log("[v0] Found transaction ID in nested object:", transactionId)
-        } else if (data.transactionId) {
-          transactionId = data.transactionId
-          console.log("[v0] Found transaction ID at root level:", transactionId)
-        } else {
-          console.log("[v0] Full response structure:", JSON.stringify(data, null, 2))
-          throw new Error("No transaction ID found in response")
-        }
-
-        if (transactionId) {
-          console.log("[v0] Using transaction ID:", transactionId)
-          setQrTransactionId(transactionId)
-
-          console.log("[v0] Generating payment link...")
-          const paymentLink = generatePaymentLink(numericAmount, transactionId)
-          console.log("[v0] Payment link generated:", paymentLink)
-
-          console.log("[v0] Generating QR code...")
-          const qrCodeDataUrl = await generateQRCode(paymentLink)
-          console.log("[v0] QR code generated successfully")
-          setQrCode(qrCodeDataUrl)
-
-          setQrLoading(false)
-
-          console.log("[v0] Starting native MQTT subscription...")
-          await subscribeToQrBankNotifications(transactionId)
-        } else {
-          throw new Error("Transaction ID is null or undefined")
-        }
-      } catch (err) {
-        console.error("[v0] QR generation error:", err)
-        logEntry.error = err instanceof Error ? err.message : "Failed to generate QR code"
-        logApiCall(logEntry)
-        setError(err instanceof Error ? err.message : "Failed to generate QR code")
-        setQrLoading(false)
-        setShowQrModal(false)
-      }
-    } else {
-      console.log("[v0] EARLY RETURN: handleQrGeneration validation failed - invalid amount")
-      console.log("[v0] numericAmount:", numericAmount)
-      console.log("[v0] parsed amount:", Number.parseFloat(numericAmount))
-      validationLogEntry.error = `Invalid amount: ${numericAmount} (parsed: ${Number.parseFloat(numericAmount)})`
-      logApiCall(validationLogEntry)
-    }
-    console.log("[v0] ========== handleQrGeneration END ==========")
-  }
-
-  const handleMqttSubscribe = async () => {
-    if (!validateFiles()) return
-
-    setMqttLoading(true)
-    setError(null)
-    setMqttMessages([])
-    setMqttConnected(false)
-
-    if (!certificateInfo.vatsk || !certificateInfo.pokladnica) {
-      setError("VATSK alebo POKLADNICA nie sú k dispozícii. Prosím, nahrajte platné certifikáty.")
-      setMqttLoading(false)
-      return
-    }
-
-    if (!transactionId) {
-      setError("Transaction ID nie je k dispozícii.")
-      setMqttLoading(false)
-      return
-    }
-
-    const topic = `VATSK-${certificateInfo.vatsk}/POKLADNICA-${certificateInfo.pokladnica}/${transactionId}`
-    console.log("[v0] Subscribing to MQTT topic:", topic)
-
-    const startTime = Date.now()
-    const logEntry: ApiCallLog = {
-      timestamp: new Date(),
-      endpoint: "/api/mqtt-subscribe",
-      method: "POST",
-      status: 0,
-    }
-
-    try {
-      setMqttConnected(true)
-      setMqttMessages([`🔄 Starting MQTT subscription to topic: ${topic}`])
-      setMqttLoading(false)
-
-      const mqttApiUrl = `${window.location.origin}/api/mqtt-subscribe`
-      const mqttBroker = isProductionMode ? "mqtt.kverkom.sk" : "mqtt-i.kverkom.sk"
-      console.log("=".repeat(80))
-      console.log("[v0] 🔔 MQTT SUBSCRIPTION REQUEST (Manual)")
-      console.log("[v0] API URL:", mqttApiUrl)
-      console.log("[v0] Environment:", isProductionMode ? "PRODUCTION" : "TEST")
-      console.log("[v0] MQTT Broker:", `mqtts://${mqttBroker}:8883`)
-      console.log("[v0] VATSK:", certificateInfo.vatsk)
-      console.log("[v0] POKLADNICA:", certificateInfo.pokladnica)
-      console.log("=".repeat(80))
-
-      const formData = new FormData()
-      if (files.convertedCertPem && files.convertedKeyPem) {
-        formData.append("clientCert", files.convertedCertPem)
-        formData.append("clientKey", files.convertedKeyPem)
-      } else {
-        throw new Error("Certificate files not properly converted")
-      }
-      formData.append("caCert", files.caCert!)
-      formData.append("certificateSecret", files.xmlPassword!)
-      if (transactionId) {
-        formData.append("transactionId", transactionId)
-      }
-      formData.append("vatsk", certificateInfo.vatsk)
-      formData.append("pokladnica", certificateInfo.pokladnica)
-
-      console.log("[v0] Starting MQTT subscription...")
-      console.log("[v0] Production mode:", isProductionMode)
-
-      const res = await fetch("/api/mqtt-subscribe", {
-        method: "POST",
-        body: formData,
-      })
-
-      logEntry.status = res.status
-      logEntry.duration = Date.now() - startTime
-
-      const data = await res.json()
-      console.log("[v0] MQTT subscribe API response data:", data)
-
-      if (data.databaseOperation) {
-        console.log("[v0] Database operation status:", data.databaseOperation.status)
-        console.log("[v0] Database operation attempted:", data.databaseOperation.attempted)
-        if (data.databaseOperation.error) {
-          console.log("[v0] Database operation error:", data.databaseOperation.error)
-        }
-        if (data.databaseOperation.result) {
-          console.log("[v0] Database operation result:", data.databaseOperation.result)
-        }
-      } else {
-        console.log("[v0] No database operation field in response")
-      }
-
-      logEntry.response = data
-
-      if (data.communicationLog && Array.isArray(data.communicationLog)) {
-        setMqttMessages(data.communicationLog)
-      } else {
-        setMqttMessages((prev) => [...prev, `📡 MQTT subscription completed`])
-      }
-
-      if (data.hasMessages && data.messages && data.messages.length > 0) {
-        console.log("[v0] MQTT messages found:", data.messages)
-        setMqttPayload(data.messages)
-        setShowMqttModal(true)
-        setMqttMessages((prev) => [...prev, `🎉 ${data.messages.length} message(s) received - showing modal`])
-      } else {
-        setMqttMessages((prev) => [...prev, `📭 No messages received during listening period`])
-      }
-
-      setMqttConnected(false)
-    } catch (err) {
-      console.log("[v0] MQTT subscription error:", err)
-      logEntry.response = { error: err instanceof Error ? err.message : "An error occurred" }
-      setError(err instanceof Error ? err.message : "An error occurred")
-      setMqttLoading(false)
-      setMqttConnected(false)
-      setMqttMessages((prev) => [...prev, `❌ Error: ${err instanceof Error ? err.message : "Unknown error"}`])
-    } finally {
-      logApiCall(logEntry)
-    }
-  }
-
-  const handleManualMqttCheck = async () => {
-    if (!validateFiles()) return
-
-    setMqttLoading(true)
-    setError(null)
-    setMqttMessages([])
-    setMqttConnected(false)
-
-    if (!certificateInfo.vatsk || !certificateInfo.pokladnica) {
-      setError("VATSK alebo POKLADNICA nie sú k dispozícii. Prosím, nahrajte platné certifikáty.")
-      setMqttLoading(false)
-      return
-    }
-
-    if (!transactionId) {
-      setError("Transaction ID nie je k dispozícii.")
-      setMqttLoading(false)
-      return
-    }
-
-    const topic = `VATSK-${certificateInfo.vatsk}/POKLADNICA-${certificateInfo.pokladnica}/${transactionId}`
-    console.log("[v0] Subscribing to MQTT topic:", topic)
-
-    const startTime = Date.now()
-    const logEntry: ApiCallLog = {
-      timestamp: new Date(),
-      endpoint: "/api/mqtt-subscribe",
-      method: "POST",
-      status: 0,
-    }
-
-    try {
-      setMqttConnected(true)
-      setMqttMessages([`🔄 Starting MQTT subscription to topic: ${topic}`])
-      setMqttLoading(false)
-
-      const mqttApiUrl = `${window.location.origin}/api/mqtt-subscribe`
-      const mqttBroker = isProductionMode ? "mqtt.kverkom.sk" : "mqtt-i.kverkom.sk"
-      console.log("=".repeat(80))
-      console.log("[v0] 🔔 MQTT SUBSCRIPTION REQUEST (Manual Check)")
-      console.log("[v0] API URL:", mqttApiUrl)
-      console.log("[v0] Environment:", isProductionMode ? "PRODUCTION" : "TEST")
-      console.log("[v0] MQTT Broker:", `mqtts://${mqttBroker}:8883`)
-      console.log("[v0] Transaction ID:", transactionId)
-      console.log("[v0] VATSK:", certificateInfo.vatsk)
-      console.log("[v0] POKLADNICA:", certificateInfo.pokladnica)
-      console.log("=".repeat(80))
-
-      const formData = new FormData()
-      if (files.convertedCertPem && files.convertedKeyPem) {
-        formData.append("clientCert", files.convertedCertPem)
-        formData.append("clientKey", files.convertedKeyPem)
-      } else {
-        throw new Error("Certificate files not properly converted")
-      }
-      formData.append("caCert", files.caCert!)
-      formData.append("certificateSecret", files.xmlPassword!)
-      if (transactionId) {
-        formData.append("transactionId", transactionId)
-      }
-      formData.append("vatsk", certificateInfo.vatsk)
-      formData.append("pokladnica", certificateInfo.pokladnica)
-
-      console.log("[v0] Starting MQTT subscription...")
-      console.log("[v0] Production mode:", isProductionMode)
-
-      const res = await fetch("/api/mqtt-subscribe", {
-        method: "POST",
-        body: formData,
-      })
-
-      logEntry.status = res.status
-      logEntry.duration = Date.now() - startTime
-
-      const data = await res.json()
-      console.log("[v0] MQTT subscribe API response data:", data)
-
-      logEntry.response = data
-
-      if (data.communicationLog && Array.isArray(data.communicationLog)) {
-        setMqttMessages(data.communicationLog)
-      } else {
-        setMqttMessages((prev) => [...prev, `📡 MQTT subscription completed`])
-      }
-
-      if (data.hasMessages && data.messages && data.messages.length > 0) {
-        console.log("[v0] MQTT messages found:", data.messages)
-        setMqttPayload(data.messages)
-        setShowMqttModal(true)
-        setMqttMessages((prev) => [...prev, `🎉 ${data.messages.length} message(s) received - showing modal`])
-      } else {
-        setMqttMessages((prev) => [...prev, `📭 No messages received during listening period`])
-      }
-
-      setMqttConnected(false)
-    } catch (err) {
-      console.log("[v0] MQTT subscription error:", err)
-      logEntry.response = { error: err instanceof Error ? err.message : "An error occurred" }
-      setError(err instanceof Error ? err.message : "An error occurred")
-      setMqttLoading(false)
-      setMqttConnected(false)
-      setMqttMessages((prev) => [...prev, `❌ Error: ${err instanceof Error ? err.message : "Unknown error"}`])
-    } finally {
-      logApiCall(logEntry)
-    }
-  }
-
   return (
     <ErrorBoundary>
-      <TooltipProvider>
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
-          {!isOnline && (
-            <div className="bg-destructive text-destructive-foreground p-2 text-center text-sm flex items-center justify-center gap-2">
-              <WifiOff className="h-4 w-4" />
-              Momentálne ste offline. Niektoré funkcie nemusia fungovať.
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+        {!isOnline && (
+          <div className="bg-destructive text-destructive-foreground p-2 text-center text-sm flex items-center justify-center gap-2">
+            <WifiOff className="h-4 w-4" />
+            Momentálne ste offline. Niektoré funkcie nemusia fungovať.
+          </div>
+        )}
+
+        <div className="max-w-4xl mx-auto p-4 pb-24 space-y-6">
+          {!allRequiredFieldsComplete && (
+            <div className="min-h-screen flex items-center justify-center p-4">
+              <div className="w-full max-w-md">
+                <Card className="shadow-lg border-0 bg-white/95 backdrop-blur-sm">
+                  <CardHeader className="text-center pb-6">
+                    <CardTitle className="text-2xl font-bold text-gray-900">Prihlásenie</CardTitle>
+                    <div className="bg-yellow-100 border border-yellow-400 text-yellow-800 px-4 py-3 rounded-md mt-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                            <path
+                              fillRule="evenodd"
+                              d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                          <span className="text-sm font-medium">
+                            {isProductionMode
+                              ? "Produkčné prostredie pripojené k bankám"
+                              : "Testovacie prostredie neprepojené s bankami"}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor="production-toggle" className="text-sm font-medium cursor-pointer">
+                            Prepojiť
+                          </Label>
+                          <Switch
+                            id="production-toggle"
+                            checked={isProductionMode}
+                            onCheckedChange={handleProductionToggle}
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="bg-gray-100 border border-gray-300 text-gray-700 px-4 py-3 rounded-md mt-2 text-xs font-mono">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold">MQTT URL:</span>
+                          <span>{isProductionMode ? "mqtt.kverkom.sk" : "mqtt-i.kverkom.sk"}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold">API URL:</span>
+                          <span>{isProductionMode ? "api-erp.kverkom.sk" : "api-erp-i.kverkom.sk"}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold">CA Cert:</span>
+                          <span>{isProductionMode ? "PROD" : "TEST"}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </CardHeader>
+
+                  <Dialog open={showProductionConfirmModal} onOpenChange={setShowProductionConfirmModal}>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Prepnúť na produkčné prostredie?</DialogTitle>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <p className="text-sm text-muted-foreground">
+                          Prepnutím na produkčné prostredie budete používať skutočné bankové pripojenie. Všetky
+                          transakcie budú reálne a nezvratné.
+                        </p>
+                        <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-md">
+                          <p className="text-sm font-medium">Ste si istí, že chcete pokračovať?</p>
+                        </div>
+                        <div className="flex gap-2 justify-end">
+                          <Button variant="outline" onClick={cancelProductionSwitch}>
+                            Zrušiť
+                          </Button>
+                          <Button onClick={confirmProductionSwitch} className="bg-red-600 hover:bg-red-700">
+                            Áno, prepnúť
+                          </Button>
+                        </div>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+
+                  <CardContent className="space-y-6">
+                    <div className="space-y-2">
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Label
+                              htmlFor="xmlAuthData"
+                              className="text-sm font-medium text-gray-700 flex items-center gap-1 cursor-help"
+                            >
+                              Autentifikačné údaje (XML súbor)
+                              <Info className="h-3 w-3 text-gray-400" />
+                            </Label>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>
+                              Autentifikačné údajte vo forme XML súboru nájdete v e-kasa zóne na portály finančnej
+                              správy.
+                            </p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                      <div className="relative">
+                        <Input
+                          id="xmlAuthData"
+                          type="file"
+                          accept=".xml"
+                          onChange={(e) => handleFileChange("xmlAuthData", e.target.files?.[0] || null)}
+                          className="w-full h-12 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                        />
+                        {files.xmlAuthData && (
+                          <CheckCircle className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-green-500" />
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Label
+                              htmlFor="xmlPassword"
+                              className="text-sm font-medium text-gray-700 flex items-center gap-1 cursor-help"
+                            >
+                              Heslo
+                              <Info className="h-3 w-3 text-gray-400" />
+                            </Label>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Toto heslo ste zadávali pri prvotnom vytváraní autentifikačných údajov do e-kasy.</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                      <div className="relative">
+                        <Input
+                          id="xmlPassword"
+                          type="password"
+                          value={files.xmlPassword}
+                          onChange={(e) => setFiles((prev) => ({ ...prev, xmlPassword: e.target.value }))}
+                          placeholder="Zadajte heslo"
+                          className="w-full h-12 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                        />
+                        {files.xmlPassword && (
+                          <CheckCircle className="absolute right-10 top-1/2 -translate-y-1/2 h-5 w-5 text-green-500" />
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Label
+                              htmlFor="userIban"
+                              className="text-sm font-medium text-gray-700 flex items-center gap-1 cursor-help"
+                            >
+                              IBAN
+                              <Info className="h-3 w-3 text-gray-400" />
+                            </Label>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Zadajte Váš podnikateľský bankový účet, ktorý ste si označili v banke ako notifikačný</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                      <div className="relative">
+                        <Input
+                          id="iban"
+                          type="text"
+                          placeholder="SK00 0000 0000 0000 0000 0000"
+                          value={userIban}
+                          onChange={handleIbanChange}
+                          className="w-full h-12 font-mono tracking-wider border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                        />
+                        {userIban && isValidIbanFormat(userIban) && (
+                          <CheckCircle className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-green-500" />
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Label
+                              htmlFor="merchantAccountName"
+                              className="text-sm font-medium text-gray-700 flex items-center gap-1 cursor-help"
+                            >
+                              Názov bankového účtu obchodníka
+                              <Info className="h-3 w-3 text-gray-400" />
+                            </Label>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Zadajte názov Vášho bankového účtu, ktorý sa zobrazí na platobnom príkaze</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                      <div className="relative">
+                        <Input
+                          id="merchantAccountName"
+                          type="text"
+                          placeholder="Názov obchodníka"
+                          value={merchantAccountName}
+                          onChange={(e) => setMerchantAccountName(e.target.value)}
+                          className="w-full h-12 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                        />
+                        {merchantAccountName && (
+                          <CheckCircle className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-green-500" />
+                        )}
+                      </div>
+                    </div>
+
+                    <Button
+                      onClick={handleSaveConfiguration}
+                      disabled={!canSaveConfiguration || savingConfiguration}
+                      className={`w-full h-12 font-medium text-base transition-colors ${
+                        !canSaveConfiguration || savingConfiguration
+                          ? "bg-gray-400 text-gray-800 cursor-not-allowed"
+                          : "bg-blue-600 hover:bg-blue-700 text-white"
+                      }`}
+                    >
+                      {savingConfiguration ? (
+                        <div className="flex items-center gap-2">
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Prihlasuje sa...
+                        </div>
+                      ) : (
+                        "Prihlásiť sa"
+                      )}
+                    </Button>
+
+                    {error && (
+                      <Alert variant="destructive" className="mt-4">
+                        <XCircle className="h-4 w-4" />
+                        <AlertDescription className="text-sm">{error}</AlertDescription>
+                      </Alert>
+                    )}
+
+                    {configurationSaved && (
+                      <div className="text-center">
+                        <p className="text-sm text-green-600 flex items-center justify-center gap-2">
+                          <CheckCircle className="h-4 w-4" />
+                          Úspešne prihlásený
+                        </p>
+                      </div>
+                    )}
+
+                    <div className="text-center pt-6 border-t border-gray-200">
+                      <p className="text-sm text-gray-600 mb-3">Potrebujete XML autentifikačné údaje a heslo?</p>
+                      <a
+                        href="/download"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 hover:underline transition-colors font-medium"
+                      >
+                        <span>Získať autentifikačné údaje</span>
+                        <ExternalLink className="h-4 w-4" />
+                      </a>
+                    </div>
+
+                    <div className="text-center pt-4 mt-4 border-t border-gray-200">
+                      <a
+                        href="https://github.com/spavlovic77/v0-nop-web-test-client"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 text-xs text-gray-500 hover:text-gray-700 transition-colors"
+                      >
+                        <Github className="h-3 w-3" />
+                        <span>Zdrojové kódy - skopíruj a vytvor si vlastný QR Terminál</span>
+                      </a>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
             </div>
           )}
 
-          <div className="max-w-4xl mx-auto p-4 pb-24 space-y-6">
-            {!allRequiredFieldsComplete && (
-              <div className="min-h-screen flex items-center justify-center p-4">
-                <div className="w-full max-w-md">
-                  <Card className="shadow-lg border-0 bg-white/95 backdrop-blur-sm">
-                    <CardHeader className="text-center pb-6">
-                      <CardTitle className="text-2xl font-bold text-gray-900">Prihlásenie</CardTitle>
-                      <div className="bg-yellow-100 border border-yellow-400 text-yellow-800 px-4 py-3 rounded-md mt-2">
-                        <div className="flex items-center justify-between gap-2">
-                          <div className="flex items-center gap-2">
-                            <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                              <path
-                                fillRule="evenodd"
-                                d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-                                clipRule="evenodd"
-                              />
-                            </svg>
-                            <span className="text-sm font-medium">
-                              {isProductionMode
-                                ? "Produkčné prostredie pripojené k bankám"
-                                : "Testovacie prostredie neprepojené s bankami"}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Label htmlFor="production-toggle" className="text-sm font-medium cursor-pointer">
-                              Prepojiť
-                            </Label>
-                            <Switch
-                              id="production-toggle"
-                              checked={isProductionMode}
-                              onCheckedChange={handleProductionToggle}
-                            />
-                          </div>
-                        </div>
-                      </div>
+          {allRequiredFieldsComplete && !certificateSectionCollapsed && (
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Upload className="h-4 w-4" />
+                  Certificate Files and IBAN
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setCertificateSectionCollapsed(true)}
+                    className="ml-auto p-1"
+                  >
+                    <XCircle className="h-4 w-4" />
+                  </Button>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="space-y-1">
+                  <Label htmlFor="xmlAuthData" className="text-sm">
+                    XML Authentication Data
+                  </Label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      id="xmlAuthData"
+                      type="file"
+                      accept=".xml"
+                      onChange={(e) => handleFileChange("xmlAuthData", e.target.files?.[0] || null)}
+                      className="flex-1 text-sm"
+                    />
+                    {files.xmlAuthData && <CheckCircle className="h-4 w-4 text-green-500" />}
+                  </div>
+                </div>
 
-                      <div className="bg-gray-100 border border-gray-300 text-gray-700 px-4 py-3 rounded-md mt-2 text-xs font-mono">
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2">
-                            <span className="font-semibold">MQTT URL:</span>
-                            <span>{isProductionMode ? "mqtt.kverkom.sk" : "mqtt-i.kverkom.sk"}</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className="font-semibold">API URL:</span>
-                            <span>{isProductionMode ? "api-erp.kverkom.sk" : "api-erp-i.kverkom.sk"}</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className="font-semibold">CA Cert:</span>
-                            <span>{isProductionMode ? "PROD" : "TEST"}</span>
-                          </div>
-                        </div>
-                      </div>
-                    </CardHeader>
-
-                    <Dialog open={showProductionConfirmModal} onOpenChange={setShowProductionConfirmModal}>
-                      <DialogContent>
-                        <DialogHeader>
-                          <DialogTitle>Prepnúť na produkčné prostredie?</DialogTitle>
-                        </DialogHeader>
-                        <div className="space-y-4">
-                          <p className="text-sm text-muted-foreground">
-                            Prepnutím na produkčné prostredie budete používať skutočné bankové pripojenie. Všetky
-                            transakcie budú reálne a nezvratné.
-                          </p>
-                          <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-md">
-                            <p className="text-sm font-medium">Ste si istí, že chcete pokračovať?</p>
-                          </div>
-                          <div className="flex gap-2 justify-end">
-                            <Button variant="outline" onClick={cancelProductionSwitch}>
-                              Zrušiť
-                            </Button>
-                            <Button onClick={confirmProductionSwitch} className="bg-red-600 hover:bg-red-700">
-                              Áno, prepnúť
-                            </Button>
-                          </div>
-                        </div>
-                      </DialogContent>
-                    </Dialog>
-
-                    <CardContent className="space-y-6">
-                      <div className="space-y-2">
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Label
-                                htmlFor="xmlAuthData"
-                                className="text-sm font-medium text-gray-700 flex items-center gap-1 cursor-help"
-                              >
-                                Autentifikačné údaje (XML súbor)
-                                <Info className="h-3 w-3 text-gray-400" />
-                              </Label>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>
-                                Autentifikačné údajte vo forme XML súboru nájdete v e-kasa zóne na portály finančnej
-                                správy.
-                              </p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                        <div className="relative">
-                          <Input
-                            id="xmlAuthData"
-                            type="file"
-                            accept=".xml"
-                            onChange={(e) => handleFileChange("xmlAuthData", e.target.files?.[0] || null)}
-                            className="w-full h-12 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
-                          />
-                          {files.xmlAuthData && (
-                            <CheckCircle className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-green-500" />
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="space-y-2">
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Label
-                                htmlFor="xmlPassword"
-                                className="text-sm font-medium text-gray-700 flex items-center gap-1 cursor-help"
-                              >
-                                Heslo
-                                <Info className="h-3 w-3 text-gray-400" />
-                              </Label>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>Toto heslo ste zadávali pri prvotnom vytváraní autentifikačných údajov do e-kasy.</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                        <div className="relative">
-                          <Input
-                            id="xmlPassword"
-                            type="password"
-                            value={files.xmlPassword}
-                            onChange={(e) => setFiles((prev) => ({ ...prev, xmlPassword: e.target.value }))}
-                            placeholder="Zadajte heslo"
-                            className="w-full h-12 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
-                          />
-                          {files.xmlPassword && (
-                            <CheckCircle className="absolute right-10 top-1/2 -translate-y-1/2 h-5 w-5 text-green-500" />
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="space-y-2">
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Label
-                                htmlFor="userIban"
-                                className="text-sm font-medium text-gray-700 flex items-center gap-1 cursor-help"
-                              >
-                                IBAN
-                                <Info className="h-3 w-3 text-gray-400" />
-                              </Label>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>
-                                Zadajte Váš podnikateľský bankový účet, ktorý ste si označili v banke ako notifikačný
-                              </p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                        <div className="relative">
-                          <Input
-                            id="iban"
-                            type="text"
-                            placeholder="SK00 0000 0000 0000 0000 0000"
-                            value={userIban}
-                            onChange={handleIbanChange}
-                            className="w-full h-12 font-mono tracking-wider border-gray-300 focus:border-blue-500 focus:ring-blue-500"
-                          />
-                          {userIban && isValidIbanFormat(userIban) && (
-                            <CheckCircle className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-green-500" />
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="space-y-2">
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Label
-                                htmlFor="merchantAccountName"
-                                className="text-sm font-medium text-gray-700 flex items-center gap-1 cursor-help"
-                              >
-                                Názov bankového účtu obchodníka
-                                <Info className="h-3 w-3 text-gray-400" />
-                              </Label>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>Zadajte názov Vášho bankového účtu, ktorý sa zobrazí na platobnom príkaze</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                        <div className="relative">
-                          <Input
-                            id="merchantAccountName"
-                            type="text"
-                            placeholder="Názov obchodníka"
-                            value={merchantAccountName}
-                            onChange={(e) => setMerchantAccountName(e.target.value)}
-                            className="w-full h-12 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
-                          />
-                          {merchantAccountName && (
-                            <CheckCircle className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-green-500" />
-                          )}
-                        </div>
-                      </div>
-
+                <div className="space-y-1">
+                  <Label htmlFor="xmlPassword" className="text-sm">
+                    XML Password
+                  </Label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      id="xmlPassword"
+                      type="password"
+                      value={files.xmlPassword}
+                      onChange={(e) => setFiles((prev) => ({ ...prev, xmlPassword: e.target.value }))}
+                      placeholder="Enter XML authentication password"
+                      className="flex-1 text-sm"
+                    />
+                    {files.convertedCertPem && files.convertedKeyPem && (
                       <Button
                         onClick={handleSaveConfiguration}
-                        disabled={!canSaveConfiguration || savingConfiguration}
-                        className={`w-full h-12 font-medium text-base transition-colors ${
-                          !canSaveConfiguration || savingConfiguration
-                            ? "bg-gray-400 text-gray-800 cursor-not-allowed"
-                            : "bg-blue-600 hover:bg-blue-700 text-white"
-                        }`}
+                        size="sm"
+                        className="px-3"
+                        disabled={savingConfiguration}
                       >
-                        {savingConfiguration ? (
-                          <div className="flex items-center gap-2">
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                            Prihlasuje sa...
-                          </div>
-                        ) : (
-                          "Prihlásiť sa"
-                        )}
+                        {savingConfiguration ? "Ukladá sa..." : "Uložiť konfiguráciu"}
                       </Button>
-
-                      {error && (
-                        <Alert variant="destructive" className="mt-4">
-                          <XCircle className="h-4 w-4" />
-                          <AlertDescription className="text-sm">{error}</AlertDescription>
-                        </Alert>
-                      )}
-
-                      {configurationSaved && (
-                        <div className="text-center">
-                          <p className="text-sm text-green-600 flex items-center justify-center gap-2">
-                            <CheckCircle className="h-4 w-4" />
-                            Úspešne prihlásený
-                          </p>
-                        </div>
-                      )}
-
-                      <div className="text-center pt-6 border-t border-gray-200">
-                        <p className="text-sm text-gray-600 mb-3">Potrebujete XML autentifikačné údaje a heslo?</p>
-                        <a
-                          href="/download"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 hover:underline transition-colors font-medium"
-                        >
-                          <span>Získať autentifikačné údaje</span>
-                          <ExternalLink className="h-4 w-4" />
-                        </a>
-                      </div>
-
-                      <div className="text-center pt-4 mt-4 border-t border-gray-200">
-                        <a
-                          href="https://github.com/spavlovic77/v0-nop-web-test-client"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-2 text-xs text-gray-500 hover:text-gray-700 transition-colors"
-                        >
-                          <Github className="h-3 w-3" />
-                          <span>Zdrojové kódy - skopíruj a vytvor si vlastný QR Terminál</span>
-                        </a>
-                      </div>
-                    </CardContent>
-                  </Card>
+                    )}
+                  </div>
                 </div>
-              </div>
-            )}
+                {files.convertedCertPem && files.convertedKeyPem && (
+                  <p className="text-xs text-green-600">✓ Certificate and key generated from XML</p>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
-            {allRequiredFieldsComplete && !certificateSectionCollapsed && (
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center gap-2 text-base">
-                    <Upload className="h-4 w-4" />
-                    Certificate Files and IBAN
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setCertificateSectionCollapsed(true)}
-                      className="ml-auto p-1"
-                    >
-                      <XCircle className="h-4 w-4" />
-                    </Button>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="space-y-1">
-                    <Label htmlFor="xmlAuthData" className="text-sm">
-                      XML Authentication Data
-                    </Label>
-                    <div className="flex items-center gap-2">
-                      <Input
-                        id="xmlAuthData"
-                        type="file"
-                        accept=".xml"
-                        onChange={(e) => handleFileChange("xmlAuthData", e.target.files?.[0] || null)}
-                        className="flex-1 text-sm"
-                      />
-                      {files.xmlAuthData && <CheckCircle className="h-4 w-4 text-green-500" />}
+          {/* Payment Input Section */}
+          {allRequiredFieldsComplete && certificateSectionCollapsed && (
+            <div className="fixed inset-0 bg-background flex flex-col items-center justify-center p-4 z-10">
+              <div className="w-full max-w-md space-y-6">
+                <div className="space-y-4">
+                  <div className="relative">
+                    <Input
+                      type="text"
+                      inputMode="numeric"
+                      placeholder="0,00"
+                      value={formatEurAmountDisplay(eurAmount)}
+                      onChange={(e) => {
+                        // Extract only the digits from the formatted display
+                        const digitsOnly = e.target.value.replace(/[^0-9]/g, "")
+                        handleEurAmountChange(digitsOnly)
+                      }}
+                      onFocus={(e) => {
+                        // Position cursor at the end of the input
+                        const input = e.target
+                        setTimeout(() => {
+                          input.setSelectionRange(input.value.length, input.value.length)
+                        }, 0)
+                      }}
+                      className="text-6xl font-bold text-center h-24 border-2 text-primary px-4 font-sans"
+                      style={{ fontSize: "3rem", lineHeight: "1.2" }}
+                      readOnly
+                    />
+                    <div className="absolute right-6 top-1/2 -translate-y-1/2">
+                      <Euro className="w-8 h-8 text-muted-foreground" />
                     </div>
                   </div>
 
-                  <div className="space-y-1">
-                    <Label htmlFor="xmlPassword" className="text-sm">
-                      XML Password
-                    </Label>
-                    <div className="flex items-center gap-2">
-                      <Input
-                        id="xmlPassword"
-                        type="password"
-                        value={files.xmlPassword}
-                        onChange={(e) => setFiles((prev) => ({ ...prev, xmlPassword: e.target.value }))}
-                        placeholder="Enter XML authentication password"
-                        className="flex-1 text-sm"
-                      />
-                      {files.convertedCertPem && files.convertedKeyPem && (
+                  <div className="bg-gray-50 border-2 border-gray-200 rounded-lg p-4 shadow-inner">
+                    <div className="grid grid-cols-3 gap-3 mb-3">
+                      {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
                         <Button
-                          onClick={handleSaveConfiguration}
-                          size="sm"
-                          className="px-3"
-                          disabled={savingConfiguration}
-                        >
-                          {savingConfiguration ? "Ukladá sa..." : "Uložiť konfiguráciu"}
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                  {files.convertedCertPem && files.convertedKeyPem && (
-                    <p className="text-xs text-green-600">✓ Certificate and key generated from XML</p>
-                  )}
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Payment Input Section */}
-            {allRequiredFieldsComplete && certificateSectionCollapsed && (
-              <div className="fixed inset-0 bg-background flex flex-col items-center justify-center p-4 z-10">
-                <div className="w-full max-w-md space-y-6">
-                  <div className="space-y-4">
-                    <div className="relative">
-                      <Input
-                        type="text"
-                        inputMode="numeric"
-                        placeholder="0,00"
-                        value={formatEurAmountDisplay(eurAmount)}
-                        onChange={(e) => {
-                          // Extract only the digits from the formatted display
-                          const digitsOnly = e.target.value.replace(/[^0-9]/g, "")
-                          handleEurAmountChange(digitsOnly)
-                        }}
-                        onFocus={(e) => {
-                          // Position cursor at the end of the input
-                          const input = e.target
-                          setTimeout(() => {
-                            input.setSelectionRange(input.value.length, input.value.length)
-                          }, 0)
-                        }}
-                        className="text-6xl font-bold text-center h-24 border-2 text-primary px-4 font-sans"
-                        style={{ fontSize: "3rem", lineHeight: "1.2" }}
-                        readOnly
-                      />
-                      <div className="absolute right-6 top-1/2 -translate-y-1/2">
-                        <Euro className="w-8 h-8 text-muted-foreground" />
-                      </div>
-                    </div>
-
-                    <div className="bg-gray-50 border-2 border-gray-200 rounded-lg p-4 shadow-inner">
-                      <div className="grid grid-cols-3 gap-3 mb-3">
-                        {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
-                          <Button
-                            key={num}
-                            variant="outline"
-                            className="h-16 text-2xl font-bold bg-white hover:bg-gray-100 border-2 border-gray-300 shadow-sm active:shadow-inner"
-                            onClick={() => {
-                              const newAmount = eurAmount + num.toString()
-                              handleEurAmountChange(newAmount)
-                            }}
-                          >
-                            {num}
-                          </Button>
-                        ))}
-                      </div>
-                      <div className="grid grid-cols-3 gap-3">
-                        <Button
-                          variant="outline"
-                          className="h-16 text-xl font-bold bg-red-50 hover:bg-red-100 border-2 border-red-300 text-red-700 shadow-sm active:shadow-inner"
-                          onClick={() => handleEurAmountChange("")}
-                        >
-                          C
-                        </Button>
-                        <Button
+                          key={num}
                           variant="outline"
                           className="h-16 text-2xl font-bold bg-white hover:bg-gray-100 border-2 border-gray-300 shadow-sm active:shadow-inner"
                           onClick={() => {
-                            const newAmount = eurAmount + "0"
+                            const newAmount = eurAmount + num.toString()
                             handleEurAmountChange(newAmount)
                           }}
                         >
-                          0
+                          {num}
                         </Button>
+                      ))}
+                    </div>
+                    <div className="grid grid-cols-3 gap-3">
+                      <Button
+                        variant="outline"
+                        className="h-16 text-xl font-bold bg-red-50 hover:bg-red-100 border-2 border-red-300 text-red-700 shadow-sm active:shadow-inner"
+                        onClick={() => handleEurAmountChange("")}
+                      >
+                        C
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="h-16 text-2xl font-bold bg-white hover:bg-gray-100 border-2 border-gray-300 shadow-sm active:shadow-inner"
+                        onClick={() => {
+                          const newAmount = eurAmount + "0"
+                          handleEurAmountChange(newAmount)
+                        }}
+                      >
+                        0
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="h-16 text-xl font-bold bg-yellow-50 hover:bg-yellow-100 border-2 border-yellow-300 text-yellow-700 shadow-sm active:shadow-inner"
+                        onClick={() => {
+                          const newAmount = eurAmount.slice(0, -1)
+                          handleEurAmountChange(newAmount)
+                        }}
+                      >
+                        <MoveLeft className="w-6 h-6 sm:w-8 sm:h-8" />
+                      </Button>
+                    </div>
+                  </div>
+
+                  <Button
+                    className="w-full h-24 bg-green-600 hover:bg-green-700 text-white flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed text-2xl font-bold"
+                    disabled={!eurAmount || Number.parseFloat(getEurAmountValue()) <= 0}
+                    onClick={() => {
+                      console.log("[v0] Button clicked!")
+                      console.log(
+                        "[v0] Button disabled state:",
+                        !eurAmount || Number.parseFloat(getEurAmountValue()) <= 0,
+                      )
+                      handleQrGeneration()
+                    }}
+                  >
+                    <QrCode className="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 lg:w-24 lg:h-24" />
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {error && (
+            <Alert variant="destructive">
+              <XCircle className="h-4 w-4" />
+              <AlertDescription className="break-words">{error}</AlertDescription>
+            </Alert>
+          )}
+
+          <Dialog open={showQrModal} onOpenChange={handleQrModalClose}>
+            <DialogContent
+              className="sm:max-w-md w-[95vw] max-h-[90vh] flex flex-col"
+              onInteractOutside={(e) => e.preventDefault()}
+              onEscapeKeyDown={(e) => e.preventDefault()}
+            >
+              <div className="flex-1 flex flex-col items-center justify-center space-y-4 py-4 min-h-[400px]">
+                {qrLoading ? (
+                  <div className="flex flex-col items-center gap-4">
+                    <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+                  </div>
+                ) : qrCode ? (
+                  <div className="space-y-4 flex flex-col items-center w-full">
+                    <div className="bg-white p-4 rounded-lg">
+                      <img src={qrCode || "/placeholder.svg"} alt="Payment QR Code" className="w-64 h-64" />
+                    </div>
+
+                    <div className="w-full max-w-sm space-y-3 px-4">
+                      {/* Timer progress button */}
+                      <div className="space-y-2">
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div
+                            className="bg-blue-600 h-2 rounded-full transition-all duration-1000"
+                            style={{ width: `${(mqttTimeRemaining / 120) * 100}%` }}
+                          />
+                        </div>
                         <Button
                           variant="outline"
-                          className="h-16 text-xl font-bold bg-yellow-50 hover:bg-yellow-100 border-2 border-yellow-300 text-yellow-700 shadow-sm active:shadow-inner"
+                          className="w-full bg-transparent"
+                          disabled={mqttTimerActive || mqttTimeRemaining > 0}
                           onClick={() => {
-                            const newAmount = eurAmount.slice(0, -1)
-                            handleEurAmountChange(newAmount)
+                            console.log("[v0] Repeat subscription clicked")
+                            if (qrTransactionId) {
+                              subscribeToQrBankNotifications(qrTransactionId)
+                            }
                           }}
                         >
-                          <MoveLeft className="w-6 h-6 sm:w-8 sm:h-8" />
+                          {mqttTimerActive
+                            ? `Čakám oznámenie z banky ${mqttTimeRemaining}s`
+                            : "Klikni pre opätovné pripojenie k banke"}
                         </Button>
                       </div>
-                    </div>
 
-                    <Button
-                      className="w-full h-24 bg-green-600 hover:bg-green-700 text-white flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed text-2xl font-bold"
-                      disabled={!eurAmount || Number.parseFloat(getEurAmountValue()) <= 0}
-                      onClick={() => {
-                        console.log("[v0] Button clicked!")
-                        console.log(
-                          "[v0] Button disabled state:",
-                          !eurAmount || Number.parseFloat(getEurAmountValue()) <= 0,
-                        )
-                        handleGenerateQR() // Changed from handleQrGeneration to handleGenerateQR
-                      }}
-                    >
-                      <QrCode className="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 lg:w-24 lg:h-24" />
-                    </Button>
+                      {/* Cancel payment button */}
+                      <Button variant="destructive" className="w-full" onClick={handleCancelPayment}>
+                        Zrušiť platbu
+                      </Button>
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  <XCircle className="h-8 w-8 text-red-500" />
+                )}
               </div>
-            )}
 
-            {error && (
-              <Alert variant="destructive">
-                <XCircle className="h-4 w-4" />
-                <AlertDescription className="break-words">{error}</AlertDescription>
-              </Alert>
-            )}
-
-            <Dialog open={showQrModal} onOpenChange={handleQrModalClose}>
-              <DialogContent
-                className="sm:max-w-md w-[95vw] max-h-[90vh] flex flex-col"
-                onInteractOutside={(e) => e.preventDefault()}
-                onEscapeKeyDown={(e) => e.preventDefault()}
-              >
-                <div className="flex-1 flex flex-col items-center justify-center space-y-4 py-4 min-h-[400px]">
-                  {qrLoading ? (
-                    <div className="flex flex-col items-center gap-4">
-                      <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
-                    </div>
-                  ) : qrCode ? (
-                    <div className="space-y-4 flex flex-col items-center w-full">
-                      <div className="bg-white p-4 rounded-lg">
-                        <img src={qrCode || "/placeholder.svg"} alt="Payment QR Code" className="w-64 h-64" />
-                      </div>
-
-                      <div className="w-full max-w-sm space-y-3 px-4">
-                        {/* Timer progress button */}
-                        <div className="space-y-2">
-                          <div className="w-full bg-gray-200 rounded-full h-2">
-                            <div
-                              className="bg-blue-600 h-2 rounded-full transition-all duration-1000"
-                              style={{ width: `${(mqttTimeRemaining / 120) * 100}%` }}
-                            />
-                          </div>
-                          <Button
-                            variant="outline"
-                            className="w-full bg-transparent"
-                            disabled={mqttTimerActive || mqttTimeRemaining > 0}
-                            onClick={() => {
-                              console.log("[v0] Repeat subscription clicked")
-                              if (qrTransactionId) {
-                                subscribeToQrBankNotifications(qrTransactionId)
-                              }
-                            }}
-                          >
-                            {mqttTimerActive
-                              ? `Čakám oznámenie z banky ${mqttTimeRemaining}s`
-                              : "Klikni pre opätovné pripojenie k banke"}
-                          </Button>
-                        </div>
-
-                        {/* Cancel payment button */}
-                        <Button variant="destructive" className="w-full" onClick={handleCancelPayment}>
-                          Zrušiť platbu
-                        </Button>
+              <div className="flex flex-col items-end gap-2">
+                {qrCode && (
+                  <>
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs text-muted-foreground text-right max-w-[200px]">
+                        Simulátor úhrady. Naskenuj link kamerou.
+                      </span>
+                      <div className="bg-white p-1 rounded border flex-shrink-0">
+                        <img
+                          src={`https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${encodeURIComponent("https://scantopay.vercel.app")}`}
+                          alt="Scan to open scantopay.vercel.app"
+                          className={`w-20 h-20 object-contain transition-all duration-300 ${
+                            scanToggleActive ? "blur-none" : "blur-sm"
+                          }`}
+                        />
                       </div>
                     </div>
-                  ) : (
-                    <XCircle className="h-8 w-8 text-red-500" />
-                  )}
-                </div>
 
-                <div className="flex flex-col items-end gap-2">
-                  {qrCode && (
-                    <>
-                      <div className="flex items-center gap-3">
-                        <span className="text-xs text-muted-foreground text-right max-w-[200px]">
-                          Simulátor úhrady. Naskenuj link kamerou.
-                        </span>
-                        <div className="bg-white p-1 rounded border flex-shrink-0">
-                          <img
-                            src={`https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${encodeURIComponent("https://scantopay.vercel.app")}`}
-                            alt="Scan to open scantopay.vercel.app"
-                            className={`w-20 h-20 object-contain transition-all duration-300 ${
-                              scanToggleActive ? "blur-none" : "blur-sm"
-                            }`}
-                          />
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-3">
-                        <span className="text-xs text-muted-foreground">
-                          {scanToggleActive ? `Zostávajúci čas ${scanTimeRemaining}s` : "Zaostri QR kód"}
-                        </span>
-                        <button
-                          onClick={handleScanToggle}
-                          disabled={scanToggleActive}
-                          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
-                            scanToggleActive ? "bg-blue-600" : "bg-gray-200 hover:bg-gray-300"
-                          } ${scanToggleActive ? "cursor-not-allowed" : "cursor-pointer"}`}
-                        >
-                          <span
-                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                              scanToggleActive ? "translate-x-6" : "translate-x-1"
-                            }`}
-                          />
-                        </button>
-                      </div>
-                    </>
-                  )}
-                </div>
-              </DialogContent>
-            </Dialog>
-
-            <Dialog open={showPaymentReceivedModal} onOpenChange={setShowPaymentReceivedModal}>
-              <DialogContent className="max-w-[95vw] max-h-[90vh]">
-                <div className="space-y-4 text-center py-8">
-                  <div className="text-xl font-semibold text-gray-800 mb-4">Prichádzajúca platba</div>
-
-                  {verifyingIntegrity ? (
-                    <div className="flex flex-col items-center justify-center gap-4">
-                      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-                      <span className="text-lg font-medium text-gray-600">Kontrolujem integritu platby</span>
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs text-muted-foreground">
+                        {scanToggleActive ? `Zostávajúci čas ${scanTimeRemaining}s` : "Zaostri QR kód"}
+                      </span>
+                      <button
+                        onClick={handleScanToggle}
+                        disabled={scanToggleActive}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                          scanToggleActive ? "bg-blue-600" : "bg-gray-200 hover:bg-gray-300"
+                        } ${scanToggleActive ? "cursor-not-allowed" : "cursor-pointer"}`}
+                      >
+                        <span
+                          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                            scanToggleActive ? "translate-x-6" : "translate-x-1"
+                          }`}
+                        />
+                      </button>
                     </div>
-                  ) : (
-                    <div className="flex flex-col items-center justify-center gap-4">
-                      {integrityError ? (
-                        <>
-                          <XCircle className="h-12 w-12 text-red-600" />
-                          {(() => {
-                            // Compare expected amount with received amount
-                            const expectedAmount = eurAmount
-                            const receivedAmount = confirmedPaymentAmount
-                            const amountsMatch = expectedAmount === receivedAmount
+                  </>
+                )}
+              </div>
+            </DialogContent>
+          </Dialog>
 
-                            if (!amountsMatch) {
-                              // Amounts don't match - show comparison
-                              const formatAmount = (cents: string) => {
-                                if (!cents || cents === "0") return "0,00"
-                                const cleanDigits = cents.replace(/^0+/, "") || "0"
-                                const paddedDigits = cleanDigits.padStart(2, "0")
-                                const centsValue = paddedDigits.slice(-2)
-                                const euros = paddedDigits.slice(0, -2) || "0"
-                                return `${euros},${centsValue}`
-                              }
+          <Dialog open={showPaymentReceivedModal} onOpenChange={setShowPaymentReceivedModal}>
+            <DialogContent className="max-w-[95vw] max-h-[90vh]">
+              <div className="space-y-4 text-center py-8">
+                <div className="text-xl font-semibold text-gray-800 mb-4">Prichádzajúca platba</div>
 
-                              return (
-                                <div className="space-y-3">
-                                  <span className="text-lg font-medium text-yellow-600">
-                                    Pozor! Preverte platbu vo Vašej banke
-                                  </span>
-                                  <div className="bg-red-50 p-4 rounded-lg space-y-2">
-                                    <div className="flex justify-between items-center">
-                                      <span className="text-sm text-gray-600">Očakávaná suma:</span>
-                                      <span className="text-lg font-bold text-gray-900">
-                                        {formatAmount(expectedAmount)} EUR
-                                      </span>
-                                    </div>
-                                    <div className="flex justify-between items-center">
-                                      <span className="text-sm text-gray-600">Oznámená suma:</span>
-                                      <span className="text-lg font-bold text-gray-900">
-                                        {formatAmount(receivedAmount)} EUR
-                                      </span>
-                                    </div>
+                {verifyingIntegrity ? (
+                  <div className="flex flex-col items-center justify-center gap-4">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                    <span className="text-lg font-medium text-gray-600">Kontrolujem integritu platby</span>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center gap-4">
+                    {integrityError ? (
+                      <>
+                        <XCircle className="h-12 w-12 text-red-600" />
+                        {(() => {
+                          // Compare expected amount with received amount
+                          const expectedAmount = eurAmount
+                          const receivedAmount = confirmedPaymentAmount
+                          const amountsMatch = expectedAmount === receivedAmount
+
+                          if (!amountsMatch) {
+                            // Amounts don't match - show comparison
+                            const formatAmount = (cents: string) => {
+                              if (!cents || cents === "0") return "0,00"
+                              const cleanDigits = cents.replace(/^0+/, "") || "0"
+                              const paddedDigits = cleanDigits.padStart(2, "0")
+                              const centsValue = paddedDigits.slice(-2)
+                              const euros = paddedDigits.slice(0, -2) || "0"
+                              return `${euros},${centsValue}`
+                            }
+
+                            return (
+                              <div className="space-y-3">
+                                <span className="text-lg font-medium text-yellow-600">
+                                  Pozor! Preverte platbu vo Vašej banke
+                                </span>
+                                <div className="bg-red-50 p-4 rounded-lg space-y-2">
+                                  <div className="flex justify-between items-center">
+                                    <span className="text-sm text-gray-600">Očakávaná suma:</span>
+                                    <span className="text-lg font-bold text-gray-900">
+                                      {formatAmount(expectedAmount)} EUR
+                                    </span>
+                                  </div>
+                                  <div className="flex justify-between items-center">
+                                    <span className="text-sm text-gray-600">Oznámená suma:</span>
+                                    <span className="text-lg font-bold text-gray-900">
+                                      {formatAmount(receivedAmount)} EUR
+                                    </span>
                                   </div>
                                 </div>
-                              )
-                            } else {
-                              // Amounts match but integrity error - invalid payment
-                              return (
-                                <span className="text-lg font-medium text-red-600">
-                                  Toto je neplatná platba. Môže ísť o podvod.
-                                </span>
-                              )
-                            }
-                          })()}
-                        </>
-                      ) : (
-                        <>
-                          <CheckCircle className="h-12 w-12 text-green-600" />
-                          <span className="text-lg font-medium text-green-600">
-                            Platba vo výške {(() => {
-                              const formatAmount = (cents: string) => {
-                                if (!cents || cents === "0") return "0,00"
-                                const cleanDigits = cents.replace(/^0+/, "") || "0"
-                                const paddedDigits = cleanDigits.padStart(2, "0")
-                                const centsValue = paddedDigits.slice(-2)
-                                const euros = paddedDigits.slice(0, -2) || "0"
-                                return `${euros},${centsValue}`
-                              }
-                              return formatAmount(confirmedPaymentAmount)
-                            })()} EUR overená
-                          </span>
-                        </>
-                      )}
-                    </div>
-                  )}
-
-                  {!verifyingIntegrity && (
-                    <Button
-                      onClick={() => {
-                        setShowPaymentReceivedModal(false)
-                        setEurAmount("")
-                        setConfirmedPaymentAmount("")
-                        setIntegrityVerified(false)
-                        setIntegrityError(false)
-                      }}
-                      className="w-full touch-manipulation min-h-[48px]"
-                    >
-                      Zavrieť
-                    </Button>
-                  )}
-                </div>
-              </DialogContent>
-            </Dialog>
-
-            <Dialog open={showConsoleModal} onOpenChange={setShowConsoleModal}>
-              <DialogContent className="max-w-[95vw] max-h-[95vh] w-full flex flex-col">
-                <div className="flex flex-col h-full space-y-4">
-                  <div className="flex items-center justify-between flex-shrink-0">
-                    <h3 className="text-lg font-semibold">API Call Console</h3>
-                    <div className="flex gap-2">
-                      <Button onClick={copyAllLogs} variant="outline" size="sm">
-                        <Copy className="h-4 w-4" />
-                      </Button>
-                      <Button onClick={clearApiLogs} variant="outline" size="sm">
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-
-                  <div
-                    className="bg-black text-green-400 p-4 rounded-lg font-mono text-xs overflow-y-auto"
-                    style={{ height: "calc(95vh - 200px)" }}
-                  >
-                    {apiCallLogs.length === 0 ? (
-                      <div className="text-gray-500">No API calls logged yet...</div>
+                              </div>
+                            )
+                          } else {
+                            // Amounts match but integrity error - invalid payment
+                            return (
+                              <span className="text-lg font-medium text-red-600">
+                                Toto je neplatná platba. Môže ísť o podvod.
+                              </span>
+                            )
+                          }
+                        })()}
+                      </>
                     ) : (
-                      apiCallLogs.map((log, index) => (
-                        <div key={index} className="mb-4 border-b border-gray-700 pb-2 last:border-b-0">
-                          <div className="text-yellow-400 break-all">
-                            [{log.timestamp.toLocaleTimeString()}] {log.method} {log.endpoint}
-                          </div>
-                          <div
-                            className={`${log.status >= 200 && log.status < 300 ? "text-green-400" : "text-red-400"}`}
-                          >
-                            Status: {log.status} {log.duration && `(${log.duration}ms)`}
-                          </div>
-                          {log.error && <div className="text-red-400 break-all">Error: {log.error}</div>}
-                          {log.response && (
-                            <div className="text-blue-400 mt-1 break-all whitespace-pre-wrap">
-                              Response: {JSON.stringify(log.response, null, 2)}
-                            </div>
-                          )}
-                        </div>
-                      ))
+                      <>
+                        <CheckCircle className="h-12 w-12 text-green-600" />
+                        <span className="text-lg font-medium text-green-600">
+                          Platba vo výške {(() => {
+                            const formatAmount = (cents: string) => {
+                              if (!cents || cents === "0") return "0,00"
+                              const cleanDigits = cents.replace(/^0+/, "") || "0"
+                              const paddedDigits = cleanDigits.padStart(2, "0")
+                              const centsValue = paddedDigits.slice(-2)
+                              const euros = paddedDigits.slice(0, -2) || "0"
+                              return `${euros},${centsValue}`
+                            }
+                            return formatAmount(confirmedPaymentAmount)
+                          })()} EUR overená
+                        </span>
+                      </>
                     )}
                   </div>
+                )}
 
-                  <Button onClick={() => setShowConsoleModal(false)} className="w-full flex-shrink-0">
-                    Close Console
+                {!verifyingIntegrity && (
+                  <Button
+                    onClick={() => {
+                      setShowPaymentReceivedModal(false)
+                      setEurAmount("")
+                      setConfirmedPaymentAmount("")
+                      setIntegrityVerified(false)
+                      setIntegrityError(false)
+                    }}
+                    className="w-full touch-manipulation min-h-[48px]"
+                  >
+                    Zavrieť
                   </Button>
-                </div>
-              </DialogContent>
-            </Dialog>
+                )}
+              </div>
+            </DialogContent>
+          </Dialog>
 
-            <Dialog open={showTransactionDateModal} onOpenChange={setShowTransactionDateModal}>
-              <DialogContent className="max-w-md">
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold text-center">Vyberte dátum</h3>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="transactionDate" className="text-sm font-medium">
-                      Dátum
-                    </Label>
-                    <div
-                      className="cursor-pointer"
-                      onClick={() => document.getElementById("transactionDate")?.showPicker?.()}
-                    >
-                      <Input
-                        id="transactionDate"
-                        type="date"
-                        value={selectedTransactionDate}
-                        onChange={(e) => setSelectedTransactionDate(e.target.value)}
-                        className="w-full cursor-pointer"
-                      />
-                    </div>
-                  </div>
-
+          <Dialog open={showConsoleModal} onOpenChange={setShowConsoleModal}>
+            <DialogContent className="max-w-[95vw] max-h-[95vh] w-full flex flex-col">
+              <div className="flex flex-col h-full space-y-4">
+                <div className="flex items-center justify-between flex-shrink-0">
+                  <h3 className="text-lg font-semibold">API Call Console</h3>
                   <div className="flex gap-2">
-                    <Button variant="outline" onClick={() => setShowTransactionDateModal(false)} className="flex-1">
-                      Zrušiť
+                    <Button onClick={copyAllLogs} variant="outline" size="sm">
+                      <Copy className="h-4 w-4" />
                     </Button>
-                    <Button
-                      onClick={handleTransactionDateSelect}
-                      disabled={!selectedTransactionDate}
-                      className="flex-1"
-                    >
-                      Vygeneruj zoznam
+                    <Button onClick={clearApiLogs} variant="outline" size="sm">
+                      <X className="h-4 w-4" />
                     </Button>
                   </div>
                 </div>
-              </DialogContent>
-            </Dialog>
 
-            <Dialog open={showTransactionListModal} onOpenChange={setShowTransactionListModal}>
-              <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold">
-                    Zoznam platieb -{" "}
-                    {selectedTransactionDate ? new Date(selectedTransactionDate).toLocaleDateString("sk-SK") : ""}
-                  </h3>
-                </div>
-
-                <div className="flex-1 overflow-y-auto">
-                  {transactionListLoading ? (
-                    <div className="flex items-center justify-center py-8">
-                      <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
-                      <span className="ml-2">Načítavam platby...</span>
-                    </div>
-                  ) : transactionListData.length > 0 ? (
-                    <div className="space-y-4">
-                      <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
-                        <div className="text-center">
-                          <div className="text-2xl font-bold text-blue-600">{transactionListData.length}</div>
-                          <div className="text-sm text-gray-600">Platieb</div>
+                <div
+                  className="bg-black text-green-400 p-4 rounded-lg font-mono text-xs overflow-y-auto"
+                  style={{ height: "calc(95vh - 200px)" }}
+                >
+                  {apiCallLogs.length === 0 ? (
+                    <div className="text-gray-500">No API calls logged yet...</div>
+                  ) : (
+                    apiCallLogs.map((log, index) => (
+                      <div key={index} className="mb-4 border-b border-gray-700 pb-2 last:border-b-0">
+                        <div className="text-yellow-400 break-all">
+                          [{log.timestamp.toLocaleTimeString()}] {log.method} {log.endpoint}
                         </div>
-                        <div className="text-center">
-                          <div className="text-2xl font-bold text-green-600">
-                            {calculateTransactionTotal().toFixed(2)} €
+                        <div className={`${log.status >= 200 && log.status < 300 ? "text-green-400" : "text-red-400"}`}>
+                          Status: {log.status} {log.duration && `(${log.duration}ms)`}
+                        </div>
+                        {log.error && <div className="text-red-400 break-all">Error: {log.error}</div>}
+                        {log.response && (
+                          <div className="text-blue-400 mt-1 break-all whitespace-pre-wrap">
+                            Response: {JSON.stringify(log.response, null, 2)}
                           </div>
-                          <div className="text-sm text-gray-600">Celková suma</div>
-                        </div>
+                        )}
                       </div>
-                    </div>
-                  ) : (
-                    <div className="text-center py-8 text-gray-500">
-                      <Calendar className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                      <p>Žiadne platby pre vybraný dátum</p>
-                    </div>
+                    ))
                   )}
                 </div>
 
-                <div className="flex justify-between gap-2 mt-4">
-                  <div className="flex gap-2">
-                    <Button onClick={printTransactionSummary} variant="outline" size="sm">
-                      <Printer className="h-4 w-4 mr-2" />
-                      Tlačiť súhrn
-                    </Button>
-                    <Button onClick={printAllTransactions} variant="outline" size="sm">
-                      <Printer className="h-4 w-4 mr-2" />
-                      Tlačiť všetky
-                    </Button>
-                  </div>
-                  <Button onClick={() => setShowTransactionListModal(false)}>Zavrieť</Button>
-                </div>
-              </DialogContent>
-            </Dialog>
-            {/* Dispute confirmation modal (from cancel payment) */}
-            <Dialog open={showDisputeConfirmModal} onOpenChange={setShowDisputeConfirmModal}>
-              <DialogContent className="sm:max-w-md">
-                <DialogHeader>
-                  <DialogTitle>Doklad</DialogTitle>
-                </DialogHeader>
-                <div className="space-y-4">
-                  <p className="text-center text-lg">Vyhotoviť doklad o nepotvrdení zrealizovanej platby?</p>
-                  <div className="flex gap-3">
-                    <Button variant="outline" className="flex-1 bg-transparent" onClick={handleDisputeNo}>
-                      Nie
-                    </Button>
-                    <Button className="flex-1" onClick={handleDisputeConfirmation}>
-                      Áno
-                    </Button>
-                  </div>
-                </div>
-              </DialogContent>
-            </Dialog>
+                <Button onClick={() => setShowConsoleModal(false)} className="w-full flex-shrink-0">
+                  Close Console
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
 
-            <Dialog open={showDisputeActionModal} onOpenChange={setShowDisputeActionModal}>
-              <DialogContent className="sm:max-w-md">
-                <DialogHeader>
-                  <DialogTitle>Doklad o neoznámenej úhrade</DialogTitle>
-                </DialogHeader>
-                <div className="space-y-4">
-                  <p className="text-center text-lg">Vyhotoviť doklad o neoznámenej úhrade?</p>
-                  <div className="flex gap-3">
-                    <Button variant="outline" className="flex-1 bg-transparent" onClick={handleCancelDisputeAction}>
-                      Nie
-                    </Button>
-                    <Button className="flex-1" onClick={handleConfirmDisputeAction}>
-                      Áno
-                    </Button>
-                  </div>
-                </div>
-              </DialogContent>
-            </Dialog>
+          <Dialog open={showTransactionDateModal} onOpenChange={setShowTransactionDateModal}>
+            <DialogContent className="max-w-md">
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-center">Vyberte dátum</h3>
 
-            {/* Dispute date picker modal */}
-            <Dialog open={showDisputeDateModal} onOpenChange={setShowDisputeDateModal}>
-              <DialogContent className="max-w-md">
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold text-center">Vyberte dátum</h3>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="disputeDate" className="text-sm font-medium">
-                      Dátum
-                    </Label>
-                    <div
-                      className="cursor-pointer"
-                      onClick={() => document.getElementById("disputeDate")?.showPicker?.()}
-                    >
-                      <Input
-                        id="disputeDate"
-                        type="date"
-                        value={selectedDisputeDate}
-                        onChange={(e) => setSelectedDisputeDate(e.target.value)}
-                        className="w-full cursor-pointer"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex gap-2">
-                    <Button variant="outline" onClick={() => setShowDisputeDateModal(false)} className="flex-1">
-                      Zrušiť
-                    </Button>
-                    <Button onClick={handleDisputeDateSelect} disabled={!selectedDisputeDate} className="flex-1">
-                      Zobraziť transakcie
-                    </Button>
-                  </div>
-                </div>
-              </DialogContent>
-            </Dialog>
-
-            <Dialog open={showDisputeListModal} onOpenChange={setShowDisputeListModal}>
-              <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold">
-                    Vyber transakciu -{" "}
-                    {selectedDisputeDate ? new Date(selectedDisputeDate).toLocaleDateString("sk-SK") : ""}
-                  </h3>
-                </div>
-
-                <div className="flex-1 overflow-y-auto">
-                  {disputeListLoading ? (
-                    <div className="flex items-center justify-center py-8">
-                      <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
-                      <span className="ml-2">Načítavam transakcie...</span>
-                    </div>
-                  ) : disputeTransactions.length > 0 ? (
-                    <div className="space-y-2">
-                      <table className="w-full border-collapse">
-                        <thead>
-                          <tr className="bg-gray-50">
-                            <th
-                              className="border p-2 text-left text-sm font-medium cursor-pointer hover:bg-gray-100"
-                              onClick={() => handleDisputeSort("time")}
-                            >
-                              <div className="flex items-center gap-1">
-                                Čas
-                                {disputeSortField === "time" && (
-                                  <span className="text-xs">{disputeSortDirection === "asc" ? "↑" : "↓"}</span>
-                                )}
-                              </div>
-                            </th>
-                            <th className="border p-2 text-left text-sm font-medium">ID transakcie</th>
-                            <th
-                              className="border p-2 text-right text-sm font-medium cursor-pointer hover:bg-gray-100"
-                              onClick={() => handleDisputeSort("amount")}
-                            >
-                              <div className="flex items-center justify-end gap-1">
-                                Suma (EUR)
-                                {disputeSortField === "amount" && (
-                                  <span className="text-xs">{disputeSortDirection === "asc" ? "↑" : "↓"}</span>
-                                )}
-                              </div>
-                            </th>
-                            <th className="border p-2 text-center text-sm font-medium">Akcia</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {sortedDisputeTransactions.map((transaction) => (
-                            <tr key={transaction.id} className="hover:bg-gray-50">
-                              <td className="border p-2 text-sm">
-                                {new Date(transaction.response_timestamp).toLocaleTimeString("sk-SK")}
-                              </td>
-                              <td className="border p-2 text-sm font-mono" title={transaction.transaction_id}>
-                                {truncateTransactionId(transaction.transaction_id)}
-                              </td>
-                              <td className="border p-2 text-sm text-right">{formatAmount(transaction.amount)}</td>
-                              <td className="border p-2 text-center">
-                                {!transaction.dispute ? (
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => handleTransactionDisputeClick(transaction.transaction_id)}
-                                    className="p-1"
-                                    title="Vyhotoviť doklad o nepotvrdennej platbe"
-                                  >
-                                    <FilePlus className="h-4 w-4 text-orange-500" />
-                                  </Button>
-                                ) : (
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => window.open(`/confirmation/${transaction.transaction_id}`, "_blank")}
-                                    className="p-1"
-                                    title="Zobraziť potvrdenie"
-                                  >
-                                    <FileCheck className="h-4 w-4 text-green-600" />
-                                  </Button>
-                                )}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  ) : (
-                    <div className="text-center py-8 text-gray-500">
-                      <Calendar className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                      <p>Žiadne transakcie pre vybraný dátum</p>
-                    </div>
-                  )}
-                </div>
-
-                <div className="flex justify-between mt-4">
-                  <Button
-                    onClick={handlePrintDisputedTransactions}
-                    variant="outline"
-                    disabled={sortedDisputeTransactions.filter((t) => t.dispute === true).length === 0}
+                <div className="space-y-2">
+                  <Label htmlFor="transactionDate" className="text-sm font-medium">
+                    Dátum
+                  </Label>
+                  <div
+                    className="cursor-pointer"
+                    onClick={() => document.getElementById("transactionDate")?.showPicker?.()}
                   >
-                    <Printer className="h-4 w-4 mr-2" />
-                    Vytlačiť
+                    <Input
+                      id="transactionDate"
+                      type="date"
+                      value={selectedTransactionDate}
+                      onChange={(e) => setSelectedTransactionDate(e.target.value)}
+                      className="w-full cursor-pointer"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={() => setShowTransactionDateModal(false)} className="flex-1">
+                    Zrušiť
                   </Button>
-                  <Button onClick={() => setShowDisputeListModal(false)}>Zavrieť</Button>
-                </div>
-              </DialogContent>
-            </Dialog>
-          </div>
-
-          {allRequiredFieldsComplete && (
-            <footer className="fixed bottom-0 left-1/2 transform -translate-x-1/2 z-50">
-              <div className="w-full max-w-md bg-background/95 backdrop-blur-sm border-t px-6 py-4">
-                <div className="flex items-center justify-between">
-                  {/* Status indicator */}
-
-                  {/* POKLADNICA info */}
-                  {certificateInfo?.pokladnica && (
-                    <div className="flex items-center gap-3 px-2">
-                      <User className="h-5 w-5 text-green-500" />
-                      <span className="text-sm font-medium">{certificateInfo.pokladnica.slice(3)}</span>
-                    </div>
-                  )}
-
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleTransactionListClick}
-                    className="p-3 mx-1"
-                    title="Zoznam platieb"
-                  >
-                    <Printer className="h-5 w-5" />
-                  </Button>
-
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleDisputeClick}
-                    className="p-3 mx-1"
-                    title="Doklady o nepotvrdených platbách"
-                  >
-                    <FileText className="h-5 w-5" />
-                  </Button>
-
-                  {/* Console log button */}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setShowConsoleModal(true)}
-                    className="p-3 mx-1"
-                    title="Denník logov"
-                  >
-                    <Terminal className="h-5 w-5" />
-                  </Button>
-
-                  {/* Refresh button */}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => window.location.reload()}
-                    className="p-3 mx-1"
-                    title="Log out"
-                  >
-                    <LogOut className="h-5 w-5" />
+                  <Button onClick={handleTransactionDateSelect} disabled={!selectedTransactionDate} className="flex-1">
+                    Vygeneruj zoznam
                   </Button>
                 </div>
               </div>
-            </footer>
-          )}
+            </DialogContent>
+          </Dialog>
+
+          <Dialog open={showTransactionListModal} onOpenChange={setShowTransactionListModal}>
+            <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold">
+                  Zoznam platieb -{" "}
+                  {selectedTransactionDate ? new Date(selectedTransactionDate).toLocaleDateString("sk-SK") : ""}
+                </h3>
+              </div>
+
+              <div className="flex-1 overflow-y-auto">
+                {transactionListLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+                    <span className="ml-2">Načítavam platby...</span>
+                  </div>
+                ) : transactionListData.length > 0 ? (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-blue-600">{transactionListData.length}</div>
+                        <div className="text-sm text-gray-600">Platieb</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-green-600">
+                          {calculateTransactionTotal().toFixed(2)} €
+                        </div>
+                        <div className="text-sm text-gray-600">Celková suma</div>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    <Calendar className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                    <p>Žiadne platby pre vybraný dátum</p>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex justify-between gap-2 mt-4">
+                <div className="flex gap-2">
+                  <Button onClick={printTransactionSummary} variant="outline" size="sm">
+                    <Printer className="h-4 w-4 mr-2" />
+                    Tlačiť súhrn
+                  </Button>
+                  <Button onClick={printAllTransactions} variant="outline" size="sm">
+                    <Printer className="h-4 w-4 mr-2" />
+                    Tlačiť všetky
+                  </Button>
+                </div>
+                <Button onClick={() => setShowTransactionListModal(false)}>Zavrieť</Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+          {/* Dispute confirmation modal (from cancel payment) */}
+          <Dialog open={showDisputeConfirmModal} onOpenChange={setShowDisputeConfirmModal}>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Doklad</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <p className="text-center text-lg">Vyhotoviť doklad o nepotvrdení zrealizovanej platby?</p>
+                <div className="flex gap-3">
+                  <Button variant="outline" className="flex-1 bg-transparent" onClick={handleDisputeNo}>
+                    Nie
+                  </Button>
+                  <Button className="flex-1" onClick={handleDisputeConfirmation}>
+                    Áno
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          <Dialog open={showDisputeActionModal} onOpenChange={setShowDisputeActionModal}>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Doklad o neoznámenej úhrade</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <p className="text-center text-lg">Vyhotoviť doklad o neoznámenej úhrade?</p>
+                <div className="flex gap-3">
+                  <Button variant="outline" className="flex-1 bg-transparent" onClick={handleCancelDisputeAction}>
+                    Nie
+                  </Button>
+                  <Button className="flex-1" onClick={handleConfirmDisputeAction}>
+                    Áno
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          {/* Dispute date picker modal */}
+          <Dialog open={showDisputeDateModal} onOpenChange={setShowDisputeDateModal}>
+            <DialogContent className="max-w-md">
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-center">Vyberte dátum</h3>
+
+                <div className="space-y-2">
+                  <Label htmlFor="disputeDate" className="text-sm font-medium">
+                    Dátum
+                  </Label>
+                  <div
+                    className="cursor-pointer"
+                    onClick={() => document.getElementById("disputeDate")?.showPicker?.()}
+                  >
+                    <Input
+                      id="disputeDate"
+                      type="date"
+                      value={selectedDisputeDate}
+                      onChange={(e) => setSelectedDisputeDate(e.target.value)}
+                      className="w-full cursor-pointer"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={() => setShowDisputeDateModal(false)} className="flex-1">
+                    Zrušiť
+                  </Button>
+                  <Button onClick={handleDisputeDateSelect} disabled={!selectedDisputeDate} className="flex-1">
+                    Zobraziť transakcie
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          <Dialog open={showDisputeListModal} onOpenChange={setShowDisputeListModal}>
+            <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold">
+                  Vyber transakciu -{" "}
+                  {selectedDisputeDate ? new Date(selectedDisputeDate).toLocaleDateString("sk-SK") : ""}
+                </h3>
+              </div>
+
+              <div className="flex-1 overflow-y-auto">
+                {disputeListLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+                    <span className="ml-2">Načítavam transakcie...</span>
+                  </div>
+                ) : disputeTransactions.length > 0 ? (
+                  <div className="space-y-2">
+                    <table className="w-full border-collapse">
+                      <thead>
+                        <tr className="bg-gray-50">
+                          <th
+                            className="border p-2 text-left text-sm font-medium cursor-pointer hover:bg-gray-100"
+                            onClick={() => handleDisputeSort("time")}
+                          >
+                            <div className="flex items-center gap-1">
+                              Čas
+                              {disputeSortField === "time" && (
+                                <span className="text-xs">{disputeSortDirection === "asc" ? "↑" : "↓"}</span>
+                              )}
+                            </div>
+                          </th>
+                          <th className="border p-2 text-left text-sm font-medium">ID transakcie</th>
+                          <th
+                            className="border p-2 text-right text-sm font-medium cursor-pointer hover:bg-gray-100"
+                            onClick={() => handleDisputeSort("amount")}
+                          >
+                            <div className="flex items-center justify-end gap-1">
+                              Suma (EUR)
+                              {disputeSortField === "amount" && (
+                                <span className="text-xs">{disputeSortDirection === "asc" ? "↑" : "↓"}</span>
+                              )}
+                            </div>
+                          </th>
+                          <th className="border p-2 text-center text-sm font-medium">Akcia</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {sortedDisputeTransactions.map((transaction) => (
+                          <tr key={transaction.id} className="hover:bg-gray-50">
+                            <td className="border p-2 text-sm">
+                              {new Date(transaction.response_timestamp).toLocaleTimeString("sk-SK")}
+                            </td>
+                            <td className="border p-2 text-sm font-mono" title={transaction.transaction_id}>
+                              {truncateTransactionId(transaction.transaction_id)}
+                            </td>
+                            <td className="border p-2 text-sm text-right">{formatAmount(transaction.amount)}</td>
+                            <td className="border p-2 text-center">
+                              {!transaction.dispute ? (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleTransactionDisputeClick(transaction.transaction_id)}
+                                  className="p-1"
+                                  title="Vyhotoviť doklad o nepotvrdennej platbe"
+                                >
+                                  <FilePlus className="h-4 w-4 text-orange-500" />
+                                </Button>
+                              ) : (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => window.open(`/confirmation/${transaction.transaction_id}`, "_blank")}
+                                  className="p-1"
+                                  title="Zobraziť potvrdenie"
+                                >
+                                  <FileCheck className="h-4 w-4 text-green-600" />
+                                </Button>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    <Calendar className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                    <p>Žiadne transakcie pre vybraný dátum</p>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex justify-between mt-4">
+                <Button
+                  onClick={handlePrintDisputedTransactions}
+                  variant="outline"
+                  disabled={sortedDisputeTransactions.filter((t) => t.dispute === true).length === 0}
+                >
+                  <Printer className="h-4 w-4 mr-2" />
+                  Vytlačiť
+                </Button>
+                <Button onClick={() => setShowDisputeListModal(false)}>Zavrieť</Button>
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
 
-        {/* Rate Limit Modal */}
         <Dialog open={showRateLimitModal} onOpenChange={setShowRateLimitModal}>
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
               <DialogTitle>Príliš veľa požiadaviek</DialogTitle>
             </DialogHeader>
-            <div className="space-y-4">
-              <p className="text-center text-lg">
-                Dosiahli ste limit požiadaviek. Prosím, skúste to znova o {rateLimitRetryAfter} sekúnd.
-              </p>
+            <div className="space-y-4 py-4">
+              <div className="flex flex-col items-center gap-4">
+                <div className="rounded-full bg-yellow-100 p-3">
+                  <svg className="h-6 w-6 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                    />
+                  </svg>
+                </div>
+                <p className="text-center text-sm text-gray-600">
+                  Dosiahli ste limit požiadaviek. Prosím, skúste to znova o {rateLimitRetryAfter} sekúnd.
+                </p>
+              </div>
               <Button onClick={() => setShowRateLimitModal(false)} className="w-full">
                 Zavrieť
               </Button>
             </div>
           </DialogContent>
         </Dialog>
-      </TooltipProvider>
+      </div>
     </ErrorBoundary>
   )
 }

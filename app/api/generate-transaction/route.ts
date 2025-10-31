@@ -183,25 +183,24 @@ async function saveTransactionGeneration(data: {
 
 export async function POST(request: NextRequest) {
   const clientIP = getClientIp(request)
-  const rateLimitResult = rateLimit(clientIP, 1, 60000)
+  const rateLimitResult = rateLimit("/api/generate-transaction", clientIP, 1, 60000)
 
   if (!rateLimitResult.success) {
-    const resetTime = new Date(rateLimitResult.reset).toISOString()
-    console.log(`[v0] ⚠️ Rate limit exceeded for IP: ${clientIP}`)
+    const retryAfter = Math.ceil((rateLimitResult.reset - Date.now()) / 1000)
     return NextResponse.json(
       {
         error: "Too many requests",
         message: "Please try again later",
-        retryAfter: Math.ceil((rateLimitResult.reset - Date.now()) / 1000),
-        resetTime,
+        retryAfter,
+        resetTime: new Date(rateLimitResult.reset).toISOString(),
       },
       {
         status: 429,
         headers: {
+          "Retry-After": retryAfter.toString(),
           "X-RateLimit-Limit": rateLimitResult.limit.toString(),
-          "X-RateLimit-Remaining": rateLimitResult.remaining.toString(),
+          "X-RateLimit-Remaining": "0",
           "X-RateLimit-Reset": rateLimitResult.reset.toString(),
-          "Retry-After": Math.ceil((rateLimitResult.reset - Date.now()) / 1000).toString(),
         },
       },
     )
@@ -257,11 +256,6 @@ export async function POST(request: NextRequest) {
     const { vatsk, pokladnica } = await extractCertificateInfo(Buffer.from(validatedClientCert))
 
     const apiBaseUrl = isProductionMode ? "https://api-erp.kverkom.sk" : "https://api-erp-i.kverkom.sk"
-
-    const fullApiUrl = `${apiBaseUrl}/api/v1/generateNewTransactionId`
-    console.log(`[v0] 🌐 API URL: ${fullApiUrl}`)
-    console.log(`[v0] 🌐 Environment: ${isProductionMode ? "PRODUCTION" : "TEST"}`)
-    console.log(`[v0] 🌐 Base URL: ${apiBaseUrl}`)
 
     console.log(
       `[v0] 🌐 Using ${isProductionMode ? "PRODUCTION" : "TEST"} API: ${apiBaseUrl}/api/v1/generateNewTransactionId`,

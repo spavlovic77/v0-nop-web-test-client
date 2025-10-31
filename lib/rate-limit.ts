@@ -1,29 +1,28 @@
-// Rate limiting utility using in-memory storage
-// Tracks requests per IP address with 1 minute window
+// Rate limiting utility for API routes
+// Tracks requests per IP address per route
 
 interface RateLimitEntry {
   count: number
   resetTime: number
 }
 
-const rateLimitMap = new Map<string, RateLimitEntry>()
+// Map structure: route -> IP -> RateLimitEntry
+const rateLimitMap = new Map<string, Map<string, RateLimitEntry>>()
 
-console.log("[v0] 🔄 Rate limit module loaded - clearing any stale entries")
-rateLimitMap.clear()
-
-// Clean up expired entries every 5 minutes
+// Cleanup old entries every 5 minutes
 setInterval(
   () => {
     const now = Date.now()
-    let cleanedCount = 0
-    for (const [ip, entry] of rateLimitMap.entries()) {
-      if (now > entry.resetTime) {
-        rateLimitMap.delete(ip)
-        cleanedCount++
+    for (const [route, ipMap] of rateLimitMap.entries()) {
+      for (const [ip, entry] of ipMap.entries()) {
+        if (now > entry.resetTime) {
+          ipMap.delete(ip)
+        }
       }
-    }
-    if (cleanedCount > 0) {
-      console.log(`[v0] 🧹 Cleaned up ${cleanedCount} expired rate limit entries`)
+      // Remove empty route maps
+      if (ipMap.size === 0) {
+        rateLimitMap.delete(route)
+      }
     }
   },
   5 * 60 * 1000,
@@ -36,85 +35,63 @@ export interface RateLimitResult {
   reset: number
 }
 
-export function clearRateLimit(ip?: string) {
-  if (ip) {
-    const deleted = rateLimitMap.delete(ip)
-    console.log(`[v0] 🧹 Manually cleared rate limit for IP: ${ip} - ${deleted ? "success" : "not found"}`)
-    return deleted
-  } else {
-    const size = rateLimitMap.size
-    rateLimitMap.clear()
-    console.log(`[v0] 🧹 Manually cleared all rate limits - ${size} entries removed`)
-    return true
-  }
-}
-
-export function rateLimit(ip: string, limit = 1, windowMs = 60000): RateLimitResult {
+export function rateLimit(route: string, ip: string, limit = 1, windowMs = 60000): RateLimitResult {
   const now = Date.now()
-  const entry = rateLimitMap.get(ip)
 
-  console.log(`[v0] 🔍 Rate limit check for IP: ${ip}`)
-  console.log(`[v0] 🔍 Limit: ${limit}, Window: ${windowMs}ms (${windowMs / 1000}s)`)
-  console.log(`[v0] 🔍 Total entries in map: ${rateLimitMap.size}`)
-
-  if (entry) {
-    const timeUntilReset = entry.resetTime - now
-    const isExpired = now > entry.resetTime
-    console.log(`[v0] 🔍 Existing entry: count=${entry.count}, resetTime=${new Date(entry.resetTime).toISOString()}`)
-    console.log(`[v0] 🔍 Time until reset: ${Math.ceil(timeUntilReset / 1000)}s, Expired: ${isExpired}`)
-  } else {
-    console.log(`[v0] 🔍 No existing entry found`)
+  // Get or create route map
+  if (!rateLimitMap.has(route)) {
+    rateLimitMap.set(route, new Map())
   }
 
+  const ipMap = rateLimitMap.get(route)!
+  const entry = ipMap.get(ip)
+
+  // If no entry or expired, create new entry
   if (!entry || now > entry.resetTime) {
     const resetTime = now + windowMs
-    rateLimitMap.set(ip, { count: 0, resetTime })
-    console.log(`[v0] ✅ ${entry ? "Expired entry reset" : "New entry created"} - count=0`)
-    console.log(`[v0] ✅ Reset time: ${new Date(resetTime).toISOString()}`)
+    ipMap.set(ip, { count: 1, resetTime })
+
+    return {
+      success: true,
+      limit,
+      remaining: limit - 1,
+      reset: resetTime,
+    }
   }
 
-  // Get the current entry (either existing or just created)
-  const currentEntry = rateLimitMap.get(ip)!
-
-  if (currentEntry.count >= limit) {
-    const retryAfter = Math.ceil((currentEntry.resetTime - now) / 1000)
-    console.log(`[v0] ❌ Rate limit exceeded! Count: ${currentEntry.count}, Limit: ${limit}`)
-    console.log(`[v0] ❌ Retry after: ${retryAfter} seconds`)
+  // Check if limit exceeded
+  if (entry.count >= limit) {
     return {
       success: false,
       limit,
       remaining: 0,
-      reset: currentEntry.resetTime,
+      reset: entry.resetTime,
     }
   }
 
-  currentEntry.count++
-  rateLimitMap.set(ip, currentEntry)
-
-  const remaining = limit - currentEntry.count
-  console.log(`[v0] ✅ Request allowed - Count after increment: ${currentEntry.count}/${limit}`)
-  console.log(`[v0] ✅ Remaining requests: ${remaining}`)
+  // Increment count
+  entry.count++
+  ipMap.set(ip, entry)
 
   return {
     success: true,
     limit,
-    remaining,
-    reset: currentEntry.resetTime,
+    remaining: limit - entry.count,
+    reset: entry.resetTime,
   }
 }
 
 export function getClientIp(request: Request): string {
-  // Try to get IP from various headers (for proxies/load balancers)
   const forwarded = request.headers.get("x-forwarded-for")
   const realIp = request.headers.get("x-real-ip")
-  const cfConnectingIp = request.headers.get("cf-connecting-ip")
 
-  const ip = forwarded?.split(",")[0].trim() || realIp || cfConnectingIp || "unknown"
-  console.log(`[v0] 🌐 Extracted IP from headers:`)
-  console.log(`[v0] 🌐   x-forwarded-for: ${forwarded || "not set"}`)
-  console.log(`[v0] 🌐   x-real-ip: ${realIp || "not set"}`)
-  console.log(`[v0] 🌐   cf-connecting-ip: ${cfConnectingIp || "not set"}`)
-  console.log(`[v0] 🌐   Final IP: ${ip}`)
+  if (forwarded) {
+    return forwarded.split(",")[0].trim()
+  }
 
-  return ip
+  if (realIp) {
+    return realIp
+  }
+
+  return "unknown"
 }

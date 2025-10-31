@@ -213,33 +213,33 @@ async function saveMqttSubscriptionToDatabase(
 }
 
 export async function POST(request: NextRequest) {
-  console.log("[v0] MQTT Subscribe route called")
   const clientIP = getClientIp(request)
-  console.log("[v0] Client IP:", clientIP)
-
-  const rateLimitResult = rateLimit(clientIP, 1, 60000)
+  const rateLimitResult = rateLimit("/api/mqtt-subscribe", clientIP, 1, 60000)
 
   if (!rateLimitResult.success) {
-    const resetTime = new Date(rateLimitResult.reset).toISOString()
-    console.log(`[v0] ⚠️ Rate limit exceeded for IP: ${clientIP}`)
-    return Response.json(
-      {
+    const retryAfter = Math.ceil((rateLimitResult.reset - Date.now()) / 1000)
+    return new Response(
+      JSON.stringify({
         error: "Too many requests",
         message: "Please try again later",
-        retryAfter: Math.ceil((rateLimitResult.reset - Date.now()) / 1000),
-        resetTime,
-      },
+        retryAfter,
+        resetTime: new Date(rateLimitResult.reset).toISOString(),
+      }),
       {
         status: 429,
         headers: {
+          "Content-Type": "application/json",
+          "Retry-After": retryAfter.toString(),
           "X-RateLimit-Limit": rateLimitResult.limit.toString(),
-          "X-RateLimit-Remaining": rateLimitResult.remaining.toString(),
+          "X-RateLimit-Remaining": "0",
           "X-RateLimit-Reset": rateLimitResult.reset.toString(),
-          "Retry-After": Math.ceil((rateLimitResult.reset - Date.now()) / 1000).toString(),
         },
       },
     )
   }
+
+  console.log("[v0] MQTT Subscribe route called")
+  console.log("[v0] Client IP:", clientIP)
 
   try {
     console.log("[v0] Parsing form data...")
@@ -302,12 +302,10 @@ export async function POST(request: NextRequest) {
     const mqttBroker = isProductionMode ? "mqtt.kverkom.sk" : "mqtt-i.kverkom.sk"
     const mqttPort = 8883
 
-    const mqttUrl = `mqtts://${mqttBroker}:${mqttPort}`
-    console.log("[v0] 🌐 MQTT URL:", mqttUrl)
-    console.log("[v0] 🌐 MQTT Broker:", mqttBroker)
-    console.log("[v0] 🌐 MQTT Port:", mqttPort)
-    console.log("[v0] 🌐 Environment:", isProductionMode ? "PRODUCTION" : "TEST")
-    console.log("[v0] 🌐 Topic:", mqttTopic)
+    console.log("[v0] MQTT Broker:", mqttBroker)
+    console.log("[v0] MQTT Port:", mqttPort)
+    console.log("[v0] Using", isProductionMode ? "PRODUCTION" : "TEST", "environment")
+    console.log("[v0] MQTT topic:", mqttTopic)
 
     const communicationLog: string[] = []
     const startTime = new Date().toISOString()
@@ -321,6 +319,7 @@ export async function POST(request: NextRequest) {
       let timeoutHandle: NodeJS.Timeout
       let isResolved = false
 
+      const mqttUrl = `mqtts://${mqttBroker}:${mqttPort}`
       console.log("[v0] Connecting to MQTT broker:", mqttUrl)
 
       const client = mqtt.connect(mqttUrl, {
