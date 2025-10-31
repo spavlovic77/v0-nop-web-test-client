@@ -1,7 +1,32 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
+import { rateLimit, getClientIp } from "@/lib/rate-limit"
 
 export async function POST(request: NextRequest) {
+  const clientIP = getClientIp(request)
+  const rateLimitResult = rateLimit("/api/get-transactions-by-date", clientIP, 2, 60000)
+
+  if (!rateLimitResult.success) {
+    const retryAfter = Math.ceil((rateLimitResult.reset - Date.now()) / 1000)
+    return NextResponse.json(
+      {
+        error: "Too many requests",
+        message: "Please try again later",
+        retryAfter,
+        resetTime: new Date(rateLimitResult.reset).toISOString(),
+      },
+      {
+        status: 429,
+        headers: {
+          "Retry-After": retryAfter.toString(),
+          "X-RateLimit-Limit": rateLimitResult.limit.toString(),
+          "X-RateLimit-Remaining": rateLimitResult.remaining.toString(),
+          "X-RateLimit-Reset": new Date(rateLimitResult.reset).toISOString(),
+        },
+      },
+    )
+  }
+
   try {
     const { date, pokladnica } = await request.json()
 

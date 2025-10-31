@@ -202,6 +202,9 @@ const Home: FunctionComponent = () => {
   const [isProductionMode, setIsProductionMode] = useState(false)
   const [showProductionConfirmModal, setShowProductionConfirmModal] = useState(false)
 
+  const [showRateLimitModal, setShowRateLimitModal] = useState(false)
+  const [rateLimitRetryAfter, setRateLimitRetryAfter] = useState(0)
+
   useEffect(() => {
     const savedMode = localStorage.getItem("productionMode")
     if (savedMode === "true") {
@@ -436,6 +439,14 @@ const Home: FunctionComponent = () => {
           method: "POST",
           body: formData,
         })
+
+        if (response.status === 429) {
+          const data = await response.json()
+          console.log("[v0] Rate limit exceeded:", data)
+          setRateLimitRetryAfter(data.retryAfter || 60)
+          setShowRateLimitModal(true)
+          return null // Indicate failure
+        }
 
         if (!response.ok) {
           throw new Error("Failed to convert P12 to PEM")
@@ -723,6 +734,17 @@ const Home: FunctionComponent = () => {
         logEntry.status = res.status
         logEntry.duration = Date.now() - startTime
 
+        if (res.status === 429) {
+          const data = await res.json()
+          console.log("[v0] Rate limit exceeded:", data)
+          setRateLimitRetryAfter(data.retryAfter || 60)
+          setShowRateLimitModal(true)
+          logEntry.error = "Rate limit exceeded"
+          logEntry.response = data
+          setApiCallLogs((prev) => [...prev, logEntry])
+          return
+        }
+
         const contentType = res.headers.get("content-type")
         let data
 
@@ -887,6 +909,16 @@ const Home: FunctionComponent = () => {
 
       console.log("[v0] MQTT subscribe API response status:", res.status)
 
+      if (res.status === 429) {
+        const data = await res.json()
+        console.log("[v0] Rate limit exceeded:", data)
+        setRateLimitRetryAfter(data.retryAfter || 60)
+        setShowRateLimitModal(true)
+        setMqttTimerActive(false)
+        setSubscriptionActive(false)
+        return
+      }
+
       logEntry.status = res.status
       logEntry.duration = Date.now() - startTime
 
@@ -1009,6 +1041,7 @@ const Home: FunctionComponent = () => {
       console.error("[v0] Native MQTT subscription error:", err)
       logEntry.response = { error: err instanceof Error ? err.message : "Native MQTT subscription error" }
       setSubscriptionActive(false)
+      setMqttConnected(false)
       setError(err instanceof Error ? err.message : "Native MQTT subscription error")
     } finally {
       logApiCall(logEntry)
@@ -1155,7 +1188,7 @@ const Home: FunctionComponent = () => {
     }
   }
 
-  const handleDisputeConfirmation = async () => {
+  const handleConfirmDispute = async () => {
     if (!currentTransactionId) {
       toast({
         title: "Chyba",
@@ -1174,6 +1207,14 @@ const Home: FunctionComponent = () => {
         },
         body: JSON.stringify({ transactionId: currentTransactionId }),
       })
+
+      if (response.status === 429) {
+        const data = await response.json()
+        console.log("[v0] Rate limit exceeded:", data)
+        setRateLimitRetryAfter(data.retryAfter || 60)
+        setShowRateLimitModal(true)
+        return
+      }
 
       if (!response.ok) {
         throw new Error("Failed to update dispute flag")
@@ -1245,6 +1286,15 @@ const Home: FunctionComponent = () => {
           pokladnica: certificateInfo.pokladnica,
         }),
       })
+
+      if (response.status === 429) {
+        const data = await response.json()
+        console.log("[v0] Rate limit exceeded:", data)
+        setRateLimitRetryAfter(data.retryAfter || 60)
+        setShowRateLimitModal(true)
+        setDisputeListLoading(false)
+        return
+      }
 
       if (!response.ok) {
         throw new Error("Failed to fetch transactions")
@@ -1519,6 +1569,16 @@ const Home: FunctionComponent = () => {
       })
 
       console.log("[v0] MQTT subscribe API response status:", res.status)
+
+      if (res.status === 429) {
+        const data = await res.json()
+        console.log("[v0] Rate limit exceeded:", data)
+        setRateLimitRetryAfter(data.retryAfter || 60)
+        setShowRateLimitModal(true)
+        setMqttTimerActive(false)
+        setSubscriptionActive(false)
+        return
+      }
 
       logEntry.status = res.status
       logEntry.duration = Date.now() - startTime
@@ -1945,6 +2005,41 @@ const Home: FunctionComponent = () => {
     }
   }
 
+  const handleP12Upload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) {
+      return
+    }
+
+    setFiles((prev) => ({ ...prev, xmlAuthData: file }))
+
+    // Immediately clear previous certificate info if a new file is uploaded
+    setCertificateInfo({ vatsk: null, pokladnica: null })
+
+    // Attempt to read password from input if it exists, otherwise clear
+    const passwordInput = document.getElementById("xmlPassword") as HTMLInputElement
+    const password = passwordInput?.value || ""
+
+    if (password) {
+      // Call convertXmlToPem directly for immediate feedback
+      const conversionResult = await convertXmlToPem(file, password)
+      if (conversionResult) {
+        setFiles((prev) => ({
+          ...prev,
+          convertedCertPem: conversionResult.certPem,
+          convertedKeyPem: conversionResult.keyPem,
+        }))
+      } else {
+        // Error message is handled within convertXmlToPem, but clear PEM if it failed
+        setFiles((prev) => ({
+          ...prev,
+          convertedCertPem: undefined,
+          convertedKeyPem: undefined,
+        }))
+      }
+    }
+  }
+
   return (
     <ErrorBoundary>
       <TooltipProvider>
@@ -2061,7 +2156,7 @@ const Home: FunctionComponent = () => {
                             id="xmlAuthData"
                             type="file"
                             accept=".xml"
-                            onChange={(e) => handleFileChange("xmlAuthData", e.target.files?.[0] || null)}
+                            onChange={handleP12Upload}
                             className="w-full h-12 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                           />
                           {files.xmlAuthData && (
@@ -2259,7 +2354,7 @@ const Home: FunctionComponent = () => {
                         id="xmlAuthData"
                         type="file"
                         accept=".xml"
-                        onChange={(e) => handleFileChange("xmlAuthData", e.target.files?.[0] || null)}
+                        onChange={handleP12Upload}
                         className="flex-1 text-sm"
                       />
                       {files.xmlAuthData && <CheckCircle className="h-4 w-4 text-green-500" />}
@@ -2651,6 +2746,25 @@ const Home: FunctionComponent = () => {
               </DialogContent>
             </Dialog>
 
+            <Dialog open={showRateLimitModal} onOpenChange={setShowRateLimitModal}>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Príliš veľa požiadaviek</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <p className="text-sm text-muted-foreground">
+                    Dosiahli ste limit požiadaviek. Prosím, skúste to znova o {rateLimitRetryAfter} sekúnd.
+                  </p>
+                  <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded-md">
+                    <p className="text-sm font-medium">Limit: 2 požiadavky za minútu na každý API endpoint</p>
+                  </div>
+                  <Button onClick={() => setShowRateLimitModal(false)} className="w-full">
+                    Zavrieť
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+
             <Dialog open={showTransactionDateModal} onOpenChange={setShowTransactionDateModal}>
               <DialogContent className="max-w-md">
                 <div className="space-y-4">
@@ -2755,7 +2869,7 @@ const Home: FunctionComponent = () => {
                     <Button variant="outline" className="flex-1 bg-transparent" onClick={handleDisputeNo}>
                       Nie
                     </Button>
-                    <Button className="flex-1" onClick={handleDisputeConfirmation}>
+                    <Button className="flex-1" onClick={handleConfirmDispute}>
                       Áno
                     </Button>
                   </div>

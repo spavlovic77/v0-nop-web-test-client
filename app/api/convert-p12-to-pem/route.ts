@@ -1,7 +1,32 @@
 import { type NextRequest, NextResponse } from "next/server"
 import * as forge from "node-forge"
+import { rateLimit, getClientIp } from "@/lib/rate-limit"
 
 export async function POST(request: NextRequest) {
+  const clientIP = getClientIp(request)
+  const rateLimitResult = rateLimit("/api/convert-p12-to-pem", clientIP, 2, 60000)
+
+  if (!rateLimitResult.success) {
+    const retryAfter = Math.ceil((rateLimitResult.reset - Date.now()) / 1000)
+    return NextResponse.json(
+      {
+        error: "Too many requests",
+        message: "Please try again later",
+        retryAfter,
+        resetTime: new Date(rateLimitResult.reset).toISOString(),
+      },
+      {
+        status: 429,
+        headers: {
+          "Retry-After": retryAfter.toString(),
+          "X-RateLimit-Limit": rateLimitResult.limit.toString(),
+          "X-RateLimit-Remaining": rateLimitResult.remaining.toString(),
+          "X-RateLimit-Reset": new Date(rateLimitResult.reset).toISOString(),
+        },
+      },
+    )
+  }
+
   try {
     const formData = await request.formData()
     const p12File = formData.get("p12File") as File

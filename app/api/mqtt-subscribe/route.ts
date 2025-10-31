@@ -1,6 +1,7 @@
 import type { NextRequest } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 import mqtt from "mqtt"
+import { rateLimit, getClientIp } from "@/lib/rate-limit"
 
 function getClientIP(request: NextRequest): string {
   const forwarded = request.headers.get("x-forwarded-for")
@@ -212,8 +213,32 @@ async function saveMqttSubscriptionToDatabase(
 }
 
 export async function POST(request: NextRequest) {
+  const clientIP = getClientIp(request)
+  const rateLimitResult = rateLimit("/api/mqtt-subscribe", clientIP, 2, 60000)
+
+  if (!rateLimitResult.success) {
+    const retryAfter = Math.ceil((rateLimitResult.reset - Date.now()) / 1000)
+    return new Response(
+      JSON.stringify({
+        error: "Too many requests",
+        message: "Please try again later",
+        retryAfter,
+        resetTime: new Date(rateLimitResult.reset).toISOString(),
+      }),
+      {
+        status: 429,
+        headers: {
+          "Content-Type": "application/json",
+          "Retry-After": retryAfter.toString(),
+          "X-RateLimit-Limit": rateLimitResult.limit.toString(),
+          "X-RateLimit-Remaining": rateLimitResult.remaining.toString(),
+          "X-RateLimit-Reset": new Date(rateLimitResult.reset).toISOString(),
+        },
+      },
+    )
+  }
+
   console.log("[v0] MQTT Subscribe route called")
-  const clientIP = getClientIP(request)
   console.log("[v0] Client IP:", clientIP)
 
   try {
@@ -460,7 +485,7 @@ export async function POST(request: NextRequest) {
           new Response(
             JSON.stringify({
               error: "MQTT connection failed",
-              details: err.message,
+              details: err instanceof Error ? err.message : "Unknown error",
               communicationLog: communicationLog,
               clientIP,
             }),
