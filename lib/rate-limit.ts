@@ -32,10 +32,16 @@ export function rateLimit(ip: string, limit = 1, windowMs = 60000): RateLimitRes
   const now = Date.now()
   const entry = rateLimitMap.get(ip)
 
+  console.log(`[v0] 🔍 Rate limit check for IP: ${ip}`)
+  console.log(`[v0] 🔍 Current entry:`, entry)
+  console.log(`[v0] 🔍 Limit: ${limit}, Window: ${windowMs}ms`)
+
   // If no entry or expired, create new entry
   if (!entry || now > entry.resetTime) {
     const resetTime = now + windowMs
     rateLimitMap.set(ip, { count: 1, resetTime })
+    console.log(`[v0] ✅ First request or expired - Creating new entry with count=1`)
+    console.log(`[v0] ✅ Reset time: ${new Date(resetTime).toISOString()}`)
     return {
       success: true,
       limit,
@@ -45,7 +51,11 @@ export function rateLimit(ip: string, limit = 1, windowMs = 60000): RateLimitRes
   }
 
   // Check if limit exceeded
+  console.log(`[v0] 🔍 Existing entry found - count: ${entry.count}, limit: ${limit}`)
+  console.log(`[v0] 🔍 Checking: ${entry.count} >= ${limit} = ${entry.count >= limit}`)
+
   if (entry.count >= limit) {
+    console.log(`[v0] ❌ Rate limit exceeded! Count: ${entry.count}, Limit: ${limit}`)
     return {
       success: false,
       limit,
@@ -57,6 +67,8 @@ export function rateLimit(ip: string, limit = 1, windowMs = 60000): RateLimitRes
   // Increment count
   entry.count++
   rateLimitMap.set(ip, entry)
+  console.log(`[v0] ✅ Request allowed - Incremented count to ${entry.count}`)
+  console.log(`[v0] ✅ Remaining requests: ${limit - entry.count}`)
 
   return {
     success: true,
