@@ -42,6 +42,12 @@ export async function POST(request: NextRequest) {
     // Create Supabase client with service role key to bypass RLS
     const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 
+    const { data: allTransactions } = await supabase
+      .from("transaction_generations")
+      .select("transaction_id, id")
+      .limit(10)
+    console.log("[v0] Sample transactions in database:", allTransactions)
+
     // Update the dispute flag
     const { data, error } = await supabase
       .from("transaction_generations")
