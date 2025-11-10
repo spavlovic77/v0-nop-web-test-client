@@ -2271,7 +2271,7 @@ const Home: FunctionComponent = () => {
                       <Button
                         onClick={handleSaveConfiguration}
                         disabled={!canSaveConfiguration || savingConfiguration}
-                        className={`button-modern w-full font-bold py-3 rounded-xl transition-all duration-300 ${
+                        className={`button-modern w-full font-bold h-14 rounded-xl transition-all duration-300 ${
                           !canSaveConfiguration || savingConfiguration
                             ? "bg-gray-400 text-gray-800 cursor-not-allowed"
                             : "bg-gradient-to-br from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800 text-white shadow-lg shadow-blue-500/50"
@@ -2306,18 +2306,20 @@ const Home: FunctionComponent = () => {
                       )}
 
                       {/* Download Link */}
-                      <div className="text-center pt-6 border-t border-gray-700/20">
-                        <p className="text-xs text-gray-500 mb-3">Potrebujete XML autentifikačné údaje a heslo?</p>
-                        <a
-                          href="/download"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-2 text-sm text-blue-400 hover:text-blue-300 transition-colors font-medium"
-                        >
-                          <span>Získať autentifikačné údaje</span>
-                          <ExternalLink className="h-4 w-4" />
-                        </a>
-                      </div>
+                      {!isProductionMode && (
+                        <div className="text-center pt-6 border-t border-gray-700/20">
+                          <p className="text-xs text-gray-500 mb-3">Potrebujete XML autentifikačné údaje a heslo?</p>
+                          <a
+                            href="/download"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-2 text-sm text-blue-400 hover:text-blue-300 transition-colors font-medium"
+                          >
+                            <span>Získať autentifikačné údaje</span>
+                            <ExternalLink className="h-4 w-4" />
+                          </a>
+                        </div>
+                      )}
 
                       {/* GitHub Link */}
                       <div className="text-center pt-4 mt-4 border-t border-gray-700/20">

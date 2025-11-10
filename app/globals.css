@@ -331,20 +331,21 @@
 }
 
 @media (max-width: 640px) {
-  /* Remove all shadows, borders, and make full width on mobile */
+  /* Add padding and margin to mobile login card */
   .login-card {
-    margin: 0;
-    border-radius: 0;
-    box-shadow: none;
-    border: none;
+    margin: 1rem;
+    padding: 1.5rem !important;
+    border-radius: 1rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e5e7eb;
     background: white;
-    width: 100vw;
+    width: calc(100vw - 2rem);
     backdrop-filter: none;
   }
 
   .login-card:hover {
     transform: none;
-    box-shadow: none;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   }
 
   .input-modern {
