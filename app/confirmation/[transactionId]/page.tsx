@@ -165,6 +165,11 @@ export default function ConfirmationPage() {
                 <p className="text-sm font-medium text-muted-foreground">Dátum a čas vytvorenia v externom systéme</p>
                 <p className="text-base">{new Date(transaction.created_at).toLocaleString("sk-SK")}</p>
               </div>
+
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Suma v EUR</p>
+                <p className="text-base font-semibold">{formatAmount(transaction.amount)}</p>
+              </div>
             </div>
 
             {/* QR Code */}

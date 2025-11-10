@@ -203,6 +203,9 @@ const Home: FunctionComponent = () => {
   const [isProductionMode, setIsProductionMode] = useState(false)
   const [showProductionConfirmModal, setShowProductionConfirmModal] = useState(false)
 
+  const [productionCheck1, setProductionCheck1] = useState(false)
+  const [productionCheck2, setProductionCheck2] = useState(false)
+
   const [showRateLimitModal, setShowRateLimitModal] = useState(false)
   const [rateLimitRetryAfter, setRateLimitRetryAfter] = useState(0)
 
@@ -232,6 +235,8 @@ const Home: FunctionComponent = () => {
     setIsProductionMode(true)
     localStorage.setItem("productionMode", "true")
     setShowProductionConfirmModal(false)
+    setProductionCheck1(false)
+    setProductionCheck2(false)
     toast({
       title: "Prepnuté na produkčné prostredie",
       description: "Používate produkčné URL adresy pripojené k bankám",
@@ -241,6 +246,8 @@ const Home: FunctionComponent = () => {
 
   const cancelProductionSwitch = () => {
     setShowProductionConfirmModal(false)
+    setProductionCheck1(false)
+    setProductionCheck2(false)
   }
 
   const logApiCall = (log: ApiCallLog) => {
@@ -249,6 +256,14 @@ const Home: FunctionComponent = () => {
 
   const clearApiLogs = () => {
     setApiCallLogs([])
+  }
+
+  const copyEmailToClipboard = () => {
+    navigator.clipboard.writeText("kverkom.kasoveIS@financnasprava.sk")
+    toast({
+      title: "E-mail skopírovaný",
+      description: "E-mailová adresa bola skopírovaná do schránky",
+    })
   }
 
   const generatePaymentLink = (amount: string, transactionId: string) => {
@@ -1972,39 +1987,116 @@ const Home: FunctionComponent = () => {
 
                     {/* Production Confirmation Modal */}
                     <Dialog open={showProductionConfirmModal} onOpenChange={setShowProductionConfirmModal}>
-                      <DialogContent className="rounded-2xl">
+                      <DialogContent className="rounded-2xl max-w-lg">
                         <DialogHeader>
-                          <DialogTitle className="text-xl">Prepnúť na produkčné prostredie?</DialogTitle>
+                          <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                            Prepnúť na produkčné prostredie?
+                          </DialogTitle>
                         </DialogHeader>
-                        <div className="space-y-4">
-                          <p className="text-sm text-muted-foreground">
+                        <div className="space-y-6">
+                          <p className="text-sm text-muted-foreground leading-relaxed">
                             Prepnutím na produkčné prostredie budete prijímať skutočné bankové oznámenia.
                           </p>
-                          <div className="bg-red-50 border-2 border-red-200 text-red-800 px-4 py-3 rounded-xl">
-                            <p className="text-sm font-medium flex items-center gap-2">
-                              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                                <path
-                                  fillRule="evenodd"
-                                  d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-                                  clipRule="evenodd"
-                                />
-                              </svg>
-                              Pokračovať?
-                            </p>
+
+                          <div className="relative">
+                            <div className="absolute inset-0 bg-gradient-to-r from-red-500 to-orange-500 rounded-xl blur opacity-20"></div>
+                            <div className="relative bg-red-50 border-2 border-red-200 text-red-800 px-4 py-3 rounded-xl">
+                              <p className="text-sm font-medium flex items-center gap-2">
+                                <svg className="w-5 h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                  <path
+                                    fillRule="evenodd"
+                                    d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                                    clipRule="evenodd"
+                                  />
+                                </svg>
+                                Pred pokračovaním skontrolujte tieto požiadavky
+                              </p>
+                            </div>
                           </div>
+
+                          <div className="space-y-4 bg-gray-50/50 rounded-xl p-4 border border-gray-200">
+                            {/* Checkbox 1 */}
+                            <div className="flex items-start gap-3 group">
+                              <div className="relative flex items-center justify-center mt-0.5">
+                                <input
+                                  type="checkbox"
+                                  id="prod-check-1"
+                                  checked={productionCheck1}
+                                  onChange={(e) => setProductionCheck1(e.target.checked)}
+                                  className="w-5 h-5 rounded border-2 border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all cursor-pointer"
+                                />
+                              </div>
+                              <label
+                                htmlFor="prod-check-1"
+                                className="text-sm font-medium text-gray-700 cursor-pointer group-hover:text-gray-900 transition-colors leading-relaxed"
+                              >
+                                Máme aktivovanú službu oznamovania okamžitých úhrad v banke.
+                              </label>
+                            </div>
+
+                            {/* Checkbox 2 with copy email feature */}
+                            <div className="flex items-start gap-3 group">
+                              <div className="relative flex items-center justify-center mt-0.5">
+                                <input
+                                  type="checkbox"
+                                  id="prod-check-2"
+                                  checked={productionCheck2}
+                                  onChange={(e) => setProductionCheck2(e.target.checked)}
+                                  className="w-5 h-5 rounded border-2 border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all cursor-pointer"
+                                />
+                              </div>
+                              <label
+                                htmlFor="prod-check-2"
+                                className="text-sm font-medium text-gray-700 cursor-pointer group-hover:text-gray-900 transition-colors leading-relaxed flex-1"
+                              >
+                                Máme podpísanú Dohodu o spolupráci s FS SR 
+                                <button
+                                  type="button"
+                                  onClick={copyEmailToClipboard}
+                                  className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-700 font-mono text-xs bg-blue-50 px-2 py-0.5 rounded hover:bg-blue-100 transition-all"
+                                >
+                                  kverkom.kasoveIS@financnasprava.sk
+                                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2}
+                                      d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                                    />
+                                  </svg>
+                                </button>
+                                .
+                              </label>
+                            </div>
+                          </div>
+
                           <div className="flex gap-3 justify-end pt-2">
                             <Button
                               variant="outline"
                               onClick={cancelProductionSwitch}
-                              className="rounded-xl bg-transparent"
+                              className="rounded-xl bg-transparent hover:bg-gray-100 transition-colors"
                             >
                               Zrušiť
                             </Button>
                             <Button
                               onClick={confirmProductionSwitch}
-                              className="bg-red-600 hover:bg-red-700 rounded-xl"
+                              disabled={!productionCheck1 || !productionCheck2}
+                              className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl"
                             >
-                              Áno, pokračovať
+                              {productionCheck1 && productionCheck2 ? (
+                                <span className="flex items-center gap-2">
+                                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                    <path
+                                      fillRule="evenodd"
+                                      d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                      clipRule="evenodd"
+                                    />
+                                  </svg>
+                                  Áno, pokračovať
+                                </span>
+                              ) : (
+                                "Áno, pokračovať"
+                              )}
                             </Button>
                           </div>
                         </div>
@@ -2225,7 +2317,6 @@ const Home: FunctionComponent = () => {
                   </div>
                 </div>
               </div>
-              // </CHANGE>
             )}
 
             {allRequiredFieldsComplete && !certificateSectionCollapsed && (
