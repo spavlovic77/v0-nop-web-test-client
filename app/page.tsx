@@ -1698,16 +1698,18 @@ const Home: FunctionComponent = () => {
   }
 
   // Define handleTransactionDateSelect here
-  const handleTransactionDateSelect = () => {
-    if (!selectedTransactionDate) return
+  const handleTransactionDateSelect = (date: string) => {
+    setSelectedTransactionDate(date)
     setShowTransactionDateModal(false)
-    setShowTransactionListModal(true)
     setTransactionListLoading(true)
 
-    fetch("/api/get-transactions", {
+    fetch("/api/get-transactions-by-date", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ date: selectedTransactionDate }),
+      body: JSON.stringify({
+        date: selectedTransactionDate,
+        pokladnica: certificateInfo.pokladnica,
+      }),
     })
       .then((res) => {
         if (res.status === 429) {
@@ -1728,7 +1730,7 @@ const Home: FunctionComponent = () => {
         setTransactionListData(data.transactions || [])
       })
       .catch((error) => {
-        console.error("Error fetching transactions:", error)
+        console.error("[v0] Error fetching transactions:", error)
         setTransactionListData([])
       })
       .finally(() => {
@@ -2799,7 +2801,7 @@ const Home: FunctionComponent = () => {
                       Zrušiť
                     </Button>
                     <Button
-                      onClick={handleTransactionDateSelect}
+                      onClick={() => handleTransactionDateSelect(selectedTransactionDate)}
                       disabled={!selectedTransactionDate}
                       className="flex-1"
                     >
