@@ -1382,8 +1382,8 @@ const Home: FunctionComponent = () => {
     let comparison = 0
 
     if (disputeSortField === "time") {
-      const timeA = new Date(a.response_timestamp).getTime()
-      const timeB = new Date(b.response_timestamp).getTime()
+      const timeA = a.response_timestamp ? new Date(a.response_timestamp).getTime() : 0
+      const timeB = b.response_timestamp ? new Date(b.response_timestamp).getTime() : 0
       comparison = timeA - timeB
     } else if (disputeSortField === "amount") {
       const amountA = typeof a.amount === "string" ? Number.parseFloat(a.amount) : a.amount || 0
@@ -1605,7 +1605,7 @@ const Home: FunctionComponent = () => {
                   const status = transaction.dispute ? "Neoznámené" : "N/A"
                   return `
                       <tr>
-                        <td>${new Date(transaction.response_timestamp).toLocaleTimeString("sk-SK", { hour: "2-digit", minute: "2-digit" })}</td>
+                        <td>${formatDateTime(transaction.response_timestamp)}</td>
                         <td style="font-family: monospace; font-size: 10px; word-break: break-all;">${transaction.transaction_id || "N/A"}</td>
                         <td class="amount">${formatAmount(transaction.amount)}</td>
                         <td>${status}</td>
@@ -1889,6 +1889,22 @@ const Home: FunctionComponent = () => {
       .finally(() => {
         setTransactionListLoading(false)
       })
+  }
+
+  const formatDateTime = (timestamp: string | null | undefined): string => {
+    if (!timestamp) return "N/A"
+    try {
+      const date = new Date(timestamp)
+      if (isNaN(date.getTime())) return "N/A"
+      return date.toLocaleTimeString("sk-SK", {
+        hour: "2-digit",
+        minute: "2-digit",
+        day: "2-digit",
+        month: "2-digit",
+      })
+    } catch {
+      return "N/A"
+    }
   }
 
   return (
@@ -2683,28 +2699,6 @@ const Home: FunctionComponent = () => {
                           <div className="text-sm text-gray-600">Celková suma</div>
                         </div>
                       </div>
-                      <div className="space-y-2">
-                        {transactionListData.map((transaction, index) => (
-                          <div key={index} className="p-3 bg-white rounded border">
-                            <div className="flex justify-between items-start mb-2">
-                              <span className="text-sm font-medium">
-                                {transaction.payload_received_at
-                                  ? new Date(transaction.payload_received_at).toLocaleTimeString("sk-SK", {
-                                      hour: "2-digit",
-                                      minute: "2-digit",
-                                    })
-                                  : "N/A"}
-                              </span>
-                              <span className="text-lg font-bold text-green-600">
-                                {Number.parseFloat(transaction.amount || 0).toFixed(2)} €
-                              </span>
-                            </div>
-                            <div className="text-xs font-mono text-gray-600 break-all">
-                              {transaction.end_to_end_id || "N/A"}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
                     </div>
                   ) : (
                     <div className="text-center py-8 text-gray-500">
@@ -2853,9 +2847,7 @@ const Home: FunctionComponent = () => {
                         <tbody>
                           {sortedDisputeTransactions.map((transaction) => (
                             <tr key={transaction.id} className="hover:bg-gray-50">
-                              <td className="border p-2 text-sm">
-                                {new Date(transaction.response_timestamp).toLocaleTimeString("sk-SK")}
-                              </td>
+                              <td className="border p-2 text-sm">{formatDateTime(transaction.response_timestamp)}</td>
                               <td className="border p-2 text-sm font-mono" title={transaction.transaction_id}>
                                 {truncateTransactionId(transaction.transaction_id)}
                               </td>
