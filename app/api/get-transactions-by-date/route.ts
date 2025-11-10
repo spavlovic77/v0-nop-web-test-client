@@ -34,12 +34,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Date and pokladnica are required" }, { status: 400 })
     }
 
-    // Create Supabase client with service role key
-    const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
+    const userDate = new Date(date)
+    const startOfDay = new Date(userDate.setHours(0, 0, 0, 0))
+    const endOfDay = new Date(userDate.setHours(23, 59, 59, 999))
 
-    // Query transaction_generations table
-    const startDate = `${date}T00:00:00Z`
-    const endDate = `${date}T23:59:59Z`
+    const startDate = startOfDay.toISOString()
+    const endDate = endOfDay.toISOString()
+
+    console.log("[v0] Fetching transactions for date range:", { startDate, endDate, pokladnica })
+
+    // Create Supabase client with service role key
+    const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 
     const { data, error } = await supabase.rpc("get_transactions_by_date", {
       p_pokladnica: pokladnica,
@@ -52,6 +57,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Failed to fetch transactions", details: error.message }, { status: 500 })
     }
 
+    console.log("[v0] Fetched transactions count:", data?.length || 0)
     return NextResponse.json({ transactions: data || [] })
   } catch (error) {
     console.error("[v0] Error in get-transactions-by-date:", error)

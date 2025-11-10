@@ -1481,9 +1481,15 @@ const Home: FunctionComponent = () => {
             <tbody>
               ${transactionListData
                 .map((transaction) => {
+                  const dateStr = transaction.payload_received_at
+                    ? new Date(transaction.payload_received_at).toLocaleTimeString("sk-SK", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })
+                    : "N/A"
                   return `
                       <tr>
-                        <td>${new Date(transaction.payload_received_at).toLocaleTimeString("sk-SK", { hour: "2-digit", minute: "2-digit" })}</td>
+                        <td>${dateStr}</td>
                         <td style="font-family: monospace; font-size: 10px; word-break: break-all;">${transaction.end_to_end_id || "N/A"}</td>
                         <td class="amount">${Number.parseFloat(transaction.amount || 0).toFixed(2)}</td>
                       </tr>
@@ -1629,7 +1635,6 @@ const Home: FunctionComponent = () => {
     }
   }
 
-  // Define printAllTransactions here
   const printAllTransactions = () => {
     const printContent = `
       <!DOCTYPE html>
@@ -1834,6 +1839,56 @@ const Home: FunctionComponent = () => {
     const today = new Date().toISOString().split("T")[0]
     setSelectedTransactionDate(today)
     setShowTransactionDateModal(true)
+  }
+
+  // Define handlePrintTransactions here
+  const handlePrintTransactions = () => {
+    setShowTransactionDateModal(false)
+    setTransactionListLoading(true)
+
+    const userDate = new Date(selectedTransactionDate)
+    const startOfDay = new Date(userDate.setHours(0, 0, 0, 0))
+    const endOfDay = new Date(userDate.setHours(23, 59, 59, 999))
+
+    fetch("/api/get-transactions-by-date", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        date: selectedTransactionDate,
+        pokladnica: certificateInfo.pokladnica,
+      }),
+    })
+      .then(async (res) => {
+        if (res.status === 429) {
+          const data = await res.json()
+          console.log("[v0] Rate limit exceeded:", data)
+          setRateLimitRetryAfter(data.retryAfter || 60)
+          setShowRateLimitModal(true)
+          setTransactionListLoading(false)
+          setShowQrModal(false)
+          setQrLoading(false)
+          return null
+        }
+
+        if (!res.ok) {
+          throw new Error("Failed to fetch transactions")
+        }
+        return res.json()
+      })
+      .then((data) => {
+        if (data) {
+          console.log("[v0] Fetched transaction list data:", data.transactions)
+          setTransactionListData(data.transactions || [])
+          setShowTransactionListModal(true)
+        }
+      })
+      .catch((error) => {
+        console.error("[v0] Error fetching transactions:", error)
+        setTransactionListData([])
+      })
+      .finally(() => {
+        setTransactionListLoading(false)
+      })
   }
 
   return (
@@ -2591,11 +2646,7 @@ const Home: FunctionComponent = () => {
                     <Button variant="outline" onClick={() => setShowTransactionDateModal(false)} className="flex-1">
                       Zrušiť
                     </Button>
-                    <Button
-                      onClick={handleTransactionDateSelect}
-                      disabled={!selectedTransactionDate}
-                      className="flex-1"
-                    >
+                    <Button onClick={handlePrintTransactions} disabled={!selectedTransactionDate} className="flex-1">
                       Vygeneruj zoznam
                     </Button>
                   </div>
@@ -2631,6 +2682,28 @@ const Home: FunctionComponent = () => {
                           </div>
                           <div className="text-sm text-gray-600">Celková suma</div>
                         </div>
+                      </div>
+                      <div className="space-y-2">
+                        {transactionListData.map((transaction, index) => (
+                          <div key={index} className="p-3 bg-white rounded border">
+                            <div className="flex justify-between items-start mb-2">
+                              <span className="text-sm font-medium">
+                                {transaction.payload_received_at
+                                  ? new Date(transaction.payload_received_at).toLocaleTimeString("sk-SK", {
+                                      hour: "2-digit",
+                                      minute: "2-digit",
+                                    })
+                                  : "N/A"}
+                              </span>
+                              <span className="text-lg font-bold text-green-600">
+                                {Number.parseFloat(transaction.amount || 0).toFixed(2)} €
+                              </span>
+                            </div>
+                            <div className="text-xs font-mono text-gray-600 break-all">
+                              {transaction.end_to_end_id || "N/A"}
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     </div>
                   ) : (
