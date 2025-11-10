@@ -1297,12 +1297,15 @@ const Home: FunctionComponent = () => {
     setDisputeListLoading(true)
 
     try {
+      const timezoneOffset = new Date().getTimezoneOffset()
+
       const response = await fetch("/api/get-transactions-by-date", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           date: selectedDisputeDate,
           pokladnica: certificateInfo.pokladnica,
+          timezoneOffset: timezoneOffset,
         }),
       })
 
