@@ -1945,8 +1945,8 @@ const Home: FunctionComponent = () => {
           <div className="max-w-4xl mx-auto p-4 pb-24 space-y-6">
             {!allRequiredFieldsComplete && (
               <div className="login-container">
-                <div className="w-full max-w-lg px-4">
-                  <div className="login-card p-8 md:p-10">
+                <div className="w-full max-w-lg md:px-4">
+                  <div className="login-card p-6 md:p-10 md:rounded-3xl rounded-none">
                     {/* Header Section */}
                     <div className="text-center mb-8">
                       <div className="inline-block p-3 bg-blue-100 rounded-full mb-4">
@@ -2393,7 +2393,6 @@ const Home: FunctionComponent = () => {
               </Card>
             )}
 
-            {/* Payment Input Section */}
             {allRequiredFieldsComplete && certificateSectionCollapsed && (
               <div className="fixed inset-0 bg-background flex flex-col items-center justify-center p-4 z-10">
                 <div className="w-full max-w-md space-y-6">
