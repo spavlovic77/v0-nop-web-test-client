@@ -216,7 +216,8 @@
 
 /* Modern login page styles */
 .login-container {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+  /* Replaced purple gradient with clean neutral gradient */
+  background: linear-gradient(135deg, #f0f4f8 0%, #d9e2ec 50%, #bcccdc 100%);
   background-size: 200% 200%;
   animation: gradient-shift 15s ease infinite;
   min-height: 100vh;

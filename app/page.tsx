@@ -1910,7 +1910,7 @@ const Home: FunctionComponent = () => {
   return (
     <ErrorBoundary>
       <TooltipProvider>
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+        <div className="min-h-screen bg-white p-4">
           {!isOnline && (
             <div className="bg-destructive text-destructive-foreground p-2 text-center text-sm flex items-center justify-center gap-2">
               <WifiOff className="h-4 w-4" />
@@ -1936,7 +1936,7 @@ const Home: FunctionComponent = () => {
                         </svg>
                       </div>
                       <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">Prihlásenie</h1>
-                      <p className="text-gray-600 text-sm md:text-base">Zabezpečená autentifikácia certifikátom</p>
+                      <p className="text-gray-600 text-sm md:text-base">e-kasa prihlasovacie údaje</p>
                     </div>
 
                     {/* Environment Badge */}
@@ -1957,7 +1957,7 @@ const Home: FunctionComponent = () => {
                               {isProductionMode ? "Produkčné prostredie" : "Testovacie prostredie"}
                             </p>
                             <p className="text-xs opacity-90">
-                              {isProductionMode ? "Skutočné bankové transakcie" : "Bezpečné testovanie"}
+                              {isProductionMode ? "Skutočné bankové oznámenia" : "Iba testovanie oznámenia"}
                             </p>
                           </div>
                         </div>
@@ -2022,7 +2022,7 @@ const Home: FunctionComponent = () => {
                                 htmlFor="xmlAuthData"
                                 className="text-sm font-semibold text-gray-800 flex items-center gap-2 cursor-help"
                               >
-                                Autentifikačné údaje (XML súbor)
+                                Autentifikačné údaje (XML súbor z e-kasa zóny)
                                 <Info className="h-4 w-4 text-blue-500" />
                               </Label>
                             </TooltipTrigger>
