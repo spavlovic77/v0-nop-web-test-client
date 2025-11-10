@@ -1920,56 +1920,90 @@ const Home: FunctionComponent = () => {
 
           <div className="max-w-4xl mx-auto p-4 pb-24 space-y-6">
             {!allRequiredFieldsComplete && (
-              <div className="min-h-screen flex items-center justify-center p-4">
-                <div className="w-full max-w-md">
-                  <Card className="shadow-lg border-0 bg-white/95 backdrop-blur-sm">
-                    <CardHeader className="text-center pb-6">
-                      <CardTitle className="text-2xl font-bold text-gray-900">Prihlásenie</CardTitle>
-                      <div className="bg-yellow-100 border border-yellow-400 text-yellow-800 px-4 py-3 rounded-md mt-2">
-                        <div className="flex items-center justify-between gap-2">
-                          <div className="flex items-center gap-2">
-                            <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+              <div className="login-container">
+                <div className="w-full max-w-lg px-4">
+                  <div className="login-card p-8 md:p-10">
+                    {/* Header Section */}
+                    <div className="text-center mb-8">
+                      <div className="inline-block p-3 bg-blue-100 rounded-full mb-4">
+                        <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                          />
+                        </svg>
+                      </div>
+                      <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">Prihlásenie</h1>
+                      <p className="text-gray-600 text-sm md:text-base">Zabezpečená autentifikácia certifikátom</p>
+                    </div>
+
+                    {/* Environment Badge */}
+                    <div className={`env-badge rounded-xl px-6 py-4 mb-8 ${isProductionMode ? "production" : "test"}`}>
+                      <div className="flex items-center justify-between gap-4">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 bg-white/30 rounded-lg backdrop-blur-sm">
+                            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                               <path
                                 fillRule="evenodd"
                                 d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
                                 clipRule="evenodd"
                               />
                             </svg>
-                            <span className="text-sm font-medium">
-                              {isProductionMode
-                                ? "Skutočné oznámenia z bánk"
-                                : "Testovacie prostredie"}
-                            </span>
                           </div>
-                          <div className="flex items-center gap-2">
-                         
-                            <Switch
-                              id="production-toggle"
-                              checked={isProductionMode}
-                              onCheckedChange={handleProductionToggle}
-                            />
+                          <div>
+                            <p className="font-bold text-sm md:text-base">
+                              {isProductionMode ? "Produkčné prostredie" : "Testovacie prostredie"}
+                            </p>
+                            <p className="text-xs opacity-90">
+                              {isProductionMode ? "Skutočné bankové transakcie" : "Bezpečné testovanie"}
+                            </p>
                           </div>
                         </div>
+                        <Switch
+                          id="production-toggle"
+                          checked={isProductionMode}
+                          onCheckedChange={handleProductionToggle}
+                          className="data-[state=checked]:bg-white/30"
+                        />
                       </div>
-                    </CardHeader>
+                    </div>
 
+                    {/* Production Confirmation Modal */}
                     <Dialog open={showProductionConfirmModal} onOpenChange={setShowProductionConfirmModal}>
-                      <DialogContent>
+                      <DialogContent className="rounded-2xl">
                         <DialogHeader>
-                          <DialogTitle>Prepnúť na produkčné prostredie?</DialogTitle>
+                          <DialogTitle className="text-xl">Prepnúť na produkčné prostredie?</DialogTitle>
                         </DialogHeader>
                         <div className="space-y-4">
                           <p className="text-sm text-muted-foreground">
                             Prepnutím na produkčné prostredie budete prijímať skutočné bankové oznámenia.
                           </p>
-                          <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-md">
-                            <p className="text-sm font-medium">Pokračovať?</p>
+                          <div className="bg-red-50 border-2 border-red-200 text-red-800 px-4 py-3 rounded-xl">
+                            <p className="text-sm font-medium flex items-center gap-2">
+                              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                <path
+                                  fillRule="evenodd"
+                                  d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                                  clipRule="evenodd"
+                                />
+                              </svg>
+                              Pokračovať?
+                            </p>
                           </div>
-                          <div className="flex gap-2 justify-end">
-                            <Button variant="outline" onClick={cancelProductionSwitch}>
+                          <div className="flex gap-3 justify-end pt-2">
+                            <Button
+                              variant="outline"
+                              onClick={cancelProductionSwitch}
+                              className="rounded-xl bg-transparent"
+                            >
                               Zrušiť
                             </Button>
-                            <Button onClick={confirmProductionSwitch} className="bg-red-600 hover:bg-red-700">
+                            <Button
+                              onClick={confirmProductionSwitch}
+                              className="bg-red-600 hover:bg-red-700 rounded-xl"
+                            >
                               Áno, pokračovať
                             </Button>
                           </div>
@@ -1977,20 +2011,22 @@ const Home: FunctionComponent = () => {
                       </DialogContent>
                     </Dialog>
 
-                    <CardContent className="space-y-6">
-                      <div className="space-y-2">
+                    {/* Form Fields */}
+                    <div className="space-y-6">
+                      {/* XML Auth Data Upload */}
+                      <div className="space-y-3">
                         <TooltipProvider>
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <Label
                                 htmlFor="xmlAuthData"
-                                className="text-sm font-medium text-gray-700 flex items-center gap-1 cursor-help"
+                                className="text-sm font-semibold text-gray-800 flex items-center gap-2 cursor-help"
                               >
                                 Autentifikačné údaje (XML súbor)
-                                <Info className="h-3 w-3 text-gray-400" />
+                                <Info className="h-4 w-4 text-blue-500" />
                               </Label>
                             </TooltipTrigger>
-                            <TooltipContent>
+                            <TooltipContent className="max-w-xs">
                               <p>
                                 Autentifikačné údajte vo forme XML súboru nájdete v e-kasa zóne na portály finančnej
                                 správy.
@@ -1998,33 +2034,36 @@ const Home: FunctionComponent = () => {
                             </TooltipContent>
                           </Tooltip>
                         </TooltipProvider>
-                        <div className="relative">
+                        <div className={`file-upload-zone ${files.xmlAuthData ? "has-file" : ""}`}>
                           <Input
                             id="xmlAuthData"
                             type="file"
                             accept=".xml"
                             onChange={handleP12Upload}
-                            className="w-full h-12 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                            className="border-0 bg-transparent focus:ring-0 focus:outline-none cursor-pointer"
                           />
                           {files.xmlAuthData && (
-                            <CheckCircle className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-green-500" />
+                            <div className="absolute right-3 top-1/2 -translate-y-1/2 bg-green-500 rounded-full p-1">
+                              <CheckCircle className="h-5 w-5 text-white" />
+                            </div>
                           )}
                         </div>
                       </div>
 
-                      <div className="space-y-2">
+                      {/* Password Field */}
+                      <div className="space-y-3">
                         <TooltipProvider>
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <Label
                                 htmlFor="xmlPassword"
-                                className="text-sm font-medium text-gray-700 flex items-center gap-1 cursor-help"
+                                className="text-sm font-semibold text-gray-800 flex items-center gap-2 cursor-help"
                               >
                                 Heslo
-                                <Info className="h-3 w-3 text-gray-400" />
+                                <Info className="h-4 w-4 text-blue-500" />
                               </Label>
                             </TooltipTrigger>
-                            <TooltipContent>
+                            <TooltipContent className="max-w-xs">
                               <p>Toto heslo ste zadávali pri prvotnom vytváraní autentifikačných údajov do e-kasy.</p>
                             </TooltipContent>
                           </Tooltip>
@@ -2036,27 +2075,30 @@ const Home: FunctionComponent = () => {
                             value={files.xmlPassword}
                             onChange={(e) => setFiles((prev) => ({ ...prev, xmlPassword: e.target.value }))}
                             placeholder="Zadajte heslo"
-                            className="w-full h-12 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                            className="input-modern"
                           />
                           {files.xmlPassword && (
-                            <CheckCircle className="absolute right-10 top-1/2 -translate-y-1/2 h-5 w-5 text-green-500" />
+                            <div className="absolute right-4 top-1/2 -translate-y-1/2 bg-green-500 rounded-full p-1">
+                              <CheckCircle className="h-5 w-5 text-white" />
+                            </div>
                           )}
                         </div>
                       </div>
 
-                      <div className="space-y-2">
+                      {/* IBAN Field */}
+                      <div className="space-y-3">
                         <TooltipProvider>
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <Label
                                 htmlFor="userIban"
-                                className="text-sm font-medium text-gray-700 flex items-center gap-1 cursor-help"
+                                className="text-sm font-semibold text-gray-800 flex items-center gap-2 cursor-help"
                               >
                                 IBAN
-                                <Info className="h-3 w-3 text-gray-400" />
+                                <Info className="h-4 w-4 text-blue-500" />
                               </Label>
                             </TooltipTrigger>
-                            <TooltipContent>
+                            <TooltipContent className="max-w-xs">
                               <p>
                                 Zadajte Váš podnikateľský bankový účet, ktorý ste si označili v banke ako notifikačný
                               </p>
@@ -2065,32 +2107,35 @@ const Home: FunctionComponent = () => {
                         </TooltipProvider>
                         <div className="relative">
                           <Input
-                            id="iban"
+                            id="userIban"
                             type="text"
                             placeholder="SK00 0000 0000 0000 0000 0000"
                             value={userIban}
                             onChange={handleIbanChange}
-                            className="w-full h-12 font-mono tracking-wider border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                            className="input-modern tracking-widest"
                           />
                           {userIban && isValidIbanFormat(userIban) && (
-                            <CheckCircle className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-green-500" />
+                            <div className="absolute right-4 top-1/2 -translate-y-1/2 bg-green-500 rounded-full p-1">
+                              <CheckCircle className="h-5 w-5 text-white" />
+                            </div>
                           )}
                         </div>
                       </div>
 
-                      <div className="space-y-2">
+                      {/* Merchant Account Name Field */}
+                      <div className="space-y-3">
                         <TooltipProvider>
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <Label
                                 htmlFor="merchantAccountName"
-                                className="text-sm font-medium text-gray-700 flex items-center gap-1 cursor-help"
+                                className="text-sm font-semibold text-gray-800 flex items-center gap-2 cursor-help"
                               >
                                 Názov bankového účtu obchodníka
-                                <Info className="h-3 w-3 text-gray-400" />
+                                <Info className="h-4 w-4 text-blue-500" />
                               </Label>
                             </TooltipTrigger>
-                            <TooltipContent>
+                            <TooltipContent className="max-w-xs">
                               <p>Zadajte názov Vášho bankového účtu, ktorý sa zobrazí na platobnom príkaze</p>
                             </TooltipContent>
                           </Tooltip>
@@ -2102,77 +2147,85 @@ const Home: FunctionComponent = () => {
                             placeholder="Názov obchodníka"
                             value={merchantAccountName}
                             onChange={(e) => setMerchantAccountName(e.target.value)}
-                            className="w-full h-12 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                            className="input-modern"
                           />
                           {merchantAccountName && (
-                            <CheckCircle className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-green-500" />
+                            <div className="absolute right-4 top-1/2 -translate-y-1/2 bg-green-500 rounded-full p-1">
+                              <CheckCircle className="h-5 w-5 text-white" />
+                            </div>
                           )}
                         </div>
                       </div>
 
+                      {/* Submit Button */}
                       <Button
                         onClick={handleSaveConfiguration}
                         disabled={!canSaveConfiguration || savingConfiguration}
-                        className={`w-full h-12 font-medium text-base transition-colors ${
+                        className={`button-modern w-full font-bold py-3 rounded-xl transition-all duration-300 ${
                           !canSaveConfiguration || savingConfiguration
                             ? "bg-gray-400 text-gray-800 cursor-not-allowed"
-                            : "bg-blue-600 hover:bg-blue-700 text-white"
+                            : "bg-gradient-to-br from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800 text-white shadow-lg shadow-blue-500/50"
                         }`}
                       >
                         {savingConfiguration ? (
                           <div className="flex items-center gap-2">
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                            Prihlasuje sa...
+                            <Loader2 className="h-5 w-5 animate-spin" />
+                            Prihlasovanie...
                           </div>
                         ) : (
                           "Prihlásiť sa"
                         )}
                       </Button>
 
+                      {/* Error Alert */}
                       {error && (
-                        <Alert variant="destructive" className="mt-4">
-                          <XCircle className="h-4 w-4" />
+                        <Alert variant="destructive" className="mt-4 rounded-xl shadow-md">
+                          <XCircle className="h-5 w-5" />
                           <AlertDescription className="text-sm">{error}</AlertDescription>
                         </Alert>
                       )}
 
+                      {/* Success Message */}
                       {configurationSaved && (
-                        <div className="text-center">
-                          <p className="text-sm text-green-600 flex items-center justify-center gap-2">
-                            <CheckCircle className="h-4 w-4" />
-                            Úspešne prihlásený
+                        <div className="text-center mt-4 p-3 bg-green-100 border border-green-300 text-green-800 rounded-xl shadow-sm">
+                          <p className="flex items-center justify-center gap-2">
+                            <CheckCircle className="h-5 w-5 flex-shrink-0" />
+                            <span className="font-medium">Úspešne prihlásený</span>
                           </p>
                         </div>
                       )}
 
-                      <div className="text-center pt-6 border-t border-gray-200">
-                        <p className="text-sm text-gray-600 mb-3">Potrebujete XML autentifikačné údaje a heslo?</p>
+                      {/* Download Link */}
+                      <div className="text-center pt-6 border-t border-gray-700/20">
+                        <p className="text-xs text-gray-500 mb-3">Potrebujete XML autentifikačné údaje a heslo?</p>
                         <a
                           href="/download"
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 hover:underline transition-colors font-medium"
+                          className="inline-flex items-center gap-2 text-sm text-blue-400 hover:text-blue-300 transition-colors font-medium"
                         >
                           <span>Získať autentifikačné údaje</span>
                           <ExternalLink className="h-4 w-4" />
                         </a>
                       </div>
 
-                      <div className="text-center pt-4 mt-4 border-t border-gray-200">
+                      {/* GitHub Link */}
+                      <div className="text-center pt-4 mt-4 border-t border-gray-700/20">
                         <a
                           href="https://github.com/spavlovic77/v0-nop-web-test-client"
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-2 text-xs text-gray-500 hover:text-gray-700 transition-colors"
+                          className="inline-flex items-center gap-2 text-xs text-gray-500 hover:text-gray-400 transition-colors"
                         >
                           <Github className="h-3 w-3" />
                           <span>Zdrojové kódy - skopíruj a vytvor si vlastný QR Terminál</span>
                         </a>
                       </div>
-                    </CardContent>
-                  </Card>
+                    </div>
+                  </div>
                 </div>
               </div>
+              // </CHANGE>
             )}
 
             {allRequiredFieldsComplete && !certificateSectionCollapsed && (
