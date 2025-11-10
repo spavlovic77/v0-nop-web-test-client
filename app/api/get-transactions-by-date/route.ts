@@ -32,21 +32,32 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json()
-    const { date, pokladnica } = body
+    const { date, pokladnica, timezoneOffset } = body
 
-    console.log("[v0] Request received:", { date, pokladnica })
+    console.log("[v0] Request received:", { date, pokladnica, timezoneOffset })
 
     if (!date || !pokladnica) {
       return NextResponse.json({ error: "Date and pokladnica are required" }, { status: 400 })
     }
 
-    // Parse the date and create UTC range for the user's selected day
-    const userDate = new Date(date)
-    const startOfDay = new Date(userDate.setHours(0, 0, 0, 0))
-    const endOfDay = new Date(userDate.setHours(23, 59, 59, 999))
+    // timezoneOffset is in minutes (e.g., -60 for CET which is UTC+1)
+    // We need to convert the date string to UTC timestamps that represent
+    // the start and end of the day in the user's local timezone
 
-    const startDate = startOfDay.toISOString()
-    const endDate = endOfDay.toISOString()
+    const [year, month, day] = date.split("-").map(Number)
+
+    // Create date in UTC representing the user's local midnight
+    // If user is in CET (UTC+1, offset=-60), and selects 2025-11-11,
+    // we want 2025-11-10T23:00:00.000Z (which is 2025-11-11 00:00 CET)
+    const offsetMs = (timezoneOffset || 0) * 60 * 1000
+    const userMidnight = new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0))
+
+    // Adjust for timezone: subtract offset to get UTC time of user's midnight
+    const startOfDayUTC = new Date(userMidnight.getTime() - offsetMs)
+    const endOfDayUTC = new Date(startOfDayUTC.getTime() + 24 * 60 * 60 * 1000 - 1)
+
+    const startDate = startOfDayUTC.toISOString()
+    const endDate = endOfDayUTC.toISOString()
 
     console.log("[v0] Querying range:", { startDate, endDate, pokladnica })
 

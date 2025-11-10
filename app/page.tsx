@@ -1706,12 +1706,16 @@ const Home: FunctionComponent = () => {
     console.log("[v0] handleTransactionDateSelect called with date:", date)
     console.log("[v0] Pokladnica:", certificateInfo.pokladnica)
 
+    // Get user's timezone offset in minutes
+    const timezoneOffset = new Date().getTimezoneOffset()
+
     fetch("/api/get-transactions-by-date", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        date: date, // Use the parameter, not the state
+        date: date,
         pokladnica: certificateInfo.pokladnica,
+        timezoneOffset: timezoneOffset, // Send timezone offset
       }),
     })
       .then((res) => {
