@@ -163,7 +163,7 @@ export default function ConfirmationPage() {
 
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Dátum a čas vytvorenia v externom systéme</p>
-                <p className="text-base">{new Date(transaction.created_at).toLocaleString("sk-SK")}</p>
+                <p className="text-base">{new Date(transaction.response_timestamp).toLocaleString("sk-SK")}</p>
               </div>
 
               <div>
