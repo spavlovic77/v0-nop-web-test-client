@@ -1748,9 +1748,18 @@ const Home: FunctionComponent = () => {
     setShowTransactionDateModal(false)
     setTransactionListLoading(true)
 
+    console.log("[v0] === FRONTEND TRANSACTION FETCH ===")
+    console.log("[v0] Selected date:", selectedTransactionDate)
+    console.log("[v0] Pokladnica:", certificateInfo.pokladnica)
+    console.log("[v0] Is Production:", isProductionMode)
+
     const userDate = new Date(selectedTransactionDate)
     const startOfDay = new Date(userDate.setHours(0, 0, 0, 0))
     const endOfDay = new Date(userDate.setHours(23, 59, 59, 999))
+
+    console.log("[v0] Date range being sent:")
+    console.log("[v0]   Start:", startOfDay.toISOString())
+    console.log("[v0]   End:", endOfDay.toISOString())
 
     fetch("/api/get-transactions-by-date", {
       method: "POST",
@@ -1780,6 +1789,7 @@ const Home: FunctionComponent = () => {
       .then((data) => {
         if (data) {
           console.log("[v0] Fetched transaction list data:", data.transactions)
+          console.log("[v0] Number of transactions:", data.transactions?.length || 0)
           setTransactionListData(data.transactions || [])
           setShowTransactionListModal(true)
         }
