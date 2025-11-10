@@ -331,15 +331,22 @@
 }
 
 @media (max-width: 640px) {
-  /* Add padding and margin to mobile login card */
+  /* Enhanced mobile login card to prevent clipping and improve layout */
+  .login-container {
+    padding: 0;
+    align-items: flex-start;
+    padding-top: 2rem;
+  }
+
   .login-card {
-    margin: 1rem;
-    padding: 1.5rem !important;
+    margin: 0 !important;
+    padding: 1.25rem !important;
     border-radius: 1rem;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     border: 1px solid #e5e7eb;
     background: white;
-    width: calc(100vw - 2rem);
+    width: 100%;
+    max-width: 100%;
     backdrop-filter: none;
   }
 
@@ -351,5 +358,23 @@
   .input-modern {
     height: 3rem;
     font-size: 16px; /* Prevents zoom on iOS */
+  }
+
+  /* Ensure all form elements fit within mobile viewport */
+  .file-upload-zone {
+    padding: 0.5rem;
+    font-size: 0.875rem;
+  }
+
+  .env-badge {
+    padding: 0.75rem 1rem !important;
+  }
+
+  .env-badge p {
+    font-size: 0.875rem;
+  }
+
+  .env-badge p.text-xs {
+    font-size: 0.75rem;
   }
 }
