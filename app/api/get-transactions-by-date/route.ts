@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
     const userMidnight = new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0))
 
     // Adjust for timezone: subtract offset to get UTC time of user's midnight
-    const startOfDayUTC = new Date(userMidnight.getTime() - offsetMs)
+    const startOfDayUTC = new Date(userMidnight.getTime() + offsetMs)
     const endOfDayUTC = new Date(startOfDayUTC.getTime() + 24 * 60 * 60 * 1000 - 1)
 
     const startDate = startOfDayUTC.toISOString()
