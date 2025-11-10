@@ -1703,15 +1703,19 @@ const Home: FunctionComponent = () => {
     setShowTransactionDateModal(false)
     setTransactionListLoading(true)
 
+    console.log("[v0] handleTransactionDateSelect called with date:", date)
+    console.log("[v0] Pokladnica:", certificateInfo.pokladnica)
+
     fetch("/api/get-transactions-by-date", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        date: selectedTransactionDate,
+        date: date, // Use the parameter, not the state
         pokladnica: certificateInfo.pokladnica,
       }),
     })
       .then((res) => {
+        console.log("[v0] Response status:", res.status)
         if (res.status === 429) {
           res.json().then((data) => {
             console.log("[v0] Rate limit exceeded:", data)
@@ -1727,7 +1731,10 @@ const Home: FunctionComponent = () => {
         return res.json()
       })
       .then((data) => {
+        console.log("[v0] Received data:", data)
+        console.log("[v0] Transactions count:", data.transactions?.length || 0)
         setTransactionListData(data.transactions || [])
+        setShowTransactionListModal(true)
       })
       .catch((error) => {
         console.error("[v0] Error fetching transactions:", error)
@@ -1947,8 +1954,8 @@ const Home: FunctionComponent = () => {
           <div className="max-w-4xl mx-auto p-4 pb-24 space-y-6">
             {!allRequiredFieldsComplete && (
               <div className="login-container">
-                <div className="w-full max-w-lg md:px-4">
-                  <div className="login-card p-6 md:p-10 md:rounded-3xl rounded-none">
+                <div className="w-full md:max-w-lg md:px-4">
+                  <div className="login-card p-6 md:p-10">
                     {/* Header Section */}
                     <div className="text-center mb-8">
                       <div className="inline-block p-3 bg-blue-100 rounded-full mb-4">

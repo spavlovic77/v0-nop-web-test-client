@@ -331,9 +331,20 @@
 }
 
 @media (max-width: 640px) {
+  /* Remove all shadows, borders, and make full width on mobile */
   .login-card {
-    margin: 1rem;
-    border-radius: 20px;
+    margin: 0;
+    border-radius: 0;
+    box-shadow: none;
+    border: none;
+    background: white;
+    width: 100vw;
+    backdrop-filter: none;
+  }
+
+  .login-card:hover {
+    transform: none;
+    box-shadow: none;
   }
 
   .input-modern {
