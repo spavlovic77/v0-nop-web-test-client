@@ -2,6 +2,9 @@ import { type NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 import { rateLimit, getClientIp } from "@/lib/rate-limit"
 
+export const runtime = "nodejs"
+export const dynamic = "force-dynamic"
+
 export async function POST(request: NextRequest) {
   const clientIP = getClientIp(request)
   const rateLimitResult = rateLimit("/api/update-dispute", clientIP, 2, 60000)
@@ -30,6 +33,8 @@ export async function POST(request: NextRequest) {
   try {
     const { transactionId } = await request.json()
 
+    console.log("[v0] Update dispute request received for transaction:", transactionId)
+
     if (!transactionId) {
       return NextResponse.json({ error: "Transaction ID is required" }, { status: 400 })
     }
@@ -50,9 +55,11 @@ export async function POST(request: NextRequest) {
     }
 
     if (!data || data.length === 0) {
+      console.log("[v0] Transaction not found:", transactionId)
       return NextResponse.json({ error: "Transaction not found" }, { status: 404 })
     }
 
+    console.log("[v0] Dispute flag updated successfully for:", transactionId)
     return NextResponse.json({ success: true, data: data[0] })
   } catch (error: any) {
     console.error("[v0] Error in update-dispute:", error)
