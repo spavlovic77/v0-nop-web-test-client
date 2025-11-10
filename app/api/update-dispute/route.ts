@@ -39,9 +39,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Transaction ID is required" }, { status: 400 })
     }
 
-    // Create Supabase client with service role key to bypass RLS
     const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 
+    // Debug: Show sample transactions
     const { data: allTransactions } = await supabase
       .from("transaction_generations")
       .select("transaction_id, id")
