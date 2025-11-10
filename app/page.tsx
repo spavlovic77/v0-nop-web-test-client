@@ -214,6 +214,9 @@ const Home: FunctionComponent = () => {
   }, [])
 
   const handleProductionToggle = (checked: boolean) => {
+    console.log("[v0] handleProductionToggle called with checked:", checked)
+    console.log("[v0] Current isProductionMode:", isProductionMode)
+
     if (checked) {
       // Switching to production - show confirmation
       setShowProductionConfirmModal(true)
@@ -1925,7 +1928,9 @@ const Home: FunctionComponent = () => {
                   <Card className="shadow-lg border-0 bg-white/95 backdrop-blur-sm">
                     <CardHeader className="text-center pb-6">
                       <CardTitle className="text-2xl font-bold text-gray-900">Prihlásenie</CardTitle>
-                      <div className="bg-yellow-100 border border-yellow-400 text-yellow-800 px-4 py-3 rounded-md mt-2">
+                      <div
+                        className={`${isProductionMode ? "bg-yellow-100 border-yellow-400 text-yellow-800" : "bg-green-100 border-green-400 text-green-800"} border px-4 py-3 rounded-md mt-2`}
+                      >
                         <div className="flex items-center justify-between gap-2">
                           <div className="flex items-center gap-2">
                             <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
@@ -1936,15 +1941,10 @@ const Home: FunctionComponent = () => {
                               />
                             </svg>
                             <span className="text-sm font-medium">
-                              {isProductionMode
-                                ? "Produkčné prostredie pripojené k bankám"
-                                : "Testovacie prostredie neprepojené s bankami"}
+                              {isProductionMode ? "Skutočné oznámenia z bánk" : "Testovacie prostredie"}
                             </span>
                           </div>
                           <div className="flex items-center gap-2">
-                            <Label htmlFor="production-toggle" className="text-sm font-medium cursor-pointer">
-                              Prepojiť
-                            </Label>
                             <Switch
                               id="production-toggle"
                               checked={isProductionMode}
@@ -1953,49 +1953,7 @@ const Home: FunctionComponent = () => {
                           </div>
                         </div>
                       </div>
-
-                      <div className="bg-gray-100 border border-gray-300 text-gray-700 px-4 py-3 rounded-md mt-2 text-xs font-mono">
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2">
-                            <span className="font-semibold">MQTT URL:</span>
-                            <span>{isProductionMode ? "mqtt.kverkom.sk" : "mqtt-i.kverkom.sk"}</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className="font-semibold">API URL:</span>
-                            <span>{isProductionMode ? "api-erp.kverkom.sk" : "api-erp-i.kverkom.sk"}</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className="font-semibold">CA Cert:</span>
-                            <span>{isProductionMode ? "PROD" : "TEST"}</span>
-                          </div>
-                        </div>
-                      </div>
                     </CardHeader>
-
-                    <Dialog open={showProductionConfirmModal} onOpenChange={setShowProductionConfirmModal}>
-                      <DialogContent>
-                        <DialogHeader>
-                          <DialogTitle>Prepnúť na produkčné prostredie?</DialogTitle>
-                        </DialogHeader>
-                        <div className="space-y-4">
-                          <p className="text-sm text-muted-foreground">
-                            Prepnutím na produkčné prostredie budete používať skutočné bankové pripojenie. Všetky
-                            transakcie budú reálne a nezvratné.
-                          </p>
-                          <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-md">
-                            <p className="text-sm font-medium">Ste si istí, že chcete pokračovať?</p>
-                          </div>
-                          <div className="flex gap-2 justify-end">
-                            <Button variant="outline" onClick={cancelProductionSwitch}>
-                              Zrušiť
-                            </Button>
-                            <Button onClick={confirmProductionSwitch} className="bg-red-600 hover:bg-red-700">
-                              Áno, prepnúť
-                            </Button>
-                          </div>
-                        </div>
-                      </DialogContent>
-                    </Dialog>
 
                     <CardContent className="space-y-6">
                       <div className="space-y-2">
