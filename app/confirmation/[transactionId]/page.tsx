@@ -155,61 +155,16 @@ export default function ConfirmationPage() {
           </CardHeader>
           <CardContent className="p-6 space-y-6">
             {/* Transaction Details */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {transaction.iban && (
-                <div className="md:col-span-2">
-                  <p className="text-sm font-medium text-muted-foreground">IBAN</p>
-                  <p className="text-base font-mono">{transaction.iban}</p>
-                </div>
-              )}
-              {transaction.amount && (
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Suma</p>
-                  <p className="text-lg font-semibold">{formatAmount(transaction.amount)}</p>
-                </div>
-              )}
+            <div className="space-y-4">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">VATSK</p>
-                <p className="text-base font-mono">{transaction.vatsk}</p>
+                <p className="text-sm font-medium text-muted-foreground">Transakcia ID</p>
+                <p className="text-lg font-mono font-semibold">{transaction.transaction_id}</p>
               </div>
+
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Pokladnica</p>
-                <p className="text-base font-mono">{transaction.pokladnica}</p>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Dátum vytvorenia</p>
+                <p className="text-sm font-medium text-muted-foreground">Dátum a čas vytvorenia v externom systéme</p>
                 <p className="text-base">{new Date(transaction.created_at).toLocaleString("sk-SK")}</p>
               </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Stav</p>
-                <p className="text-base">
-                  {transaction.dispute ? (
-                    <span className="text-orange-600 font-medium">Sporná platba</span>
-                  ) : (
-                    <span className="text-green-600 font-medium">Aktívna</span>
-                  )}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Endpoint</p>
-                <p className="text-base font-mono text-sm">{transaction.endpoint}</p>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">HTTP Status</p>
-                <p className="text-base">{transaction.status_code}</p>
-              </div>
-              {transaction.duration_ms && (
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Trvanie</p>
-                  <p className="text-base">{transaction.duration_ms} ms</p>
-                </div>
-              )}
-              {transaction.client_ip && (
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">IP adresa</p>
-                  <p className="text-base font-mono">{transaction.client_ip}</p>
-                </div>
-              )}
             </div>
 
             {/* QR Code */}
