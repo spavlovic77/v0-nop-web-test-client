@@ -1537,119 +1537,6 @@ const Home: FunctionComponent = () => {
     }
   }
 
-  const handlePrintDisputedTransactions = () => {
-    const printContent = `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <meta charset="utf-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>Doklady o neoznámených úhradách - ${selectedDisputeDate}</title>
-          <style>
-            * { margin: 0; padding: 0; box-sizing: border-box; }
-            body { 
-              font-family: Arial, sans-serif; 
-              padding: 15px;
-              font-size: 12px;
-              line-height: 1.4;
-            }
-            h1 { 
-              font-size: 18px;
-              color: #333; 
-              border-bottom: 2px solid #333; 
-              padding-bottom: 8px;
-              margin-bottom: 15px;
-            }
-            p { margin-bottom: 8px; }
-            table { 
-              width: 100%; 
-              border-collapse: collapse; 
-              margin: 15px 0;
-              font-size: 11px;
-            }
-            th, td { 
-              border: 1px solid #ddd; 
-              padding: 6px 4px;
-              text-align: left;
-              word-wrap: break-word;
-            }
-            th { 
-              background-color: #f5f5f5; 
-              font-weight: bold;
-              font-size: 11px;
-            }
-            .total { 
-              font-weight: bold; 
-              background-color: #e8f4fd;
-            }
-            .verified { color: #16a34a; font-weight: bold; }
-            .failed { color: #dc2626; font-weight: bold; }
-            .pending { color: #9ca3af; }
-            .amount { text-align: right; }
-            
-            @media print {
-              body { padding: 10px; }
-              table { page-break-inside: auto; }
-              tr { page-break-inside: avoid; page-break-after: auto; }
-            }
-            
-            @media screen and (max-width: 600px) {
-              body { font-size: 11px; }
-              h1 { font-size: 16px; }
-              th, td { padding: 4px 2px; font-size: 10px; }
-            }
-          </style>
-        </head>
-        <body>
-          <h1>Doklady o neoznámených úhradách</h1>
-          <p><strong>Dátum:</strong> ${new Date(selectedDisputeDate).toLocaleDateString("sk-SK")}</p>
-          
-          <table>
-            <thead>
-              <tr>
-                <th style="width: 25%;">Čas</th>
-                <th style="width: 35%;">Transaction ID</th>
-                <th class="amount" style="width: 25%;">Suma (EUR)</th>
-                <th style="width: 15%;">Stav</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${sortedDisputeTransactions
-                .filter((t) => t.dispute === true)
-                .map((transaction) => {
-                  const status = transaction.dispute ? "Neoznámené" : "N/A"
-                  return `
-                      <tr>
-                        <td>${formatDateTime(transaction.response_timestamp)}</td>
-                        <td style="font-family: monospace; font-size: 10px; word-break: break-all;">${transaction.transaction_id || "N/A"}</td>
-                        <td class="amount">${formatAmount(transaction.amount)}</td>
-                        <td>${status}</td>
-                      </tr>
-                    `
-                })
-                .join("")}
-            </tbody>
-          </table>
-          
-          <p style="margin-top: 15px;"><strong>Vygenerované:</strong> ${new Date().toLocaleString("sk-SK")}</p>
-          <script>
-            window.onload = function() {
-              setTimeout(function() {
-                window.print();
-              }, 250);
-            };
-          </script>
-        </body>
-      </html>
-    `
-
-    const printWindow = window.open("", "_blank")
-    if (printWindow) {
-      printWindow.document.write(printContent)
-      printWindow.document.close()
-    }
-  }
-
   const printAllTransactions = () => {
     const printContent = `
       <!DOCTYPE html>
@@ -1922,6 +1809,118 @@ const Home: FunctionComponent = () => {
     }
   }
 
+  // Define printDisputedTransactions here
+  const printDisputedTransactions = () => {
+    const printContent = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Spory transakcií - ${selectedDisputeDate}</title>
+          <style>
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body { 
+              font-family: Arial, sans-serif; 
+              padding: 15px;
+              font-size: 12px;
+              line-height: 1.4;
+            }
+            h1 { 
+              font-size: 18px;
+              color: #333; 
+              border-bottom: 2px solid #333; 
+              padding-bottom: 8px;
+              margin-bottom: 15px;
+            }
+            p { margin-bottom: 8px; }
+            table { 
+              width: 100%; 
+              border-collapse: collapse; 
+              margin: 15px 0;
+              font-size: 11px;
+            }
+            th, td { 
+              border: 1px solid #ddd; 
+              padding: 6px 4px;
+              text-align: left;
+              word-wrap: break-word;
+            }
+            th { 
+              background-color: #f5f5f5; 
+              font-weight: bold;
+              font-size: 11px;
+            }
+            .total { 
+              font-weight: bold; 
+              background-color: #e8f4fd;
+            }
+            .verified { color: #16a34a; font-weight: bold; }
+            .failed { color: #dc2626; font-weight: bold; }
+            .pending { color: #9ca3af; }
+            .amount { text-align: right; }
+            
+            @media print {
+              body { padding: 10px; }
+              table { page-break-inside: auto; }
+              tr { page-break-inside: avoid; page-break-after: auto; }
+            }
+            
+            @media screen and (max-width: 600px) {
+              body { font-size: 11px; }
+              h1 { font-size: 16px; }
+              th, td { padding: 4px 2px; font-size: 10px; }
+            }
+          </style>
+        </head>
+        <body>
+          <h1>Súhrn sporov</h1>
+          <p><strong>Dátum:</strong> ${new Date(selectedDisputeDate).toLocaleDateString("sk-SK")}</p>
+          
+          <table>
+            <thead>
+              <tr>
+                <th>Čas</th>
+                <th>ID transakcie</th>
+                <th class="amount">Suma (EUR)</th>
+                <th>Stav</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${sortedDisputeTransactions
+                .filter((transaction) => transaction.dispute)
+                .map((transaction) => {
+                  return `
+                      <tr>
+                        <td>${formatDateTime(transaction.response_timestamp)}</td>
+                        <td style="font-family: monospace; font-size: 10px; word-break: break-all;">${transaction.transaction_id}</td>
+                        <td class="amount">${formatAmount(transaction.amount)}</td>
+                        <td>${transaction.dispute ? "Spor" : "OK"}</td>
+                      </tr>
+                    `
+                })
+                .join("")}
+            </tbody>
+          </table>
+          
+          <p style="margin-top: 15px;"><strong>Vygenerované:</strong> ${new Date().toLocaleString("sk-SK")}</p>
+          <script>
+            window.onload = function() {
+              setTimeout(function() {
+                window.print();
+              }, 250);
+            };
+          </script>
+        </body>
+      </html>
+    `
+    const printWindow = window.open("", "_blank")
+    if (printWindow) {
+      printWindow.document.write(printContent)
+      printWindow.document.close()
+    }
+  }
+
   return (
     <ErrorBoundary>
       <TooltipProvider>
@@ -2049,7 +2048,7 @@ const Home: FunctionComponent = () => {
                                 htmlFor="prod-check-2"
                                 className="text-sm font-medium text-gray-700 cursor-pointer group-hover:text-gray-900 transition-colors leading-relaxed flex-1"
                               >
-                                Máme podpísanú Dohodu o spolupráci s FS SR 
+                                Máme podpísanú Dohodu o spolupráci s FS SR
                                 <button
                                   type="button"
                                   onClick={copyEmailToClipboard}
@@ -2546,39 +2545,43 @@ const Home: FunctionComponent = () => {
                 <div className="flex flex-col items-end gap-2">
                   {qrCode && (
                     <>
-                      <div className="flex items-center gap-3">
-                        <span className="text-xs text-muted-foreground text-right max-w-[200px]">
-                          Simulátor úhrady. Naskenuj link kamerou.
-                        </span>
-                        <div className="bg-white p-1 rounded border flex-shrink-0">
-                          <img
-                            src={`https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${encodeURIComponent("https://scantopay.vercel.app")}`}
-                            alt="Scan to open scantopay.vercel.app"
-                            className={`w-20 h-20 object-contain transition-all duration-300 ${
-                              scanToggleActive ? "blur-none" : "blur-sm"
-                            }`}
-                          />
-                        </div>
-                      </div>
+                      {!isProductionMode && (
+                        <>
+                          <div className="flex items-center gap-3">
+                            <span className="text-xs text-muted-foreground text-right max-w-[200px]">
+                              Simulátor úhrady. Naskenuj link kamerou.
+                            </span>
+                            <div className="bg-white p-1 rounded border flex-shrink-0">
+                              <img
+                                src={`https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${encodeURIComponent("https://scantopay.vercel.app")}`}
+                                alt="Scan to open scantopay.vercel.app"
+                                className={`w-20 h-20 object-contain transition-all duration-300 ${
+                                  scanToggleActive ? "blur-none" : "blur-sm"
+                                }`}
+                              />
+                            </div>
+                          </div>
 
-                      <div className="flex items-center gap-3">
-                        <span className="text-xs text-muted-foreground">
-                          {scanToggleActive ? `Zostávajúci čas ${scanTimeRemaining}s` : "Zaostri QR kód"}
-                        </span>
-                        <button
-                          onClick={handleScanToggle}
-                          disabled={scanToggleActive}
-                          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
-                            scanToggleActive ? "bg-blue-600" : "bg-gray-200 hover:bg-gray-300"
-                          } ${scanToggleActive ? "cursor-not-allowed" : "cursor-pointer"}`}
-                        >
-                          <span
-                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                              scanToggleActive ? "translate-x-6" : "translate-x-1"
-                            }`}
-                          />
-                        </button>
-                      </div>
+                          <div className="flex items-center gap-3">
+                            <span className="text-xs text-muted-foreground">
+                              {scanToggleActive ? `Zostávajúci čas ${scanTimeRemaining}s` : "Zaostri QR kód"}
+                            </span>
+                            <button
+                              onClick={handleScanToggle}
+                              disabled={scanToggleActive}
+                              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                                scanToggleActive ? "bg-blue-600" : "bg-gray-200 hover:bg-gray-300"
+                              } ${scanToggleActive ? "cursor-not-allowed" : "cursor-pointer"}`}
+                            >
+                              <span
+                                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                                  scanToggleActive ? "translate-x-6" : "translate-x-1"
+                                }`}
+                              />
+                            </button>
+                          </div>
+                        </>
+                      )}
                     </>
                   )}
                 </div>
@@ -2786,8 +2789,12 @@ const Home: FunctionComponent = () => {
                     <Button variant="outline" onClick={() => setShowTransactionDateModal(false)} className="flex-1">
                       Zrušiť
                     </Button>
-                    <Button onClick={handlePrintTransactions} disabled={!selectedTransactionDate} className="flex-1">
-                      Vygeneruj zoznam
+                    <Button
+                      onClick={handleTransactionDateSelect}
+                      disabled={!selectedTransactionDate}
+                      className="flex-1"
+                    >
+                      Vyhľadať
                     </Button>
                   </div>
                 </div>
@@ -3014,7 +3021,7 @@ const Home: FunctionComponent = () => {
 
                 <div className="flex justify-between mt-4">
                   <Button
-                    onClick={handlePrintDisputedTransactions}
+                    onClick={printDisputedTransactions}
                     variant="outline"
                     disabled={sortedDisputeTransactions.filter((t) => t.dispute === true).length === 0}
                   >
