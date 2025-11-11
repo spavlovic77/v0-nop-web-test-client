@@ -2337,7 +2337,7 @@ const Home: FunctionComponent = () => {
                           className="inline-flex items-center gap-2 text-xs text-gray-500 hover:text-gray-400 transition-colors"
                         >
                           <Github className="h-3 w-3" />
-                          <span>Zdrojové kódy - skopíruj a vytvor si vlastný QR Terminál</span>
+                          <span>Zdrojové kódy</span>
                         </a>
                       </div>
                     </div>
