@@ -94,9 +94,9 @@ export async function POST(request: NextRequest) {
           amount: mqttData.amount,
           response_timestamp: mqttData.payload_received_at,
           dispute: true,
-          status_code: null,
-          duration_ms: null,
-          client_ip: null,
+          status_code: 0,
+          duration_ms: 0,
+          client_ip: clientIP,
         })
         .select()
 
