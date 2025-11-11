@@ -92,10 +92,11 @@ export async function POST(request: NextRequest) {
           vatsk: mqttData.vatsk,
           iban: null,
           amount: mqttData.amount,
-          currency: mqttData.currency,
           response_timestamp: mqttData.payload_received_at,
-          transaction_status: mqttData.transaction_status,
           dispute: true,
+          status_code: null,
+          duration_ms: null,
+          client_ip: null,
         })
         .select()
 
