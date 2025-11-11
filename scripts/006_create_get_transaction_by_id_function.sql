@@ -1,4 +1,6 @@
 -- Create function to get transaction by ID (for confirmation page)
+-- This function returns transaction details including response_timestamp from external system
+
 CREATE OR REPLACE FUNCTION get_transaction_by_id(
   p_transaction_id TEXT
 )
@@ -40,3 +42,5 @@ BEGIN
   LIMIT 1;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
+COMMENT ON FUNCTION get_transaction_by_id IS 'Returns transaction details by transaction_id for confirmation page display';

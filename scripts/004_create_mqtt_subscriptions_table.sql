@@ -8,7 +8,6 @@ CREATE TABLE IF NOT EXISTS mqtt_subscriptions (
   pokladnica TEXT NOT NULL,
   end_to_end_id TEXT NOT NULL,
   qos INTEGER NOT NULL DEFAULT 0,
-  -- Reverted to TIMESTAMPTZ for performance while formatting as Zulu time in queries
   timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -23,28 +22,24 @@ CREATE INDEX IF NOT EXISTS idx_mqtt_subscriptions_created_at ON mqtt_subscriptio
 ALTER TABLE mqtt_subscriptions ENABLE ROW LEVEL SECURITY;
 
 -- Create RLS policies
--- Policy: Allow anonymous users to read all mqtt subscriptions
 CREATE POLICY "Allow anonymous users to read mqtt_subscriptions"
   ON mqtt_subscriptions
   FOR SELECT
   TO anon
   USING (true);
 
--- Policy: Allow authenticated users to read all mqtt subscriptions
 CREATE POLICY "Allow authenticated users to read mqtt_subscriptions"
   ON mqtt_subscriptions
   FOR SELECT
   TO authenticated
   USING (true);
 
--- Policy: Allow authenticated users to insert mqtt subscriptions
 CREATE POLICY "Allow authenticated users to insert mqtt_subscriptions"
   ON mqtt_subscriptions
   FOR INSERT
   TO authenticated
   WITH CHECK (true);
 
--- Policy: Allow authenticated users to update mqtt subscriptions
 CREATE POLICY "Allow authenticated users to update mqtt_subscriptions"
   ON mqtt_subscriptions
   FOR UPDATE
@@ -52,14 +47,12 @@ CREATE POLICY "Allow authenticated users to update mqtt_subscriptions"
   USING (true)
   WITH CHECK (true);
 
--- Policy: Allow authenticated users to delete mqtt subscriptions
 CREATE POLICY "Allow authenticated users to delete mqtt_subscriptions"
   ON mqtt_subscriptions
   FOR DELETE
   TO authenticated
   USING (true);
 
--- Policy: Allow service role to perform all operations
 CREATE POLICY "Allow service role full access to mqtt_subscriptions"
   ON mqtt_subscriptions
   FOR ALL
@@ -67,5 +60,4 @@ CREATE POLICY "Allow service role full access to mqtt_subscriptions"
   USING (true)
   WITH CHECK (true);
 
--- Add comment to table
 COMMENT ON TABLE mqtt_subscriptions IS 'Stores MQTT subscription information for tracking active subscriptions by organization and cashier';

@@ -11,7 +11,6 @@ CREATE TABLE IF NOT EXISTS transaction_generations (
   status_code INTEGER NOT NULL,
   duration_ms INTEGER NOT NULL,
   client_ip TEXT,
-  -- Reverted to TIMESTAMPTZ for performance while formatting as Zulu time in queries
   response_timestamp TIMESTAMPTZ,
   dispute BOOLEAN DEFAULT false,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -23,33 +22,30 @@ CREATE INDEX IF NOT EXISTS idx_transaction_generations_vatsk ON transaction_gene
 CREATE INDEX IF NOT EXISTS idx_transaction_generations_pokladnica ON transaction_generations(pokladnica);
 CREATE INDEX IF NOT EXISTS idx_transaction_generations_created_at ON transaction_generations(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_transaction_generations_dispute ON transaction_generations(dispute);
+CREATE INDEX IF NOT EXISTS idx_transaction_generations_response_timestamp ON transaction_generations(response_timestamp DESC);
 
 -- Enable Row Level Security
 ALTER TABLE transaction_generations ENABLE ROW LEVEL SECURITY;
 
 -- Create RLS policies
--- Policy: Allow anonymous users to read all transaction generations
 CREATE POLICY "Allow anonymous users to read transaction_generations"
   ON transaction_generations
   FOR SELECT
   TO anon
   USING (true);
 
--- Policy: Allow authenticated users to read all transaction generations
 CREATE POLICY "Allow authenticated users to read transaction_generations"
   ON transaction_generations
   FOR SELECT
   TO authenticated
   USING (true);
 
--- Policy: Allow authenticated users to insert transaction generations
 CREATE POLICY "Allow authenticated users to insert transaction_generations"
   ON transaction_generations
   FOR INSERT
   TO authenticated
   WITH CHECK (true);
 
--- Policy: Allow authenticated users to update transaction generations
 CREATE POLICY "Allow authenticated users to update transaction_generations"
   ON transaction_generations
   FOR UPDATE
@@ -57,7 +53,6 @@ CREATE POLICY "Allow authenticated users to update transaction_generations"
   USING (true)
   WITH CHECK (true);
 
--- Policy: Allow service role to perform all operations
 CREATE POLICY "Allow service role full access to transaction_generations"
   ON transaction_generations
   FOR ALL
@@ -65,5 +60,4 @@ CREATE POLICY "Allow service role full access to transaction_generations"
   USING (true)
   WITH CHECK (true);
 
--- Add comment to table
 COMMENT ON TABLE transaction_generations IS 'Stores transaction generation requests with metadata including VATSK, POKLADNICA, IBAN, amount, and response details';
