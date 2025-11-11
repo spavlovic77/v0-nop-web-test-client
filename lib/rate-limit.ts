@@ -38,7 +38,7 @@ setInterval(
  * @param windowMs - Time window in milliseconds (default: 60000 = 1 minute)
  * @returns RateLimitResult with success status and metadata
  */
-export function rateLimit(route: string, ip: string, limit = 2, windowMs = 60000): RateLimitResult {
+export function rateLimit(route: string, ip: string, limit = 5, windowMs = 60000): RateLimitResult {
   const now = Date.now()
   const key = `${route}:${ip}`
 
