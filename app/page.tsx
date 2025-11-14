@@ -171,6 +171,9 @@ const Home: FunctionComponent = () => {
     pokladnica: null,
   })
 
+  // </CHANGE> Added logout confirmation modal state
+  const [showLogoutConfirmModal, setShowLogoutConfirmModal] = useState(false)
+
   const [configurationSaved, setConfigurationSaved] = useState(false)
   const [savingConfiguration, setSavingConfiguration] = useState(false)
 
@@ -186,6 +189,9 @@ const Home: FunctionComponent = () => {
 
   const [showRateLimitModal, setShowRateLimitModal] = useState(false)
   const [rateLimitRetryAfter, setRateLimitRetryAfter] = useState(0)
+
+  const [certificateDetailsExpanded, setCertificateDetailsExpanded] = useState(false)
+
 
   useEffect(() => {
     const savedMode = localStorage.getItem("productionMode")
@@ -1271,7 +1277,7 @@ const Home: FunctionComponent = () => {
     if (!selectedDisputeDate || !certificateInfo?.pokladnica) return
 
     setShowDisputeDateModal(false)
-    setTransactionListLoading(true)
+    setDisputeListLoading(true)
     setShowTransactionListModal(true) // Show modal with loading state
 
     console.log("[v0] handleTransactionDateSelect called with date:", selectedDisputeDate)
@@ -1778,8 +1784,6 @@ const Home: FunctionComponent = () => {
           setRateLimitRetryAfter(data.retryAfter || 60)
           setShowRateLimitModal(true)
           setTransactionListLoading(false)
-          setShowQrModal(false)
-          setQrLoading(false)
           setShowTransactionListModal(false)
           return null
         }
@@ -2828,7 +2832,7 @@ const Home: FunctionComponent = () => {
                   {transactionListLoading ? (
                     <div className="flex items-center justify-center py-8">
                       <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
-                      <span className="ml-2">Načítavam platby...</span>
+                      <span className="ml-2">Načítavam transakcie...</span>
                     </div>
                   ) : transactionListData.length > 0 ? (
                     <div className="space-y-4">
@@ -3048,6 +3052,37 @@ const Home: FunctionComponent = () => {
             </Dialog>
           </div>
 
+          {/* Logout Confirmation Modal */}
+          <Dialog open={showLogoutConfirmModal} onOpenChange={setShowLogoutConfirmModal}>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <LogOut className="h-5 w-5" />
+                  Odhlásenie
+                </DialogTitle>
+              </DialogHeader>
+              <div className="py-4">
+                <p className="text-center text-muted-foreground">
+                  Naozaj sa chcete odhlásiť?
+                </p>
+              </div>
+              <div className="flex gap-3 justify-end">
+                <Button variant="outline" onClick={() => setShowLogoutConfirmModal(false)}>
+                  Zrušiť
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={() => {
+                    setShowLogoutConfirmModal(false)
+                    window.location.reload()
+                  }}
+                >
+                  Odhlásiť
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+
           {allRequiredFieldsComplete && (
             <footer className="fixed bottom-0 left-1/2 transform -translate-x-1/2 z-50">
               <div className="w-full max-w-md bg-background/95 backdrop-blur-sm border-t px-6 py-4">
@@ -3097,7 +3132,7 @@ const Home: FunctionComponent = () => {
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => window.location.reload()}
+                    onClick={() => setShowLogoutConfirmModal(true)}
                     className="p-3 mx-1"
                     title="Log out"
                   >
