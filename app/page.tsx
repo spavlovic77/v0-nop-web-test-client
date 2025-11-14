@@ -1385,8 +1385,8 @@ const Home: FunctionComponent = () => {
     let comparison = 0
 
     if (disputeSortField === "time") {
-      const timeA = a.response_timestamp ? new Date(a.response_timestamp).getTime() : 0
-      const timeB = b.response_timestamp ? new Date(b.response_timestamp).getTime() : 0
+      const timeA = a.created_at ? new Date(a.created_at).getTime() : 0
+      const timeB = b.created_at ? new Date(b.created_at).getTime() : 0
       comparison = timeA - timeB
     } else if (disputeSortField === "amount") {
       const amountA = typeof a.amount === "string" ? Number.parseFloat(a.amount) : a.amount || 0
@@ -1831,79 +1831,30 @@ const Home: FunctionComponent = () => {
     }
   }
 
-  // Define printDisputedTransactions here
   const printDisputedTransactions = () => {
     if (isMobileDevice()) {
       setShowMobilePrintWarningModal(true)
       return
     }
 
-    const printContent = `
+    const htmlContent = `
       <!DOCTYPE html>
       <html>
         <head>
-          <meta charset="utf-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>Spory transakcií - ${selectedDisputeDate}</title>
+          <meta charset="UTF-8">
+          <title>Zoznam sporov - Tlač</title>
           <style>
-            * { margin: 0; padding: 0; box-sizing: border-box; }
-            body { 
-              font-family: Arial, sans-serif; 
-              padding: 15px;
-              font-size: 12px;
-              line-height: 1.4;
-            }
-            h1 { 
-              font-size: 18px;
-              color: #333; 
-              border-bottom: 2px solid #333; 
-              padding-bottom: 8px;
-              margin-bottom: 15px;
-            }
-            p { margin-bottom: 8px; }
-            table { 
-              width: 100%; 
-              border-collapse: collapse; 
-              margin: 15px 0;
-              font-size: 11px;
-            }
-            th, td { 
-              border: 1px solid #ddd; 
-              padding: 6px 4px;
-              text-align: left;
-              word-wrap: break-word;
-            }
-            th { 
-              background-color: #f5f5f5; 
-              font-weight: bold;
-              font-size: 11px;
-            }
-            .total { 
-              font-weight: bold; 
-              background-color: #e8f4fd;
-            }
-            .verified { color: #16a34a; font-weight: bold; }
-            .failed { color: #dc2626; font-weight: bold; }
-            .pending { color: #9ca3af; }
+            @page { size: A4; margin: 20mm; }
+            body { font-family: Arial, sans-serif; font-size: 12px; }
+            h1 { text-align: center; margin-bottom: 20px; }
+            table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+            th, td { border: 1px solid #000; padding: 8px; text-align: left; }
+            th { background-color: #f0f0f0; font-weight: bold; }
             .amount { text-align: right; }
-            
-            @media print {
-              body { padding: 10px; }
-              table { page-break-inside: auto; }
-              tr { page-break-inside: avoid; page-break-after: auto; }
-            }
-            
-            @media screen and (max-width: 600px) {
-              body { font-size: 11px; }
-              h1 { font-size: 16px; }
-              th, td { padding: 4px 2px; font-size: 10px; }
-            }
           </style>
         </head>
         <body>
-          <h1>Súhrn sporov</h1>
-          <p><strong>Dátum:</strong> ${new Date(selectedDisputeDate).toLocaleDateString("sk-SK")}</p>
-          
+          <h1>Zoznam sporov - ${selectedDisputeDate}</h1>
           <table>
             <thead>
               <tr>
@@ -1919,7 +1870,7 @@ const Home: FunctionComponent = () => {
                 .map((transaction) => {
                   return `
                       <tr>
-                        <td>${formatDateTime(transaction.response_timestamp)}</td>
+                        <td>${formatDateTime(transaction.created_at)}</td>
                         <td style="font-family: monospace; font-size: 10px; word-break: break-all;">${transaction.transaction_id}</td>
                         <td class="amount">${formatAmount(transaction.amount)}</td>
                         <td>${transaction.dispute ? "Spor" : "OK"}</td>
@@ -1943,7 +1894,7 @@ const Home: FunctionComponent = () => {
     `
     const printWindow = window.open("", "_blank")
     if (printWindow) {
-      printWindow.document.write(printContent)
+      printWindow.document.write(htmlContent)
       printWindow.document.close()
     }
   }
@@ -2851,11 +2802,7 @@ const Home: FunctionComponent = () => {
                     <Button variant="outline" onClick={() => setShowTransactionDateModal(false)} className="flex-1">
                       Zrušiť
                     </Button>
-                    <Button
-                      onClick={() => handleTransactionDateSelect(selectedTransactionDate)}
-                      disabled={!selectedTransactionDate}
-                      className="flex-1"
-                    >
+                    <Button onClick={() => handleTransactionDateSelect(selectedTransactionDate)} disabled={!selectedTransactionDate} className="flex-1">
                       Vyhľadať
                     </Button>
                   </div>
@@ -3040,7 +2987,7 @@ const Home: FunctionComponent = () => {
                         <tbody>
                           {sortedDisputeTransactions.map((transaction) => (
                             <tr key={transaction.id} className="hover:bg-gray-50">
-                              <td className="border p-2 text-sm">{formatDateTime(transaction.response_timestamp)}</td>
+                              <td className="border p-2 text-sm">{formatDateTime(transaction.created_at)}</td>
                               <td className="border p-2 text-sm font-mono" title={transaction.transaction_id}>
                                 {truncateTransactionId(transaction.transaction_id)}
                               </td>
