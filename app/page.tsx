@@ -1742,6 +1742,7 @@ const Home: FunctionComponent = () => {
   // Define handlePrintTransactions here
   const handlePrintTransactions = () => {
     setShowTransactionDateModal(false)
+    setShowTransactionListModal(true)
     setTransactionListLoading(true)
 
     console.log("[v0] === FRONTEND TRANSACTION FETCH ===")
@@ -1772,8 +1773,6 @@ const Home: FunctionComponent = () => {
           setRateLimitRetryAfter(data.retryAfter || 60)
           setShowRateLimitModal(true)
           setTransactionListLoading(false)
-          setShowQrModal(false)
-          setQrLoading(false)
           return null
         }
 
@@ -1787,7 +1786,6 @@ const Home: FunctionComponent = () => {
           console.log("[v0] Fetched transaction list data:", data.transactions)
           console.log("[v0] Number of transactions:", data.transactions?.length || 0)
           setTransactionListData(data.transactions || [])
-          setShowTransactionListModal(true)
         }
       })
       .catch((error) => {
