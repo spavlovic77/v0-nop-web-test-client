@@ -171,7 +171,7 @@ async function saveMqttSubscriptionToDatabase(
     const topicParts = topic.split("/")
     let vatsk = null
     let pokladnica = null
-    let end_to_end_id = null
+    let transaction_id = null
 
     if (topicParts.length >= 3) {
       // Extract VATSK (remove "VATSK-" prefix)
@@ -182,17 +182,17 @@ async function saveMqttSubscriptionToDatabase(
       if (topicParts[1].startsWith("POKLADNICA-")) {
         pokladnica = topicParts[1].substring(11)
       }
-      end_to_end_id = topicParts[2] // Keep full "QR-..." format
+      transaction_id = topicParts[2] // Keep full "QR-..." format
     }
 
-    console.log("[v0] 📝 Parsed subscription topic parts:", { vatsk, pokladnica, end_to_end_id, qos })
+    console.log("[v0] 📝 Parsed subscription topic parts:", { vatsk, pokladnica, transaction_id, qos })
 
     // Prepare data for database insert
     const insertData = {
       topic,
       vatsk,
       pokladnica,
-      end_to_end_id,
+      transaction_id,
       qos,
       end_point: endpoint,
     }

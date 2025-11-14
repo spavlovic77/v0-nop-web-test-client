@@ -1,9 +1,9 @@
 -- Create function to get transactions by date, pokladnica, and environment
--- This function joins mqtt_subscriptions with transaction_generations to include dispute status
+-- This function joins mqtt_subscriptions with transaction_generations to include dispute status and amount
 -- Added LEFT JOIN with mqtt_notifications and filter to exclude transactions with payment notifications
 -- It filters by end_point (PRODUCTION or TEST) to separate environments
+-- Updated to use transaction_id consistently and added amount from transaction_generations
 
--- Fixed mqtt_notifications JOIN to use end_to_end_id instead of transaction_id
 CREATE OR REPLACE FUNCTION get_transactions_by_date(
   p_pokladnica TEXT,
   p_start_date TIMESTAMPTZ,
@@ -18,25 +18,27 @@ RETURNS TABLE (
   topic TEXT,
   created_at TIMESTAMPTZ,
   dispute BOOLEAN,
-  end_point TEXT
+  end_point TEXT,
+  amount NUMERIC(10, 2)
 ) AS $$
 BEGIN
   RETURN QUERY
   SELECT 
     ms.id,
-    ms.end_to_end_id as transaction_id,
+    ms.transaction_id,
     ms.pokladnica,
     ms.vatsk,
     ms.topic,
     ms.created_at,
     COALESCE(tg.dispute, false) as dispute,
-    ms.end_point
+    ms.end_point,
+    tg.amount
   FROM mqtt_subscriptions ms
   LEFT JOIN transaction_generations tg 
-    ON ms.end_to_end_id = tg.transaction_id 
+    ON ms.transaction_id = tg.transaction_id 
     AND tg.end_point = p_end_point
   LEFT JOIN mqtt_notifications mn 
-    ON ms.end_to_end_id = mn.end_to_end_id
+    ON ms.transaction_id = mn.end_to_end_id
     AND mn.end_point = p_end_point
   WHERE ms.pokladnica = p_pokladnica
     AND ms.created_at >= p_start_date
@@ -47,4 +49,4 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
-COMMENT ON FUNCTION get_transactions_by_date IS 'Returns transactions from mqtt_subscriptions that have no payment notification, filtered by pokladnica, date range, and environment (PRODUCTION or TEST)';
+COMMENT ON FUNCTION get_transactions_by_date IS 'Returns transactions from mqtt_subscriptions that have no payment notification, filtered by pokladnica, date range, and environment (PRODUCTION or TEST), including amount from transaction_generations';
