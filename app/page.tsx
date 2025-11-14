@@ -2,8 +2,30 @@
 
 import React from "react"
 import type { FunctionComponent } from "react"
-import { Copy, XCircle, FilePlus, Github, CheckCircle, Printer, Terminal, LogOut, User, Calendar, FileText, FileCheck, Upload, QrCode, Loader2, Info, ExternalLink, WifiOff, MoveLeft, X, Clock } from 'lucide-react' // Import Copy icon, AlertTriangle icon, FileText, Github, CheckCircle, Printer, Terminal, LogOut, User, Clock, Calendar, Check, AlertCircle
-import { Euro } from 'lucide-react' // Import Euro, Printer, Calendar icons
+import {
+  Copy,
+  XCircle,
+  FilePlus,
+  Github,
+  CheckCircle,
+  Printer,
+  Terminal,
+  LogOut,
+  User,
+  Calendar,
+  FileText,
+  FileCheck,
+  Upload,
+  QrCode,
+  Loader2,
+  Info,
+  ExternalLink,
+  WifiOff,
+  MoveLeft,
+  X,
+  Clock,
+} from "lucide-react" // Import Copy icon, AlertTriangle icon, FileText, Github, CheckCircle, Printer, Terminal, LogOut, User, Clock, Calendar, Check, AlertCircle
+import { Euro } from "lucide-react" // Import Euro, Printer, Calendar icons
 
 import { useState, useEffect, useCallback, useRef } from "react"
 import { Button } from "@/components/ui/button"
@@ -171,9 +193,6 @@ const Home: FunctionComponent = () => {
     pokladnica: null,
   })
 
-  // </CHANGE> Added logout confirmation modal state
-  const [showLogoutConfirmModal, setShowLogoutConfirmModal] = useState(false)
-
   const [configurationSaved, setConfigurationSaved] = useState(false)
   const [savingConfiguration, setSavingConfiguration] = useState(false)
 
@@ -189,9 +208,6 @@ const Home: FunctionComponent = () => {
 
   const [showRateLimitModal, setShowRateLimitModal] = useState(false)
   const [rateLimitRetryAfter, setRateLimitRetryAfter] = useState(0)
-
-  const [certificateDetailsExpanded, setCertificateDetailsExpanded] = useState(false)
-
 
   useEffect(() => {
     const savedMode = localStorage.getItem("productionMode")
@@ -1277,11 +1293,8 @@ const Home: FunctionComponent = () => {
     if (!selectedDisputeDate || !certificateInfo?.pokladnica) return
 
     setShowDisputeDateModal(false)
+    setShowDisputeListModal(true)
     setDisputeListLoading(true)
-    setShowTransactionListModal(true) // Show modal with loading state
-
-    console.log("[v0] handleTransactionDateSelect called with date:", selectedDisputeDate)
-    console.log("[v0] Pokladnica:", certificateInfo.pokladnica)
 
     try {
       const timezoneOffset = new Date().getTimezoneOffset()
@@ -1292,7 +1305,7 @@ const Home: FunctionComponent = () => {
         body: JSON.stringify({
           date: selectedDisputeDate,
           pokladnica: certificateInfo.pokladnica,
-          timezoneOffset: timezoneOffset, // Send timezone offset
+          timezoneOffset: timezoneOffset,
         }),
       })
 
@@ -1302,7 +1315,6 @@ const Home: FunctionComponent = () => {
         setRateLimitRetryAfter(data.retryAfter || 60)
         setShowRateLimitModal(true)
         setDisputeListLoading(false)
-        setShowTransactionListModal(false)
         return
       }
 
@@ -1315,7 +1327,6 @@ const Home: FunctionComponent = () => {
     } catch (error) {
       console.error("[v0] Error fetching dispute transactions:", error)
       setDisputeTransactions([])
-      setShowTransactionListModal(false)
     } finally {
       setDisputeListLoading(false)
     }
@@ -1694,7 +1705,6 @@ const Home: FunctionComponent = () => {
     setSelectedTransactionDate(date)
     setShowTransactionDateModal(false)
     setTransactionListLoading(true)
-    setShowTransactionListModal(true) // Show modal with loading state
 
     console.log("[v0] handleTransactionDateSelect called with date:", date)
     console.log("[v0] Pokladnica:", certificateInfo.pokladnica)
@@ -1719,7 +1729,6 @@ const Home: FunctionComponent = () => {
             setRateLimitRetryAfter(data.retryAfter || 60)
             setShowRateLimitModal(true)
             setTransactionListLoading(false)
-            setShowTransactionListModal(false)
           })
           throw new Error("Rate limit exceeded")
         }
@@ -1732,11 +1741,11 @@ const Home: FunctionComponent = () => {
         console.log("[v0] Received data:", data)
         console.log("[v0] Transactions count:", data.transactions?.length || 0)
         setTransactionListData(data.transactions || [])
+        setShowTransactionListModal(true)
       })
       .catch((error) => {
         console.error("[v0] Error fetching transactions:", error)
         setTransactionListData([])
-        setShowTransactionListModal(false)
       })
       .finally(() => {
         setTransactionListLoading(false)
@@ -1754,7 +1763,6 @@ const Home: FunctionComponent = () => {
   const handlePrintTransactions = () => {
     setShowTransactionDateModal(false)
     setTransactionListLoading(true)
-    setShowTransactionListModal(true) // Show modal with loading state
 
     console.log("[v0] === FRONTEND TRANSACTION FETCH ===")
     console.log("[v0] Selected date:", selectedTransactionDate)
@@ -1784,7 +1792,8 @@ const Home: FunctionComponent = () => {
           setRateLimitRetryAfter(data.retryAfter || 60)
           setShowRateLimitModal(true)
           setTransactionListLoading(false)
-          setShowTransactionListModal(false)
+          setShowQrModal(false)
+          setQrLoading(false)
           return null
         }
 
@@ -1798,12 +1807,12 @@ const Home: FunctionComponent = () => {
           console.log("[v0] Fetched transaction list data:", data.transactions)
           console.log("[v0] Number of transactions:", data.transactions?.length || 0)
           setTransactionListData(data.transactions || [])
+          setShowTransactionListModal(true)
         }
       })
       .catch((error) => {
         console.error("[v0] Error fetching transactions:", error)
         setTransactionListData([])
-        setShowTransactionListModal(false)
       })
       .finally(() => {
         setTransactionListLoading(false)
@@ -2823,7 +2832,7 @@ const Home: FunctionComponent = () => {
               <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-semibold">
-                    Zoznam transakcií -{" "}
+                    Zoznam platieb -{" "}
                     {selectedTransactionDate ? new Date(selectedTransactionDate).toLocaleDateString("sk-SK") : ""}
                   </h3>
                 </div>
@@ -2832,14 +2841,14 @@ const Home: FunctionComponent = () => {
                   {transactionListLoading ? (
                     <div className="flex items-center justify-center py-8">
                       <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
-                      <span className="ml-2">Načítavam transakcie...</span>
+                      <span className="ml-2">Načítavam platby...</span>
                     </div>
                   ) : transactionListData.length > 0 ? (
                     <div className="space-y-4">
                       <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
                         <div className="text-center">
                           <div className="text-2xl font-bold text-blue-600">{transactionListData.length}</div>
-                          <div className="text-sm text-gray-600">Transakcií</div>
+                          <div className="text-sm text-gray-600">Platieb</div>
                         </div>
                         <div className="text-center">
                           <div className="text-2xl font-bold text-green-600">
@@ -2852,7 +2861,7 @@ const Home: FunctionComponent = () => {
                   ) : (
                     <div className="text-center py-8 text-gray-500">
                       <Calendar className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                      <p>Žiadne transakcie pre vybraný dátum</p>
+                      <p>Žiadne platby pre vybraný dátum</p>
                     </div>
                   )}
                 </div>
@@ -2863,7 +2872,7 @@ const Home: FunctionComponent = () => {
                       <Printer className="h-4 w-4 mr-2" />
                       Tlačiť súhrn
                     </Button>
-                    <Button onClick={handlePrintTransactions} variant="outline" size="sm">
+                    <Button onClick={printAllTransactions} variant="outline" size="sm">
                       <Printer className="h-4 w-4 mr-2" />
                       Tlačiť všetky
                     </Button>
@@ -3052,37 +3061,6 @@ const Home: FunctionComponent = () => {
             </Dialog>
           </div>
 
-          {/* Logout Confirmation Modal */}
-          <Dialog open={showLogoutConfirmModal} onOpenChange={setShowLogoutConfirmModal}>
-            <DialogContent className="max-w-md">
-              <DialogHeader>
-                <DialogTitle className="flex items-center gap-2">
-                  <LogOut className="h-5 w-5" />
-                  Odhlásenie
-                </DialogTitle>
-              </DialogHeader>
-              <div className="py-4">
-                <p className="text-center text-muted-foreground">
-                  Naozaj sa chcete odhlásiť?
-                </p>
-              </div>
-              <div className="flex gap-3 justify-end">
-                <Button variant="outline" onClick={() => setShowLogoutConfirmModal(false)}>
-                  Zrušiť
-                </Button>
-                <Button
-                  variant="destructive"
-                  onClick={() => {
-                    setShowLogoutConfirmModal(false)
-                    window.location.reload()
-                  }}
-                >
-                  Odhlásiť
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
-
           {allRequiredFieldsComplete && (
             <footer className="fixed bottom-0 left-1/2 transform -translate-x-1/2 z-50">
               <div className="w-full max-w-md bg-background/95 backdrop-blur-sm border-t px-6 py-4">
@@ -3102,7 +3080,7 @@ const Home: FunctionComponent = () => {
                     size="sm"
                     onClick={handleTransactionListClick}
                     className="p-3 mx-1"
-                    title="Zoznam transakcií"
+                    title="Zoznam platieb"
                   >
                     <Printer className="h-5 w-5" />
                   </Button>
@@ -3132,7 +3110,7 @@ const Home: FunctionComponent = () => {
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => setShowLogoutConfirmModal(true)}
+                    onClick={() => window.location.reload()}
                     className="p-3 mx-1"
                     title="Log out"
                   >
