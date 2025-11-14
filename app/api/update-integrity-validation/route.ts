@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const { transactionId, isValid } = await request.json()
+    const { transactionId, isValid, endpoint } = await request.json()
 
     if (!transactionId || typeof isValid !== "boolean") {
       return NextResponse.json({ error: "Missing required parameters: transactionId and isValid" }, { status: 400 })
@@ -43,11 +43,16 @@ export async function POST(request: NextRequest) {
 
     const supabase = createClient(supabaseUrl, supabaseKey)
 
-    const { data, error } = await supabase
+    const queryBuilder = supabase
       .from("mqtt_notifications")
       .update({ integrity_validation: isValid })
       .eq("transaction_id", transactionId)
-      .select()
+
+    if (endpoint) {
+      queryBuilder.eq("end_point", endpoint)
+    }
+
+    const { data, error } = await queryBuilder.select()
 
     if (error) {
       console.error("[v0] Failed to update integrity validation:", error)

@@ -45,6 +45,7 @@ export async function POST(request: NextRequest) {
       .from("mqtt_notifications")
       .select("*")
       .eq("transaction_id", transactionId)
+      .eq("end_point", "TEST")
       .single()
 
     if (mqttError || !mqttData) {

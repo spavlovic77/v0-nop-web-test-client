@@ -9,7 +9,9 @@ CREATE TABLE IF NOT EXISTS mqtt_subscriptions (
   end_to_end_id TEXT NOT NULL,
   qos INTEGER NOT NULL DEFAULT 0,
   timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  -- Added end_point column to track PRODUCTION or TEST environment
+  end_point TEXT NOT NULL CHECK (end_point IN ('PRODUCTION', 'TEST'))
 );
 
 -- Create indexes for better query performance
@@ -17,6 +19,8 @@ CREATE INDEX IF NOT EXISTS idx_mqtt_subscriptions_vatsk ON mqtt_subscriptions(va
 CREATE INDEX IF NOT EXISTS idx_mqtt_subscriptions_pokladnica ON mqtt_subscriptions(pokladnica);
 CREATE INDEX IF NOT EXISTS idx_mqtt_subscriptions_end_to_end_id ON mqtt_subscriptions(end_to_end_id);
 CREATE INDEX IF NOT EXISTS idx_mqtt_subscriptions_created_at ON mqtt_subscriptions(created_at DESC);
+-- Added index for end_point filtering
+CREATE INDEX IF NOT EXISTS idx_mqtt_subscriptions_end_point ON mqtt_subscriptions(end_point);
 
 -- Enable Row Level Security
 ALTER TABLE mqtt_subscriptions ENABLE ROW LEVEL SECURITY;

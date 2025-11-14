@@ -27,6 +27,7 @@ async function getCertificateBuffer(data: File | string): Promise<Buffer> {
 async function saveMqttNotificationToDatabase(
   topic: string,
   messageStr: string,
+  endpoint: 'PRODUCTION' | 'TEST'
 ): Promise<{
   success: boolean
   error?: any
@@ -112,6 +113,7 @@ async function saveMqttNotificationToDatabase(
       integrity_hash,
       end_to_end_id,
       payload_received_at,
+      end_point: endpoint,
     }
 
     console.log("[v0] 💾 Attempting to insert data into mqtt_notifications table...")
@@ -142,6 +144,7 @@ async function saveMqttSubscriptionToDatabase(
   topic: string,
   qos: number,
   grantedAt: string,
+  endpoint: 'PRODUCTION' | 'TEST'
 ): Promise<{
   success: boolean
   error?: any
@@ -191,6 +194,7 @@ async function saveMqttSubscriptionToDatabase(
       pokladnica,
       end_to_end_id,
       qos,
+      end_point: endpoint,
     }
 
     console.log("[v0] 💾 Attempting to insert subscription data into mqtt_subscriptions table...")
@@ -255,6 +259,8 @@ export async function POST(request: NextRequest) {
 
     console.log("[v0] Production mode:", isProductionMode)
     console.log("[v0] isProductionMode raw value:", formData.get("isProductionMode"))
+
+    const endpoint: 'PRODUCTION' | 'TEST' = isProductionMode ? 'PRODUCTION' : 'TEST'
 
     if (!clientCert || !clientKey || !caCert) {
       console.log("[v0] Missing certificate files")
@@ -409,7 +415,7 @@ export async function POST(request: NextRequest) {
             communicationLog.push(`[${subTime}] ✅ Subscribed to topic with QoS ${granted[0].qos}`)
 
             // Save subscription to database
-            saveMqttSubscriptionToDatabase(mqttTopic, granted[0].qos, subTime)
+            saveMqttSubscriptionToDatabase(mqttTopic, granted[0].qos, subTime, endpoint)
               .then((dbResult) => {
                 if (dbResult.success) {
                   console.log("[v0] ✅ Subscription saved to database")
@@ -437,7 +443,7 @@ export async function POST(request: NextRequest) {
 
         // Save message to database
         try {
-          const dbResult = await saveMqttNotificationToDatabase(topic, messageStr)
+          const dbResult = await saveMqttNotificationToDatabase(topic, messageStr, endpoint)
           if (dbResult.success) {
             console.log("[v0] ✅ Message saved to database")
             communicationLog.push(`[${messageTime}] ✅ Message saved to database`)
