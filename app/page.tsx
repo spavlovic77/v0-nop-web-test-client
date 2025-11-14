@@ -1743,6 +1743,7 @@ const Home: FunctionComponent = () => {
   const handlePrintTransactions = () => {
     setShowTransactionDateModal(false)
     setTransactionListLoading(true)
+    setShowTransactionListModal(true) // Show modal immediately with loading state
 
     console.log("[v0] === FRONTEND TRANSACTION FETCH ===")
     console.log("[v0] Selected date:", selectedTransactionDate)
@@ -1772,8 +1773,7 @@ const Home: FunctionComponent = () => {
           setRateLimitRetryAfter(data.retryAfter || 60)
           setShowRateLimitModal(true)
           setTransactionListLoading(false)
-          setShowQrModal(false)
-          setQrLoading(false)
+          setShowTransactionListModal(false) // Close modal on rate limit error
           return null
         }
 
@@ -1787,12 +1787,12 @@ const Home: FunctionComponent = () => {
           console.log("[v0] Fetched transaction list data:", data.transactions)
           console.log("[v0] Number of transactions:", data.transactions?.length || 0)
           setTransactionListData(data.transactions || [])
-          setShowTransactionListModal(true)
         }
       })
       .catch((error) => {
         console.error("[v0] Error fetching transactions:", error)
         setTransactionListData([])
+        setShowTransactionListModal(false) // Close modal on error
       })
       .finally(() => {
         setTransactionListLoading(false)

@@ -34,11 +34,11 @@ setInterval(
  * Rate limiter function
  * @param route - The API route path (e.g., "/api/generate-transaction")
  * @param ip - Client IP address
- * @param limit - Maximum number of requests allowed per window (default: 2)
+ * @param limit - Maximum number of requests allowed per window (default: 10)
  * @param windowMs - Time window in milliseconds (default: 60000 = 1 minute)
  * @returns RateLimitResult with success status and metadata
  */
-export function rateLimit(route: string, ip: string, limit = 5, windowMs = 60000): RateLimitResult {
+export function rateLimit(route: string, ip: string, limit = 10, windowMs = 60000): RateLimitResult {
   const now = Date.now()
   const key = `${route}:${ip}`
 
