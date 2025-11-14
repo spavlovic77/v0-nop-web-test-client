@@ -1,5 +1,5 @@
 -- Create function to get transaction by ID (for confirmation page)
--- Returns end_point instead of status_code and duration_ms
+-- Returns end_point field, using consistent transaction_id
 
 CREATE OR REPLACE FUNCTION get_transaction_by_id(
   p_transaction_id TEXT
@@ -33,12 +33,12 @@ BEGIN
     tg.client_ip,
     tg.dispute,
     tg.end_point,
-    'https://test.finstat.sk/eKasa/Client/v1/qrpayment/request'::TEXT as endpoint,
-    'POST'::TEXT as method
+    tg.endpoint,
+    tg.method
   FROM transaction_generations tg
   WHERE tg.transaction_id = p_transaction_id
   LIMIT 1;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
-COMMENT ON FUNCTION get_transaction_by_id IS 'Returns transaction details by transaction_id for confirmation page display';
+COMMENT ON FUNCTION get_transaction_by_id IS 'Returns transaction details by transaction_id for confirmation page';

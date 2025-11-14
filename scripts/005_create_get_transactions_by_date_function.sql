@@ -1,8 +1,5 @@
 -- Create function to get transactions by date, pokladnica, and environment
--- This function joins mqtt_subscriptions with transaction_generations to include dispute status and amount
--- Added LEFT JOIN with mqtt_notifications and filter to exclude transactions with payment notifications
--- It filters by end_point (PRODUCTION or TEST) to separate environments
--- Updated to use transaction_id consistently and added amount from transaction_generations
+-- Fixed JOIN to use transaction_id on both sides, added amount from transaction_generations
 
 CREATE OR REPLACE FUNCTION get_transactions_by_date(
   p_pokladnica TEXT,
@@ -36,17 +33,17 @@ BEGIN
   FROM mqtt_subscriptions ms
   LEFT JOIN transaction_generations tg 
     ON ms.transaction_id = tg.transaction_id 
-    AND tg.end_point = p_end_point
+    AND ms.end_point = tg.end_point
   LEFT JOIN mqtt_notifications mn 
-    ON ms.transaction_id = mn.end_to_end_id
-    AND mn.end_point = p_end_point
+    ON ms.transaction_id = mn.transaction_id
+    AND ms.end_point = mn.end_point
   WHERE ms.pokladnica = p_pokladnica
     AND ms.created_at >= p_start_date
     AND ms.created_at <= p_end_date
     AND ms.end_point = p_end_point
-    AND mn.id IS NULL  -- Filter to only include transactions without payment notifications
+    AND mn.id IS NULL
   ORDER BY ms.created_at DESC;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
-COMMENT ON FUNCTION get_transactions_by_date IS 'Returns transactions from mqtt_subscriptions that have no payment notification, filtered by pokladnica, date range, and environment (PRODUCTION or TEST), including amount from transaction_generations';
+COMMENT ON FUNCTION get_transactions_by_date IS 'Returns unpaid transactions filtered by pokladnica, date range, and environment';

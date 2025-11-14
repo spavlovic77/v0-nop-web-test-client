@@ -1,6 +1,6 @@
 -- Create mqtt_subscriptions table
 -- This table stores MQTT subscription information for tracking active subscriptions
--- Renamed end_to_end_id to transaction_id for consistency
+-- Using transaction_id (not end_to_end_id) for consistency
 
 CREATE TABLE IF NOT EXISTS mqtt_subscriptions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -63,4 +63,4 @@ CREATE POLICY "Allow service role full access to mqtt_subscriptions"
   USING (true)
   WITH CHECK (true);
 
-COMMENT ON TABLE mqtt_subscriptions IS 'Stores MQTT subscription information for tracking active subscriptions by organization and cashier';
+COMMENT ON TABLE mqtt_subscriptions IS 'Stores MQTT subscription information using transaction_id consistently';
