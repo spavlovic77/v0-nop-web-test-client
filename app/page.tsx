@@ -1684,6 +1684,7 @@ const Home: FunctionComponent = () => {
   const handleTransactionDateSelect = (date: string) => {
     setSelectedTransactionDate(date)
     setShowTransactionDateModal(false)
+    setShowTransactionListModal(true)
     setTransactionListLoading(true)
 
     console.log("[v0] handleTransactionDateSelect called with date:", date)
@@ -1721,7 +1722,6 @@ const Home: FunctionComponent = () => {
         console.log("[v0] Received data:", data)
         console.log("[v0] Transactions count:", data.transactions?.length || 0)
         setTransactionListData(data.transactions || [])
-        setShowTransactionListModal(true)
       })
       .catch((error) => {
         console.error("[v0] Error fetching transactions:", error)
