@@ -1961,7 +1961,7 @@ const Home: FunctionComponent = () => {
   return (
     <ErrorBoundary>
       <TooltipProvider>
-        <div className="min-h-screen bg-white p-4">
+        <div className="min-h-screen bg-background p-4">
           {!isOnline && (
             <div className="bg-destructive text-destructive-foreground p-2 text-center text-sm flex items-center justify-center gap-2">
               <WifiOff className="h-4 w-4" />
@@ -2528,33 +2528,47 @@ const Home: FunctionComponent = () => {
 
             <Dialog open={showQrModal} onOpenChange={handleQrModalClose}>
               <DialogContent
-                className="sm:max-w-md w-[95vw] max-h-[90vh] flex flex-col"
+                className="sm:max-w-md w-[95vw] max-h-[90vh] flex flex-col rounded-2xl bg-white/95 backdrop-blur-xl shadow-2xl border-0"
                 onInteractOutside={(e) => e.preventDefault()}
                 onEscapeKeyDown={(e) => e.preventDefault()}
               >
-                <div className="flex-1 flex flex-col items-center justify-center space-y-4 py-4 min-h-[400px]">
+                <DialogHeader className="pb-2">
+                  <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent text-center">
+                    Prichádzajúca platba
+                  </DialogTitle>
+                </DialogHeader>
+                
+                <div className="flex-1 flex flex-col items-center justify-center space-y-6 py-6 min-h-[400px]">
                   {qrLoading ? (
                     <div className="flex flex-col items-center gap-4">
-                      <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+                      <div className="relative">
+                        <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full blur-xl opacity-50 animate-pulse"></div>
+                        <Loader2 className="relative h-12 w-12 animate-spin text-blue-600" />
+                      </div>
+                      <span className="text-base font-medium text-gray-600">Generujem QR kód...</span>
                     </div>
                   ) : qrCode ? (
-                    <div className="space-y-4 flex flex-col items-center w-full">
-                      <div className="bg-white p-4 rounded-lg">
-                        <img src={qrCode || "/placeholder.svg"} alt="Payment QR Code" className="w-64 h-64" />
+                    <div className="space-y-6 flex flex-col items-center w-full">
+                      {/* QR Code with enhanced styling */}
+                      <div className="relative">
+                        <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-2xl blur-xl opacity-20"></div>
+                        <div className="relative bg-white p-6 rounded-2xl shadow-xl border-2 border-gray-100">
+                          <img src={qrCode || "/placeholder.svg"} alt="Payment QR Code" className="w-64 h-64" />
+                        </div>
                       </div>
 
-                      <div className="w-full max-w-sm space-y-3 px-4">
-                        {/* Timer progress button */}
-                        <div className="space-y-2">
-                          <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div className="w-full max-w-sm space-y-4 px-4">
+                        {/* Timer progress with modern styling */}
+                        <div className="space-y-3 bg-gray-50/80 backdrop-blur-sm rounded-2xl p-4 border border-gray-200">
+                          <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden shadow-inner">
                             <div
-                              className="bg-blue-600 h-2 rounded-full transition-all duration-1000"
+                              className="bg-gradient-to-r from-blue-500 to-indigo-600 h-3 rounded-full transition-all duration-1000 shadow-lg"
                               style={{ width: `${(mqttTimeRemaining / 120) * 100}%` }}
                             />
                           </div>
                           <Button
                             variant="outline"
-                            className="w-full bg-transparent"
+                            className="w-full bg-white/80 backdrop-blur-sm rounded-xl border-gray-300 hover:bg-white hover:border-blue-400 hover:text-blue-600 transition-all duration-300 font-medium h-11"
                             disabled={mqttTimerActive || mqttTimeRemaining > 0}
                             onClick={() => {
                               console.log("[v0] Repeat subscription clicked")
@@ -2569,60 +2583,64 @@ const Home: FunctionComponent = () => {
                           </Button>
                         </div>
 
-                        {/* Cancel payment button */}
-                        <Button variant="destructive" className="w-full" onClick={handleCancelPayment}>
+                        {/* Cancel payment button with gradient styling */}
+                        <Button 
+                          className="w-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white rounded-xl h-11 font-medium shadow-lg shadow-red-500/30 hover:shadow-xl hover:shadow-red-500/40 transition-all duration-300" 
+                          onClick={handleCancelPayment}
+                        >
                           Zrušiť platbu
                         </Button>
                       </div>
                     </div>
                   ) : (
-                    <XCircle className="h-8 w-8 text-red-500" />
+                    <div className="flex flex-col items-center gap-4">
+                      <div className="relative">
+                        <div className="absolute inset-0 bg-red-500 rounded-full blur-xl opacity-30"></div>
+                        <XCircle className="relative h-12 w-12 text-red-600" />
+                      </div>
+                      <span className="text-base font-medium text-red-600">Chyba pri generovaní QR kódu</span>
+                    </div>
                   )}
                 </div>
 
-                <div className="flex flex-col items-end gap-2">
-                  {qrCode && (
-                    <>
-                      {!isProductionMode && (
-                        <>
-                          <div className="flex items-center gap-3">
-                            <span className="text-xs text-muted-foreground text-right max-w-[200px]">
-                              Simulátor úhrady. Naskenuj link kamerou.
-                            </span>
-                            <div className="bg-white p-1 rounded border flex-shrink-0">
-                              <img
-                                src={`https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${encodeURIComponent("https://scantopay.vercel.app")}`}
-                                alt="Scan to open scantopay.vercel.app"
-                                className={`w-20 h-20 object-contain transition-all duration-300 ${
-                                  scanToggleActive ? "blur-none" : "blur-sm"
-                                }`}
-                              />
-                            </div>
-                          </div>
+                {/* Test mode simulator section with enhanced styling */}
+                {qrCode && !isProductionMode && (
+                  <div className="flex flex-col gap-3 pt-4 border-t border-gray-200 bg-gradient-to-br from-amber-50 to-orange-50 rounded-b-2xl -mx-6 -mb-6 px-6 pb-6">
+                    <div className="flex items-center gap-3 justify-end">
+                      <span className="text-xs font-medium text-amber-800 text-right max-w-[200px]">
+                        Simulátor úhrady. Naskenuj link kamerou.
+                      </span>
+                      <div className="bg-white p-2 rounded-xl border-2 border-amber-200 shadow-md flex-shrink-0">
+                        <img
+                          src={`https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${encodeURIComponent("https://scantopay.vercel.app")}`}
+                          alt="Scan to open scantopay.vercel.app"
+                          className={`w-20 h-20 object-contain transition-all duration-300 ${
+                            scanToggleActive ? "blur-none" : "blur-sm"
+                          }`}
+                        />
+                      </div>
+                    </div>
 
-                          <div className="flex items-center gap-3">
-                            <span className="text-xs text-muted-foreground">
-                              {scanToggleActive ? `Zostávajúci čas ${scanTimeRemaining}s` : "Zaostri QR kód"}
-                            </span>
-                            <button
-                              onClick={handleScanToggle}
-                              disabled={scanToggleActive}
-                              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
-                                scanToggleActive ? "bg-blue-600" : "bg-gray-200 hover:bg-gray-300"
-                              } ${scanToggleActive ? "cursor-not-allowed" : "cursor-pointer"}`}
-                            >
-                              <span
-                                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                                  scanToggleActive ? "translate-x-6" : "translate-x-1"
-                                }`}
-                              />
-                            </button>
-                          </div>
-                        </>
-                      )}
-                    </>
-                  )}
-                </div>
+                    <div className="flex items-center gap-3 justify-end">
+                      <span className="text-xs font-medium text-amber-800">
+                        {scanToggleActive ? `Zostávajúci čas ${scanTimeRemaining}s` : "Zaostri QR kód"}
+                      </span>
+                      <button
+                        onClick={handleScanToggle}
+                        disabled={scanToggleActive}
+                        className={`relative inline-flex h-7 w-12 items-center rounded-full transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 shadow-md ${
+                          scanToggleActive ? "bg-gradient-to-r from-blue-500 to-indigo-600" : "bg-gray-300 hover:bg-gray-400"
+                        } ${scanToggleActive ? "cursor-not-allowed" : "cursor-pointer"}`}
+                      >
+                        <span
+                          className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-lg transition-transform duration-300 ${
+                            scanToggleActive ? "translate-x-6" : "translate-x-1"
+                          }`}
+                        />
+                      </button>
+                    </div>
+                  </div>
+                )}
               </DialogContent>
             </Dialog>
 
