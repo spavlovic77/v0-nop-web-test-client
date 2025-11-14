@@ -144,18 +144,13 @@ async function saveTransactionGeneration(data: {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
     const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
-    console.log("[v0] 💾 Attempting to save transaction generation:", {
-      transaction_id: data.transaction_id,
-      vatsk: data.vatsk,
-      pokladnica: data.pokladnica,
-      iban: data.iban,
-      amount: data.amount,
-      end_point: data.end_point,
-      client_ip: data.client_ip,
-    })
+    console.log("[v0] 💾 === STARTING SAVE TO DATABASE ===")
+    console.log("[v0] 💾 Data to save:", JSON.stringify(data, null, 2))
 
     if (!supabaseUrl || !supabaseServiceKey) {
       console.log("[v0] ❌ Missing Supabase environment variables")
+      console.log("[v0] ❌ SUPABASE_URL exists:", !!supabaseUrl)
+      console.log("[v0] ❌ SUPABASE_SERVICE_ROLE_KEY exists:", !!supabaseServiceKey)
       return { success: false, error: "Missing database configuration" }
     }
 
@@ -164,28 +159,37 @@ async function saveTransactionGeneration(data: {
     const numericAmount = data.amount ? Number.parseFloat(data.amount) : null
 
     const insertData = {
-      transaction_id: data.transaction_id,
-      vatsk: data.vatsk,
-      pokladnica: data.pokladnica,
-      iban: data.iban,
+      transaction_id: data.transaction_id || null,
+      vatsk: data.vatsk || null,
+      pokladnica: data.pokladnica || null,
+      iban: data.iban || null,
       amount: numericAmount,
       end_point: data.end_point,
+      endpoint: null,
+      method: 'POST',
       client_ip: data.client_ip,
-      response_timestamp: data.response_timestamp,
+      response_timestamp: data.response_timestamp || null,
+      dispute: false,
     }
-    console.log("[v0] 💾 Insert data:", insertData)
+    console.log("[v0] 💾 Final insert data:", JSON.stringify(insertData, null, 2))
 
-    const { data: result, error } = await supabase.from("transaction_generations").insert([insertData])
+    const { data: result, error } = await supabase.from("transaction_generations").insert([insertData]).select()
 
     if (error) {
-      console.log("[v0] ❌ Database save failed:", error)
+      console.log("[v0] ❌ === DATABASE INSERT FAILED ===")
+      console.log("[v0] ❌ Error code:", error.code)
+      console.log("[v0] ❌ Error message:", error.message)
+      console.log("[v0] ❌ Error details:", error.details)
+      console.log("[v0] ❌ Error hint:", error.hint)
       return { success: false, error: error.message }
     }
 
-    console.log("[v0] ✅ Transaction generation saved successfully:", result)
+    console.log("[v0] ✅ === DATABASE INSERT SUCCESSFUL ===")
+    console.log("[v0] ✅ Inserted record:", JSON.stringify(result, null, 2))
     return { success: true, result }
   } catch (error) {
-    console.log("[v0] ❌ Database save error:", error)
+    console.log("[v0] ❌ === EXCEPTION IN SAVE FUNCTION ===")
+    console.log("[v0] ❌ Exception:", error)
     return { success: false, error: error instanceof Error ? error.message : "Unknown error" }
   }
 }
