@@ -1226,8 +1226,9 @@ const Home: FunctionComponent = () => {
       setShowDisputeConfirmModal(false)
       setShowQrModal(false)
 
-      // Open confirmation in new window for printing
-      window.open(`/confirmation/${currentTransactionId}`, "_blank")
+      const url = `${window.location.origin}/confirmation/${currentTransactionId}`
+      setConfirmationUrl(url)
+      setShowConfirmationQrModal(true)
 
       // Reset form
       setEurAmount("")
