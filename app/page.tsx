@@ -1743,7 +1743,6 @@ const Home: FunctionComponent = () => {
   const handlePrintTransactions = () => {
     setShowTransactionDateModal(false)
     setTransactionListLoading(true)
-    setShowTransactionListModal(true) // Show modal immediately with loading state
 
     console.log("[v0] === FRONTEND TRANSACTION FETCH ===")
     console.log("[v0] Selected date:", selectedTransactionDate)
@@ -1773,7 +1772,8 @@ const Home: FunctionComponent = () => {
           setRateLimitRetryAfter(data.retryAfter || 60)
           setShowRateLimitModal(true)
           setTransactionListLoading(false)
-          setShowTransactionListModal(false) // Close modal on rate limit error
+          setShowQrModal(false)
+          setQrLoading(false)
           return null
         }
 
@@ -1787,12 +1787,12 @@ const Home: FunctionComponent = () => {
           console.log("[v0] Fetched transaction list data:", data.transactions)
           console.log("[v0] Number of transactions:", data.transactions?.length || 0)
           setTransactionListData(data.transactions || [])
+          setShowTransactionListModal(true)
         }
       })
       .catch((error) => {
         console.error("[v0] Error fetching transactions:", error)
         setTransactionListData([])
-        setShowTransactionListModal(false) // Close modal on error
       })
       .finally(() => {
         setTransactionListLoading(false)
@@ -2836,33 +2836,6 @@ const Home: FunctionComponent = () => {
                           </div>
                           <div className="text-sm text-gray-600">Celková suma</div>
                         </div>
-                      </div>
-
-                      <div className="border rounded-lg overflow-hidden">
-                        <table className="w-full">
-                          <thead className="bg-gray-100">
-                            <tr>
-                              <th className="text-left p-3 text-sm font-semibold">Čas</th>
-                              <th className="text-left p-3 text-sm font-semibold">Transaction ID</th>
-                              <th className="text-right p-3 text-sm font-semibold">Suma (€)</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {transactionListData.map((transaction, index) => (
-                              <tr key={index} className="border-t hover:bg-gray-50">
-                                <td className="p-3 text-sm">
-                                  {formatDateTime(transaction.payload_received_at)}
-                                </td>
-                                <td className="p-3 text-sm font-mono text-xs break-all">
-                                  {transaction.end_to_end_id || "N/A"}
-                                </td>
-                                <td className="p-3 text-sm text-right font-semibold">
-                                  {Number.parseFloat(transaction.amount || 0).toFixed(2)}
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
                       </div>
                     </div>
                   ) : (
