@@ -2,30 +2,8 @@
 
 import React from "react"
 import type { FunctionComponent } from "react"
-import {
-  Copy,
-  XCircle,
-  FilePlus,
-  Github,
-  CheckCircle,
-  Printer,
-  Terminal,
-  LogOut,
-  User,
-  Calendar,
-  FileText,
-  FileCheck,
-  Upload,
-  QrCode,
-  Loader2,
-  Info,
-  ExternalLink,
-  WifiOff,
-  MoveLeft,
-  X,
-  Clock,
-} from "lucide-react" // Import Copy icon, AlertTriangle icon, FileText, Github, CheckCircle, Printer, Terminal, LogOut, User, Clock, Calendar, Check, AlertCircle
-import { Euro } from "lucide-react" // Import Euro, Printer, Calendar icons
+import { Copy, XCircle, FilePlus, Github, CheckCircle, Printer, Terminal, LogOut, User, Calendar, FileText, FileCheck, Upload, QrCode, Loader2, Info, ExternalLink, WifiOff, MoveLeft, X, Clock } from 'lucide-react' // Import Copy icon, AlertTriangle icon, FileText, Github, CheckCircle, Printer, Terminal, LogOut, User, Clock, Calendar, Check, AlertCircle
+import { Euro } from 'lucide-react' // Import Euro, Printer, Calendar icons
 
 import { useState, useEffect, useCallback, useRef } from "react"
 import { Button } from "@/components/ui/button"
@@ -1293,8 +1271,11 @@ const Home: FunctionComponent = () => {
     if (!selectedDisputeDate || !certificateInfo?.pokladnica) return
 
     setShowDisputeDateModal(false)
-    setShowDisputeListModal(true)
-    setDisputeListLoading(true)
+    setTransactionListLoading(true)
+    setShowTransactionListModal(true) // Show modal with loading state
+
+    console.log("[v0] handleTransactionDateSelect called with date:", selectedDisputeDate)
+    console.log("[v0] Pokladnica:", certificateInfo.pokladnica)
 
     try {
       const timezoneOffset = new Date().getTimezoneOffset()
@@ -1305,7 +1286,7 @@ const Home: FunctionComponent = () => {
         body: JSON.stringify({
           date: selectedDisputeDate,
           pokladnica: certificateInfo.pokladnica,
-          timezoneOffset: timezoneOffset,
+          timezoneOffset: timezoneOffset, // Send timezone offset
         }),
       })
 
@@ -1315,6 +1296,7 @@ const Home: FunctionComponent = () => {
         setRateLimitRetryAfter(data.retryAfter || 60)
         setShowRateLimitModal(true)
         setDisputeListLoading(false)
+        setShowTransactionListModal(false)
         return
       }
 
@@ -1327,6 +1309,7 @@ const Home: FunctionComponent = () => {
     } catch (error) {
       console.error("[v0] Error fetching dispute transactions:", error)
       setDisputeTransactions([])
+      setShowTransactionListModal(false)
     } finally {
       setDisputeListLoading(false)
     }
@@ -1705,6 +1688,7 @@ const Home: FunctionComponent = () => {
     setSelectedTransactionDate(date)
     setShowTransactionDateModal(false)
     setTransactionListLoading(true)
+    setShowTransactionListModal(true) // Show modal with loading state
 
     console.log("[v0] handleTransactionDateSelect called with date:", date)
     console.log("[v0] Pokladnica:", certificateInfo.pokladnica)
@@ -1729,6 +1713,7 @@ const Home: FunctionComponent = () => {
             setRateLimitRetryAfter(data.retryAfter || 60)
             setShowRateLimitModal(true)
             setTransactionListLoading(false)
+            setShowTransactionListModal(false)
           })
           throw new Error("Rate limit exceeded")
         }
@@ -1741,11 +1726,11 @@ const Home: FunctionComponent = () => {
         console.log("[v0] Received data:", data)
         console.log("[v0] Transactions count:", data.transactions?.length || 0)
         setTransactionListData(data.transactions || [])
-        setShowTransactionListModal(true)
       })
       .catch((error) => {
         console.error("[v0] Error fetching transactions:", error)
         setTransactionListData([])
+        setShowTransactionListModal(false)
       })
       .finally(() => {
         setTransactionListLoading(false)
@@ -1763,6 +1748,7 @@ const Home: FunctionComponent = () => {
   const handlePrintTransactions = () => {
     setShowTransactionDateModal(false)
     setTransactionListLoading(true)
+    setShowTransactionListModal(true) // Show modal with loading state
 
     console.log("[v0] === FRONTEND TRANSACTION FETCH ===")
     console.log("[v0] Selected date:", selectedTransactionDate)
@@ -1794,6 +1780,7 @@ const Home: FunctionComponent = () => {
           setTransactionListLoading(false)
           setShowQrModal(false)
           setQrLoading(false)
+          setShowTransactionListModal(false)
           return null
         }
 
@@ -1807,12 +1794,12 @@ const Home: FunctionComponent = () => {
           console.log("[v0] Fetched transaction list data:", data.transactions)
           console.log("[v0] Number of transactions:", data.transactions?.length || 0)
           setTransactionListData(data.transactions || [])
-          setShowTransactionListModal(true)
         }
       })
       .catch((error) => {
         console.error("[v0] Error fetching transactions:", error)
         setTransactionListData([])
+        setShowTransactionListModal(false)
       })
       .finally(() => {
         setTransactionListLoading(false)
@@ -2872,7 +2859,7 @@ const Home: FunctionComponent = () => {
                       <Printer className="h-4 w-4 mr-2" />
                       Tlačiť súhrn
                     </Button>
-                    <Button onClick={printAllTransactions} variant="outline" size="sm">
+                    <Button onClick={handlePrintTransactions} variant="outline" size="sm">
                       <Printer className="h-4 w-4 mr-2" />
                       Tlačiť všetky
                     </Button>
