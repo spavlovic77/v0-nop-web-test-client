@@ -1,5 +1,5 @@
 -- Create function to get transaction by ID (for confirmation page)
--- This function returns transaction details including response_timestamp from external system
+-- Returns end_point instead of status_code and duration_ms
 
 CREATE OR REPLACE FUNCTION get_transaction_by_id(
   p_transaction_id TEXT
@@ -13,10 +13,9 @@ RETURNS TABLE (
   amount NUMERIC,
   created_at TIMESTAMPTZ,
   response_timestamp TIMESTAMPTZ,
-  status_code INTEGER,
-  duration_ms INTEGER,
   client_ip TEXT,
   dispute BOOLEAN,
+  end_point TEXT,
   endpoint TEXT,
   method TEXT
 ) AS $$
@@ -31,10 +30,9 @@ BEGIN
     tg.amount,
     tg.created_at,
     tg.response_timestamp,
-    tg.status_code,
-    tg.duration_ms,
     tg.client_ip,
     tg.dispute,
+    tg.end_point,
     'https://test.finstat.sk/eKasa/Client/v1/qrpayment/request'::TEXT as endpoint,
     'POST'::TEXT as method
   FROM transaction_generations tg

@@ -1,5 +1,5 @@
 -- Create transaction_generations table
--- This table stores transaction generation requests and their metadata
+-- Replaced status_code and duration_ms with end_point field
 
 CREATE TABLE IF NOT EXISTS transaction_generations (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -8,8 +8,7 @@ CREATE TABLE IF NOT EXISTS transaction_generations (
   pokladnica TEXT NOT NULL,
   iban TEXT,
   amount NUMERIC(10, 2),
-  status_code INTEGER NOT NULL,
-  duration_ms INTEGER NOT NULL,
+  end_point TEXT NOT NULL CHECK (end_point IN ('PRODUCTION', 'TEST')),
   client_ip TEXT,
   response_timestamp TIMESTAMPTZ,
   dispute BOOLEAN DEFAULT false,
@@ -23,6 +22,7 @@ CREATE INDEX IF NOT EXISTS idx_transaction_generations_pokladnica ON transaction
 CREATE INDEX IF NOT EXISTS idx_transaction_generations_created_at ON transaction_generations(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_transaction_generations_dispute ON transaction_generations(dispute);
 CREATE INDEX IF NOT EXISTS idx_transaction_generations_response_timestamp ON transaction_generations(response_timestamp DESC);
+CREATE INDEX IF NOT EXISTS idx_transaction_generations_end_point ON transaction_generations(end_point);
 
 -- Enable Row Level Security
 ALTER TABLE transaction_generations ENABLE ROW LEVEL SECURITY;
@@ -60,4 +60,4 @@ CREATE POLICY "Allow service role full access to transaction_generations"
   USING (true)
   WITH CHECK (true);
 
-COMMENT ON TABLE transaction_generations IS 'Stores transaction generation requests with metadata including VATSK, POKLADNICA, IBAN, amount, and response details';
+COMMENT ON TABLE transaction_generations IS 'Stores transaction generation requests with metadata including VATSK, POKLADNICA, IBAN, amount, end_point (PRODUCTION/TEST), and response details';

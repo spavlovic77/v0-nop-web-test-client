@@ -1,10 +1,10 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { useParams } from "next/navigation"
+import { useParams } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Printer, AlertCircle } from "lucide-react"
+import { Printer, AlertCircle } from 'lucide-react'
 import QRCode from "qrcode"
 
 interface TransactionData {
@@ -14,14 +14,13 @@ interface TransactionData {
   pokladnica: string
   endpoint: string
   method: string
-  status_code: number
-  duration_ms: number
   client_ip: string
   created_at: string
   response_timestamp: string
   dispute: boolean
   iban: string | null
   amount: string | null
+  end_point?: string
 }
 
 export default function ConfirmationPage() {

@@ -136,8 +136,7 @@ async function saveTransactionGeneration(data: {
   pokladnica?: string
   iban?: string
   amount?: string
-  status_code: number
-  duration_ms: number
+  end_point: 'PRODUCTION' | 'TEST'
   client_ip: string
   response_timestamp?: string
 }) {
@@ -161,8 +160,7 @@ async function saveTransactionGeneration(data: {
         pokladnica: data.pokladnica,
         iban: data.iban,
         amount: numericAmount,
-        status_code: data.status_code,
-        duration_ms: data.duration_ms,
+        end_point: data.end_point,
         client_ip: data.client_ip,
         response_timestamp: data.response_timestamp,
       },
@@ -208,7 +206,6 @@ export async function POST(request: NextRequest) {
 
   const sessionId = randomUUID()
   let tempFiles: string[] = []
-  const startTime = Date.now()
 
   try {
     console.log(`[v0] 🚀 Transaction generation started - Session: ${sessionId}, IP: ${clientIP}`)
@@ -256,9 +253,10 @@ export async function POST(request: NextRequest) {
     const { vatsk, pokladnica } = await extractCertificateInfo(Buffer.from(validatedClientCert))
 
     const apiBaseUrl = isProductionMode ? "https://api-erp.kverkom.sk" : "https://api-erp-i.kverkom.sk"
+    const endPoint = isProductionMode ? 'PRODUCTION' : 'TEST'
 
     console.log(
-      `[v0] 🌐 Using ${isProductionMode ? "PRODUCTION" : "TEST"} API: ${apiBaseUrl}/api/v1/generateNewTransactionId`,
+      `[v0] 🌐 Using ${endPoint} API: ${apiBaseUrl}/api/v1/generateNewTransactionId`,
     )
 
     // Execute API call without request body (as per bank API specification)
@@ -301,8 +299,6 @@ export async function POST(request: NextRequest) {
       responseData = { rawResponse: stdout.trim() }
     }
 
-    const duration = Date.now() - startTime
-
     const apiCreatedAt = responseData?.created_at || responseData?.createdAt || null
 
     saveTransactionGeneration({
@@ -311,8 +307,7 @@ export async function POST(request: NextRequest) {
       pokladnica,
       iban: iban || undefined,
       amount: amount || undefined,
-      status_code: statusCode,
-      duration_ms: duration,
+      end_point: endPoint,
       client_ip: clientIP,
       response_timestamp: apiCreatedAt,
     }).catch((error) => {
@@ -320,7 +315,7 @@ export async function POST(request: NextRequest) {
     })
 
     console.log(
-      `[v0] ✅ Transaction generation completed - ID: ${responseData?.transaction_id}, Duration: ${duration}ms`,
+      `[v0] ✅ Transaction generation completed - ID: ${responseData?.transaction_id}`,
     )
 
     return NextResponse.json({
@@ -332,11 +327,8 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error(`[v0] ❌ Transaction generation failed:`, error)
 
-    const duration = Date.now() - startTime
-
     saveTransactionGeneration({
-      status_code: 500,
-      duration_ms: duration,
+      end_point: 'TEST',
       client_ip: request.headers.get("x-forwarded-for") || request.ip || "unknown",
     }).catch((error) => {
       console.error("[v0] ⚠️ Error database save failed:", error)
