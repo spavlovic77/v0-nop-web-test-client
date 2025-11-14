@@ -32,6 +32,7 @@
     "os": "latest",
     "path": "latest",
     "qrcode": "latest",
+    "qrcode.react": "latest",
     "react": "19.0.0",
     "react-dom": "19.0.0",
     "recharts": "3.3.0",

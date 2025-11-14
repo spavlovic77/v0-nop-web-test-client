@@ -4,6 +4,7 @@ import React from "react"
 import type { FunctionComponent } from "react"
 import { Copy, XCircle, FilePlus, Github, CheckCircle, Printer, Terminal, LogOut, User, Calendar, FileText, FileCheck, Upload, QrCode, Loader2, Info, ExternalLink, WifiOff, MoveLeft, X, Clock } from 'lucide-react' // Import Copy icon, AlertTriangle icon, FileText, Github, CheckCircle, Printer, Terminal, LogOut, User, Clock, Calendar, Check, AlertCircle
 import { Euro } from 'lucide-react' // Import Euro, Printer, Calendar icons
+import { QRCodeSVG } from 'qrcode.react' // Import QRCodeSVG
 
 import { useState, useEffect, useCallback, useRef } from "react"
 import { Button } from "@/components/ui/button"
@@ -189,6 +190,8 @@ const Home: FunctionComponent = () => {
 
   const [showLogoutModal, setShowLogoutModal] = useState(false)
   const [showMobilePrintWarningModal, setShowMobilePrintWarningModal] = useState(false)
+  const [showConfirmationQrModal, setShowConfirmationQrModal] = useState(false)
+  const [confirmationUrl, setConfirmationUrl] = useState("")
 
   useEffect(() => {
     const savedMode = localStorage.getItem("productionMode")
@@ -631,10 +634,9 @@ const Home: FunctionComponent = () => {
     const cents = paddedDigits.slice(-2)
     const euros = paddedDigits.slice(0, -2) || "0"
 
-    // Format euros with thousands separator if needed
     const formattedEuros = euros.replace(/\B(?=(\d{3})+(?!\d))/g, " ")
 
-    return `${formattedEuros},${cents}`
+    return formattedEuros + "," + cents
   }
 
   const getEurAmountValue = () => {
@@ -1335,12 +1337,12 @@ const Home: FunctionComponent = () => {
         throw new Error("Failed to update dispute flag")
       }
 
-      // Open confirmation in new window for printing
-      window.open(`/confirmation/${selectedDisputeTransaction}`, "_blank")
+      const url = `${window.location.origin}/confirmation/${selectedDisputeTransaction}`
+      setConfirmationUrl(url)
+      setShowConfirmationQrModal(true)
 
-      // Close modals and refresh the list
+      // Close dispute action modal
       setShowDisputeActionModal(false)
-      setSelectedDisputeTransaction(null)
 
       // Refresh the transaction list
       handleDisputeDateSelect()
@@ -3067,6 +3069,34 @@ const Home: FunctionComponent = () => {
                 </div>
               </DialogContent>
             </Dialog>
+
+            {/* Confirmation QR Code Modal */}
+            <Dialog open={showConfirmationQrModal} onOpenChange={setShowConfirmationQrModal}>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Potvrdenie o neoznámenej úhrade</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <p className="text-center text-sm text-muted-foreground">
+                    Naskenujte QR kód mobilným zariadením pre zobrazenie potvrdenia
+                  </p>
+                  <div className="flex justify-center p-4 bg-white rounded-lg">
+                    <QRCodeSVG value={confirmationUrl} size={256} level="H" />
+                  </div>
+                  <Button
+                    className="w-full"
+                    onClick={() => {
+                      setShowConfirmationQrModal(false)
+                      setSelectedDisputeTransaction(null)
+                    }}
+                  >
+                    Zavrieť
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+
+            {/* Logout Confirmation Modal */}
           </div>
 
           {allRequiredFieldsComplete && (
