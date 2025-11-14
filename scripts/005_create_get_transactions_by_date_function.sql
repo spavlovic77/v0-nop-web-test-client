@@ -21,10 +21,14 @@ RETURNS TABLE (
 BEGIN
   RETURN QUERY
   SELECT 
-    tg.transaction_id,
-    tg.pokladnica,
-    tg.created_at,
+    ms.id,
+    ms.transaction_id,
+    ms.pokladnica,
+    ms.vatsk,
+    ms.topic,
+    ms.created_at,
     COALESCE(tg.dispute, false) as dispute,
+    ms.end_point,
     tg.amount
   FROM mqtt_subscriptions ms
   LEFT JOIN transaction_generations tg 
