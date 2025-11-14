@@ -1290,6 +1290,7 @@ const Home: FunctionComponent = () => {
           date: selectedDisputeDate,
           pokladnica: certificateInfo.pokladnica,
           timezoneOffset: timezoneOffset,
+          end_point: isProductionMode ? "PRODUCTION" : "TEST",
         }),
       })
 
@@ -1715,6 +1716,7 @@ const Home: FunctionComponent = () => {
         date: date,
         pokladnica: certificateInfo.pokladnica,
         timezoneOffset: timezoneOffset, // Send timezone offset
+        end_point: isProductionMode ? "PRODUCTION" : "TEST",
       }),
     })
       .then((res) => {
@@ -1779,6 +1781,7 @@ const Home: FunctionComponent = () => {
       body: JSON.stringify({
         date: selectedTransactionDate,
         pokladnica: certificateInfo.pokladnica,
+        end_point: isProductionMode ? "PRODUCTION" : "TEST",
       }),
     })
       .then(async (res) => {
