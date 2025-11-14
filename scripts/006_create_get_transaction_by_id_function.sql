@@ -15,9 +15,7 @@ RETURNS TABLE (
   response_timestamp TIMESTAMPTZ,
   client_ip TEXT,
   dispute BOOLEAN,
-  end_point TEXT,
-  endpoint TEXT,
-  method TEXT
+  end_point TEXT
 ) AS $$
 BEGIN
   RETURN QUERY
@@ -32,9 +30,7 @@ BEGIN
     tg.response_timestamp,
     tg.client_ip,
     tg.dispute,
-    tg.end_point,
-    tg.endpoint,
-    tg.method
+    tg.end_point
   FROM transaction_generations tg
   WHERE tg.transaction_id = p_transaction_id
   LIMIT 1;

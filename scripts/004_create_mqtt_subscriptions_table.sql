@@ -9,7 +9,6 @@ CREATE TABLE IF NOT EXISTS mqtt_subscriptions (
   pokladnica TEXT NOT NULL,
   transaction_id TEXT NOT NULL,
   qos INTEGER NOT NULL DEFAULT 0,
-  timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   end_point TEXT NOT NULL CHECK (end_point IN ('PRODUCTION', 'TEST'))
 );

@@ -9,8 +9,7 @@ CREATE TABLE IF NOT EXISTS transaction_generations (
   iban TEXT,
   amount NUMERIC(10, 2) NOT NULL,
   end_point TEXT NOT NULL CHECK (end_point IN ('PRODUCTION', 'TEST')),
-  endpoint TEXT NOT NULL,
-  method TEXT NOT NULL,
+  -- Removed endpoint and method columns
   client_ip TEXT,
   response_timestamp TIMESTAMPTZ,
   dispute BOOLEAN DEFAULT false,

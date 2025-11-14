@@ -165,8 +165,6 @@ async function saveTransactionGeneration(data: {
       iban: data.iban || null,
       amount: numericAmount,
       end_point: data.end_point,
-      endpoint: null,
-      method: 'POST',
       client_ip: data.client_ip,
       response_timestamp: data.response_timestamp || null,
       dispute: false,

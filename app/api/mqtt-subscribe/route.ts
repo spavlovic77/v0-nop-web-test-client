@@ -74,16 +74,13 @@ async function saveMqttNotificationToDatabase(
     // Parse JSON payload
     let amount = null
     let currency = null
-    let transaction_status = null
     let integrity_hash = null
-    let end_to_end_id = null
     let payload_received_at = null
 
     try {
       const parsedPayload = JSON.parse(messageStr)
       console.log("[v0] 📝 Parsed payload:", parsedPayload)
 
-      transaction_status = parsedPayload.transactionStatus
       if (parsedPayload.transactionAmount) {
         console.log("[v0] 💰 Raw amount from payload:", parsedPayload.transactionAmount.amount)
         console.log("[v0] 💰 Amount type:", typeof parsedPayload.transactionAmount.amount)
@@ -94,7 +91,6 @@ async function saveMqttNotificationToDatabase(
         currency = parsedPayload.transactionAmount.currency
       }
       integrity_hash = parsedPayload.dataIntegrityHash
-      end_to_end_id = parsedPayload.endToEndId
       payload_received_at = parsedPayload.receivedAt
     } catch (parseError) {
       console.warn("[v0] ⚠️ Could not parse JSON payload, saving as raw text:", parseError)
@@ -107,11 +103,9 @@ async function saveMqttNotificationToDatabase(
       vatsk,
       pokladnica,
       transaction_id,
-      transaction_status,
       amount,
       currency,
       integrity_hash,
-      end_to_end_id,
       payload_received_at,
       end_point: endpoint,
     }

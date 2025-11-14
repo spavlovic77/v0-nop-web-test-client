@@ -8,11 +8,10 @@ CREATE TABLE IF NOT EXISTS mqtt_notifications (
   vatsk TEXT NOT NULL,
   pokladnica TEXT NOT NULL,
   transaction_id TEXT NOT NULL,
-  transaction_status TEXT,
+  -- Removed transaction_status and end_to_end_id columns
   amount NUMERIC(10, 2),
   currency TEXT,
   integrity_hash TEXT,
-  end_to_end_id TEXT,
   payload_received_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   integrity_validation BOOLEAN,
