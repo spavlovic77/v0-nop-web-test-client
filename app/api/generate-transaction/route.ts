@@ -144,6 +144,16 @@ async function saveTransactionGeneration(data: {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
     const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
+    console.log("[v0] 💾 Attempting to save transaction generation:", {
+      transaction_id: data.transaction_id,
+      vatsk: data.vatsk,
+      pokladnica: data.pokladnica,
+      iban: data.iban,
+      amount: data.amount,
+      end_point: data.end_point,
+      client_ip: data.client_ip,
+    })
+
     if (!supabaseUrl || !supabaseServiceKey) {
       console.log("[v0] ❌ Missing Supabase environment variables")
       return { success: false, error: "Missing database configuration" }
@@ -153,25 +163,26 @@ async function saveTransactionGeneration(data: {
 
     const numericAmount = data.amount ? Number.parseFloat(data.amount) : null
 
-    const { data: result, error } = await supabase.from("transaction_generations").insert([
-      {
-        transaction_id: data.transaction_id,
-        vatsk: data.vatsk,
-        pokladnica: data.pokladnica,
-        iban: data.iban,
-        amount: numericAmount,
-        end_point: data.end_point,
-        client_ip: data.client_ip,
-        response_timestamp: data.response_timestamp,
-      },
-    ])
+    const insertData = {
+      transaction_id: data.transaction_id,
+      vatsk: data.vatsk,
+      pokladnica: data.pokladnica,
+      iban: data.iban,
+      amount: numericAmount,
+      end_point: data.end_point,
+      client_ip: data.client_ip,
+      response_timestamp: data.response_timestamp,
+    }
+    console.log("[v0] 💾 Insert data:", insertData)
+
+    const { data: result, error } = await supabase.from("transaction_generations").insert([insertData])
 
     if (error) {
       console.log("[v0] ❌ Database save failed:", error)
       return { success: false, error: error.message }
     }
 
-    console.log("[v0] ✅ Transaction generation saved successfully")
+    console.log("[v0] ✅ Transaction generation saved successfully:", result)
     return { success: true, result }
   } catch (error) {
     console.log("[v0] ❌ Database save error:", error)
@@ -311,7 +322,7 @@ export async function POST(request: NextRequest) {
       client_ip: clientIP,
       response_timestamp: apiCreatedAt,
     }).catch((error) => {
-      console.error("[v0] ⚠️ Database save failed:", error)
+      console.error("[v0] ⚠️ Background database save failed:", error)
     })
 
     console.log(
@@ -327,11 +338,9 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error(`[v0] ❌ Transaction generation failed:`, error)
 
-    saveTransactionGeneration({
+    await saveTransactionGeneration({
       end_point: 'TEST',
       client_ip: request.headers.get("x-forwarded-for") || request.ip || "unknown",
-    }).catch((error) => {
-      console.error("[v0] ⚠️ Error database save failed:", error)
     })
 
     return NextResponse.json(
