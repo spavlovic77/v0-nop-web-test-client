@@ -188,6 +188,7 @@ const Home: FunctionComponent = () => {
   const [rateLimitRetryAfter, setRateLimitRetryAfter] = useState(0)
 
   const [showLogoutModal, setShowLogoutModal] = useState(false)
+  const [showMobilePrintWarningModal, setShowMobilePrintWarningModal] = useState(false)
 
   useEffect(() => {
     const savedMode = localStorage.getItem("productionMode")
@@ -1402,6 +1403,11 @@ const Home: FunctionComponent = () => {
 
   // Define printTransactionSummary here
   const printTransactionSummary = () => {
+    if (isMobileDevice()) {
+      setShowMobilePrintWarningModal(true)
+      return
+    }
+
     const printContent = `
       <!DOCTYPE html>
       <html>
@@ -1520,7 +1526,13 @@ const Home: FunctionComponent = () => {
     }
   }
 
+  // Define printAllTransactions here
   const printAllTransactions = () => {
+    if (isMobileDevice()) {
+      setShowMobilePrintWarningModal(true)
+      return
+    }
+
     const printContent = `
       <!DOCTYPE html>
       <html>
@@ -1815,6 +1827,11 @@ const Home: FunctionComponent = () => {
 
   // Define printDisputedTransactions here
   const printDisputedTransactions = () => {
+    if (isMobileDevice()) {
+      setShowMobilePrintWarningModal(true)
+      return
+    }
+
     const printContent = `
       <!DOCTYPE html>
       <html>
@@ -1923,6 +1940,19 @@ const Home: FunctionComponent = () => {
       printWindow.document.write(printContent)
       printWindow.document.close()
     }
+  }
+
+  const isMobileDevice = () => {
+    const userAgent = navigator.userAgent || navigator.vendor || (window as any).opera
+    // Check for iOS
+    if (/iPad|iPhone|iPod/.test(userAgent) && !(window as any).MSStream) {
+      return true
+    }
+    // Check for Android
+    if (/android/i.test(userAgent)) {
+      return true
+    }
+    return false
   }
 
   return (
@@ -2650,7 +2680,7 @@ const Home: FunctionComponent = () => {
                               // Amounts match but integrity error - invalid payment
                               return (
                                 <span className="text-lg font-medium text-red-600">
-                                  Toto je neplatná platba. Môže šlo o podvod.
+                                  Toto je neplatná platba. Môže ísť o podvod.
                                 </span>
                               )
                             }
@@ -3126,6 +3156,24 @@ const Home: FunctionComponent = () => {
               </div>
             </footer>
           )}
+
+          {/* Mobile Print Warning Modal */}
+          <Dialog open={showMobilePrintWarningModal} onOpenChange={setShowMobilePrintWarningModal}>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Tlač nie je podporovaná na mobilných zariadeniach</DialogTitle>
+              </DialogHeader>
+              <div className="py-4">
+                <p className="text-center">
+                  Pre tlač dokumentov odporúčame použiť stolný počítač alebo notebook. Na mobilných
+                  zariadeniach funkcia tlače nemusí správne fungovať.
+                </p>
+              </div>
+              <DialogFooter className="sm:justify-center">
+                <Button onClick={() => setShowMobilePrintWarningModal(false)}>Rozumiem</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
       </TooltipProvider>
     </ErrorBoundary>
