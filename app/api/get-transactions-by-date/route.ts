@@ -32,43 +32,38 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json()
-    const { date, pokladnica, timezoneOffset } = body
+    const { date, pokladnica, timezoneOffset, end_point } = body
 
-    console.log("[v0] Request received:", { date, pokladnica, timezoneOffset })
+    console.log("[v0] Request received:", { date, pokladnica, timezoneOffset, end_point })
 
-    if (!date || !pokladnica) {
-      return NextResponse.json({ error: "Date and pokladnica are required" }, { status: 400 })
+    if (!date || !pokladnica || !end_point) {
+      return NextResponse.json({ error: "Date, pokladnica, and end_point are required" }, { status: 400 })
     }
 
-    // timezoneOffset is in minutes (e.g., -60 for CET which is UTC+1)
-    // We need to convert the date string to UTC timestamps that represent
-    // the start and end of the day in the user's local timezone
+    if (end_point !== 'PRODUCTION' && end_point !== 'TEST') {
+      return NextResponse.json({ error: "end_point must be either 'PRODUCTION' or 'TEST'" }, { status: 400 })
+    }
 
     const [year, month, day] = date.split("-").map(Number)
 
-    // Create date in UTC representing the user's local midnight
-    // If user is in CET (UTC+1, offset=-60), and selects 2025-11-11,
-    // we want 2025-11-10T23:00:00.000Z (which is 2025-11-11 00:00 CET)
     const offsetMs = (timezoneOffset || 0) * 60 * 1000
     const userMidnight = new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0))
 
-    // Adjust for timezone: subtract offset to get UTC time of user's midnight
     const startOfDayUTC = new Date(userMidnight.getTime() + offsetMs)
     const endOfDayUTC = new Date(startOfDayUTC.getTime() + 24 * 60 * 60 * 1000 - 1)
 
     const startDate = startOfDayUTC.toISOString()
     const endDate = endOfDayUTC.toISOString()
 
-    console.log("[v0] Querying range:", { startDate, endDate, pokladnica })
+    console.log("[v0] Querying range:", { startDate, endDate, pokladnica, end_point })
 
-    // Create Supabase client
     const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 
-    // Query using RPC function
     const { data, error } = await supabase.rpc("get_transactions_by_date", {
       p_pokladnica: pokladnica,
       p_start_date: startDate,
       p_end_date: endDate,
+      p_end_point: end_point,
     })
 
     if (error) {

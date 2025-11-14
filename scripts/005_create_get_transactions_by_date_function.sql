@@ -1,56 +1,49 @@
--- Create function to get transactions by date and pokladnica with dispute flag
--- This function joins mqtt_notifications with transaction_generations to include dispute status
--- It correctly uses payload_received_at from external system for filtering
+-- Create function to get transactions by date, pokladnica, and environment
+-- This function joins mqtt_subscriptions with transaction_generations to include dispute status
+-- Added LEFT JOIN with mqtt_notifications and filter to exclude transactions with payment notifications
+-- It filters by end_point (PRODUCTION or TEST) to separate environments
 
 CREATE OR REPLACE FUNCTION get_transactions_by_date(
   p_pokladnica TEXT,
   p_start_date TIMESTAMPTZ,
-  p_end_date TIMESTAMPTZ
+  p_end_date TIMESTAMPTZ,
+  p_end_point TEXT
 )
 RETURNS TABLE (
   id UUID,
   transaction_id TEXT,
   pokladnica TEXT,
   vatsk TEXT,
-  amount NUMERIC,
-  currency TEXT,
-  transaction_status TEXT,
-  payload_received_at TIMESTAMPTZ,
-  response_timestamp TIMESTAMPTZ,
-  created_at TIMESTAMPTZ,
-  end_to_end_id TEXT,
-  integrity_validation BOOLEAN,
-  integrity_hash TEXT,
   topic TEXT,
-  raw_payload TEXT,
-  dispute BOOLEAN
+  created_at TIMESTAMPTZ,
+  dispute BOOLEAN,
+  end_point TEXT
 ) AS $$
 BEGIN
   RETURN QUERY
   SELECT 
-    mn.id,
-    mn.transaction_id,
-    mn.pokladnica,
-    mn.vatsk,
-    mn.amount,
-    mn.currency,
-    mn.transaction_status,
-    mn.payload_received_at,
-    COALESCE(tg.response_timestamp, mn.payload_received_at) as response_timestamp,
-    mn.created_at,
-    mn.end_to_end_id,
-    mn.integrity_validation,
-    mn.integrity_hash,
-    mn.topic,
-    mn.raw_payload,
-    COALESCE(tg.dispute, false) as dispute
-  FROM mqtt_notifications mn
-  LEFT JOIN transaction_generations tg ON mn.transaction_id = tg.transaction_id
-  WHERE mn.pokladnica = p_pokladnica
-    AND mn.payload_received_at >= p_start_date
-    AND mn.payload_received_at <= p_end_date
-  ORDER BY mn.payload_received_at DESC;
+    ms.id,
+    ms.transaction_id,
+    ms.user_pokladnica as pokladnica,
+    ms.user_vatsk as vatsk,
+    ms.topic,
+    ms.created_at,
+    COALESCE(tg.dispute, false) as dispute,
+    ms.end_point
+  FROM mqtt_subscriptions ms
+  LEFT JOIN transaction_generations tg 
+    ON ms.transaction_id = tg.transaction_id 
+    AND tg.end_point = p_end_point
+  LEFT JOIN mqtt_notifications mn 
+    ON ms.transaction_id = mn.transaction_id 
+    AND mn.end_point = p_end_point
+  WHERE ms.user_pokladnica = p_pokladnica
+    AND ms.created_at >= p_start_date
+    AND ms.created_at <= p_end_date
+    AND ms.end_point = p_end_point
+    AND mn.id IS NULL  -- Filter to only include transactions without payment notifications
+  ORDER BY ms.created_at DESC;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
-COMMENT ON FUNCTION get_transactions_by_date IS 'Returns transactions filtered by pokladnica and date range using payload_received_at (external system timestamp)';
+COMMENT ON FUNCTION get_transactions_by_date IS 'Returns transactions from mqtt_subscriptions that have no payment notification, filtered by pokladnica, date range, and environment (PRODUCTION or TEST)';
