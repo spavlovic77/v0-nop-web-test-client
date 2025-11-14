@@ -2537,7 +2537,7 @@ const Home: FunctionComponent = () => {
                     Prichádzajúca platba
                   </DialogTitle>
                 </DialogHeader>
-                
+
                 <div className="flex-1 flex flex-col items-center justify-center space-y-6 py-6 min-h-[400px]">
                   {qrLoading ? (
                     <div className="flex flex-col items-center gap-4">
@@ -2584,8 +2584,8 @@ const Home: FunctionComponent = () => {
                         </div>
 
                         {/* Cancel payment button with gradient styling */}
-                        <Button 
-                          className="w-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white rounded-xl h-11 font-medium shadow-lg shadow-red-500/30 hover:shadow-xl hover:shadow-red-500/40 transition-all duration-300" 
+                        <Button
+                          className="w-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white rounded-xl h-11 font-medium shadow-lg shadow-red-500/30 hover:shadow-xl hover:shadow-red-500/40 transition-all duration-300"
                           onClick={handleCancelPayment}
                         >
                           Zrušiť platbu
@@ -2645,20 +2645,22 @@ const Home: FunctionComponent = () => {
             </Dialog>
 
             <Dialog open={showPaymentReceivedModal} onOpenChange={setShowPaymentReceivedModal}>
-              <DialogContent className="max-w-[95vw] max-h-[90vh]">
-                <div className="space-y-4 text-center py-8">
-                  <div className="text-xl font-semibold text-gray-800 mb-4">Prichádzajúca platba</div>
+              <DialogContent className="max-w-[95vw] max-h-[90vh] rounded-2xl bg-white/95 backdrop-blur-md shadow-2xl border-0">
+                <div className="space-y-6 text-center py-8 px-4">
+                  <div className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-6">
+                    Prichádzajúca platba
+                  </div>
 
                   {verifyingIntegrity ? (
-                    <div className="flex flex-col items-center justify-center gap-4">
-                      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-                      <span className="text-lg font-medium text-gray-600">Kontrolujem integritu platby</span>
+                    <div className="flex flex-col items-center justify-center gap-6 py-4">
+                      <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-200 border-t-blue-600"></div>
+                      <span className="text-lg font-medium text-gray-700">Kontrolujem integritu platby</span>
                     </div>
                   ) : (
-                    <div className="flex flex-col items-center justify-center gap-4">
+                    <div className="flex flex-col items-center justify-center gap-6 py-4">
                       {integrityError ? (
                         <>
-                          <XCircle className="h-12 w-12 text-red-600" />
+                          <XCircle className="h-16 w-16 text-red-500" />
                           {(() => {
                             // Compare expected amount with received amount
                             const expectedAmount = eurAmount
@@ -2677,20 +2679,21 @@ const Home: FunctionComponent = () => {
                               }
 
                               return (
-                                <div className="space-y-3">
-                                  <span className="text-lg font-medium text-yellow-600">
+                                <div className="space-y-4 w-full">
+                                  <span className="text-lg font-semibold text-yellow-600">
                                     Pozor! Preverte platbu vo Vašej banke
                                   </span>
-                                  <div className="bg-red-50 p-4 rounded-lg space-y-2">
+                                  <div className="bg-gradient-to-br from-red-50 to-orange-50 p-6 rounded-2xl space-y-3 border border-red-200 shadow-lg">
                                     <div className="flex justify-between items-center">
-                                      <span className="text-sm text-gray-600">Očakávaná suma:</span>
-                                      <span className="text-lg font-bold text-gray-900">
+                                      <span className="text-sm font-medium text-gray-600">Očakávaná suma:</span>
+                                      <span className="text-xl font-bold text-gray-900">
                                         {formatAmount(expectedAmount)} EUR
                                       </span>
                                     </div>
+                                    <div className="h-px bg-gradient-to-r from-transparent via-gray-300 to-transparent"></div>
                                     <div className="flex justify-between items-center">
-                                      <span className="text-sm text-gray-600">Oznámená suma:</span>
-                                      <span className="text-lg font-bold text-gray-900">
+                                      <span className="text-sm font-medium text-gray-600">Oznámená suma:</span>
+                                      <span className="text-xl font-bold text-gray-900">
                                         {formatAmount(receivedAmount)} EUR
                                       </span>
                                     </div>
@@ -2700,7 +2703,7 @@ const Home: FunctionComponent = () => {
                             } else {
                               // Amounts match but integrity error - invalid payment
                               return (
-                                <span className="text-lg font-medium text-red-600">
+                                <span className="text-lg font-semibold text-red-600">
                                   Toto je neplatná platba. Môže ísť o podvod.
                                 </span>
                               )
@@ -2709,8 +2712,8 @@ const Home: FunctionComponent = () => {
                         </>
                       ) : (
                         <>
-                          <CheckCircle className="h-12 w-12 text-green-600" />
-                          <span className="text-lg font-medium text-green-600">
+                          <CheckCircle className="h-16 w-16 text-green-500" />
+                          <span className="text-lg font-semibold text-green-600">
                             Platba vo výške {(() => {
                               const formatAmount = (cents: string) => {
                                 if (!cents || cents === "0") return "0,00"
@@ -2737,7 +2740,7 @@ const Home: FunctionComponent = () => {
                         setIntegrityVerified(false)
                         setIntegrityError(false)
                       }}
-                      className="w-full touch-manipulation min-h-[48px]"
+                      className="w-full touch-manipulation min-h-[48px] bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
                     >
                       Zavrieť
                     </Button>
