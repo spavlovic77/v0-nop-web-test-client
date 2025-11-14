@@ -193,6 +193,20 @@ const Home: FunctionComponent = () => {
   const [showConfirmationQrModal, setShowConfirmationQrModal] = useState(false)
   const [confirmationUrl, setConfirmationUrl] = useState("")
 
+  // Re-introduce handleLogout function
+  const handleLogout = () => {
+    // Clear all relevant local storage items or session data
+    localStorage.removeItem("productionMode");
+    // Potentially clear other application-specific state if needed
+    
+    // Reload the page to reset the entire application state
+    window.location.reload();
+  };
+
+  // Rename showMobilePrintWarningModal to showMobilePrintWarning for consistency
+  const [showMobilePrintWarning, setShowMobilePrintWarning] = useState(false);
+  const [confirmationQrUrl, setConfirmationQrUrl] = useState(""); // New state for confirmation QR URL
+
   useEffect(() => {
     const savedMode = localStorage.getItem("productionMode")
     if (savedMode === "true") {
@@ -1228,6 +1242,7 @@ const Home: FunctionComponent = () => {
 
       const url = `${window.location.origin}/confirmation/${currentTransactionId}`
       setConfirmationUrl(url)
+      setConfirmationQrUrl(url); // Set the new state variable
       setShowConfirmationQrModal(true)
 
       // Reset form
@@ -1307,7 +1322,9 @@ const Home: FunctionComponent = () => {
       }
 
       const data = await response.json()
-      setDisputeTransactions(data.transactions || [])
+      // Filter for disputes only
+      const disputeData = data.transactions.filter((t: any) => t.dispute === true);
+      setDisputeTransactions(disputeData || [])
     } catch (error) {
       console.error("[v0] Error fetching dispute transactions:", error)
       setDisputeTransactions([])
@@ -1340,6 +1357,7 @@ const Home: FunctionComponent = () => {
 
       const url = `${window.location.origin}/confirmation/${selectedDisputeTransaction}`
       setConfirmationUrl(url)
+      setConfirmationQrUrl(url); // Set the new state variable
       setShowConfirmationQrModal(true)
 
       // Close dispute action modal
@@ -1404,10 +1422,18 @@ const Home: FunctionComponent = () => {
     }, 0)
   }
 
+  // Define calculateDisputeTotal here
+  const calculateDisputeTotal = () => {
+    return disputeTransactions.reduce((total, transaction) => {
+      const amount = Number.parseFloat(transaction.amount || 0)
+      return total + amount
+    }, 0)
+  }
+
   // Define printTransactionSummary here
   const printTransactionSummary = () => {
     if (isMobileDevice()) {
-      setShowMobilePrintWarningModal(true)
+      setShowMobilePrintWarning(true)
       return
     }
 
@@ -1532,7 +1558,7 @@ const Home: FunctionComponent = () => {
   // Define printAllTransactions here
   const printAllTransactions = () => {
     if (isMobileDevice()) {
-      setShowMobilePrintWarningModal(true)
+      setShowMobilePrintWarning(true)
       return
     }
 
@@ -1831,7 +1857,7 @@ const Home: FunctionComponent = () => {
   // Define printDisputedTransactions here
   const printDisputedTransactions = () => {
     if (isMobileDevice()) {
-      setShowMobilePrintWarningModal(true)
+      setShowMobilePrintWarning(true)
       return
     }
 
@@ -1945,6 +1971,122 @@ const Home: FunctionComponent = () => {
     }
   }
 
+  const printAllDisputes = () => {
+    if (isMobileDevice()) {
+      setShowMobilePrintWarning(true)
+      return
+    }
+
+    const printContent = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Všetky reklamácie - ${selectedDisputeDate}</title>
+          <style>
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body { 
+              font-family: Arial, sans-serif; 
+              padding: 15px;
+              font-size: 12px;
+              line-height: 1.4;
+            }
+            h1 { 
+              font-size: 18px;
+              color: #333; 
+              border-bottom: 2px solid #333; 
+              padding-bottom: 8px;
+              margin-bottom: 15px;
+            }
+            p { margin-bottom: 8px; }
+            table { 
+              width: 100%; 
+              border-collapse: collapse; 
+              margin: 15px 0;
+              font-size: 11px;
+            }
+            th, td { 
+              border: 1px solid #ddd; 
+              padding: 6px 4px;
+              text-align: left;
+              word-wrap: break-word;
+            }
+            th { 
+              background-color: #f5f5f5; 
+              font-weight: bold;
+              font-size: 11px;
+            }
+            .total { 
+              font-weight: bold; 
+              background-color: #e8f4fd;
+            }
+            .amount { text-align: right; }
+            
+            @media print {
+              body { padding: 10px; }
+              table { page-break-inside: auto; }
+              tr { page-break-inside: avoid; page-break-after: auto; }
+            }
+            
+            @media screen and (max-width: 600px) {
+              body { font-size: 11px; }
+              h1 { font-size: 16px; }
+              th, td { padding: 4px 2px; font-size: 10px; }
+            }
+          </style>
+        </head>
+        <body>
+          <h1>Všetky reklamácie</h1>
+          <p><strong>Dátum:</strong> ${new Date(selectedDisputeDate).toLocaleDateString("sk-SK")}</p>
+          
+          <table>
+            <thead>
+              <tr>
+                <th style="width: 20%;">Čas</th>
+                <th style="width: 50%;">ID transakcie</th>
+                <th class="amount" style="width: 30%;">Suma (EUR)</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${sortedDisputeTransactions
+                .map((transaction) => {
+                  return `
+                      <tr>
+                        <td>${formatDateTime(transaction.response_timestamp)}</td>
+                        <td style="font-family: monospace; font-size: 10px; word-break: break-all;">${transaction.transaction_id}</td>
+                        <td class="amount">${formatAmount(transaction.amount)}</td>
+                      </tr>
+                    `
+                })
+                .join("")}
+              <tr class="total">
+                <td colspan="2"><strong>Celková suma:</strong></td>
+                <td class="amount"><strong>${calculateDisputeTotal().toFixed(2)} EUR</strong></td>
+              </tr>
+            </tbody>
+          </table>
+          
+          <p style="margin-top: 15px;"><strong>Vygenerované:</strong> ${new Date().toLocaleString("sk-SK")}</p>
+          <script>
+            window.onload = function() {
+              setTimeout(function() {
+                window.print();
+              }, 250);
+            };
+          </script>
+        </body>
+      </html>
+    `
+
+    const printWindow = window.open("", "_blank")
+    if (printWindow) {
+      printWindow.document.write(printContent)
+      printWindow.document.close()
+    }
+  }
+  // </CHANGE>
+
   const isMobileDevice = () => {
     const userAgent = navigator.userAgent || navigator.vendor || (window as any).opera
     // Check for iOS
@@ -1961,7 +2103,7 @@ const Home: FunctionComponent = () => {
   return (
     <ErrorBoundary>
       <TooltipProvider>
-        <div className="min-h-screen bg-white p-4">
+        <div className="min-h-screen bg-background p-4">
           {!isOnline && (
             <div className="bg-destructive text-destructive-foreground p-2 text-center text-sm flex items-center justify-center gap-2">
               <WifiOff className="h-4 w-4" />
@@ -2023,7 +2165,7 @@ const Home: FunctionComponent = () => {
 
                     {/* Production Confirmation Modal */}
                     <Dialog open={showProductionConfirmModal} onOpenChange={setShowProductionConfirmModal}>
-                      <DialogContent className="rounded-2xl max-w-lg">
+                      <DialogContent className="rounded-2xl backdrop-blur-xl bg-white/95 border border-white/30 shadow-2xl max-w-lg">
                         <DialogHeader>
                           <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
                             Prepnúť na produkčné prostredie?
@@ -2528,7 +2670,7 @@ const Home: FunctionComponent = () => {
 
             <Dialog open={showQrModal} onOpenChange={handleQrModalClose}>
               <DialogContent
-                className="sm:max-w-md w-[95vw] max-h-[90vh] flex flex-col"
+                className="sm:max-w-md w-[95vw] max-h-[90vh] flex flex-col rounded-2xl backdrop-blur-xl bg-white/95 border border-white/30 shadow-2xl"
                 onInteractOutside={(e) => e.preventDefault()}
                 onEscapeKeyDown={(e) => e.preventDefault()}
               >
@@ -2536,25 +2678,26 @@ const Home: FunctionComponent = () => {
                   {qrLoading ? (
                     <div className="flex flex-col items-center gap-4">
                       <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+                      <p className="text-sm font-medium text-gray-600">Načítavam transakcie...</p>
                     </div>
                   ) : qrCode ? (
                     <div className="space-y-4 flex flex-col items-center w-full">
-                      <div className="bg-white p-4 rounded-lg">
+                      <div className="bg-white p-6 rounded-2xl shadow-lg border-2 border-gray-100">
                         <img src={qrCode || "/placeholder.svg"} alt="Payment QR Code" className="w-64 h-64" />
                       </div>
 
                       <div className="w-full max-w-sm space-y-3 px-4">
                         {/* Timer progress button */}
                         <div className="space-y-2">
-                          <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden shadow-inner">
                             <div
-                              className="bg-blue-600 h-2 rounded-full transition-all duration-1000"
+                              className="bg-gradient-to-r from-blue-500 to-blue-600 h-3 rounded-full transition-all duration-1000"
                               style={{ width: `${(mqttTimeRemaining / 120) * 100}%` }}
                             />
                           </div>
                           <Button
                             variant="outline"
-                            className="w-full bg-transparent"
+                            className="w-full rounded-xl border-2 border-gray-300 hover:border-blue-500 hover:bg-blue-50 transition-all"
                             disabled={mqttTimerActive || mqttTimeRemaining > 0}
                             onClick={() => {
                               console.log("[v0] Repeat subscription clicked")
@@ -2570,13 +2713,20 @@ const Home: FunctionComponent = () => {
                         </div>
 
                         {/* Cancel payment button */}
-                        <Button variant="destructive" className="w-full" onClick={handleCancelPayment}>
+                        <Button 
+                          variant="destructive" 
+                          className="w-full rounded-xl bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 shadow-lg hover:shadow-xl transition-all" 
+                          onClick={handleCancelPayment}
+                        >
                           Zrušiť platbu
                         </Button>
                       </div>
                     </div>
                   ) : (
-                    <XCircle className="h-8 w-8 text-red-500" />
+                    <div className="flex flex-col items-center gap-3">
+                      <XCircle className="h-12 w-12 text-red-500" />
+                      <p className="text-sm text-gray-600">Nepodarilo sa načítať QR kód</p>
+                    </div>
                   )}
                 </div>
 
@@ -2589,7 +2739,7 @@ const Home: FunctionComponent = () => {
                             <span className="text-xs text-muted-foreground text-right max-w-[200px]">
                               Simulátor úhrady. Naskenuj link kamerou.
                             </span>
-                            <div className="bg-white p-1 rounded border flex-shrink-0">
+                            <div className="bg-white p-2 rounded-xl border-2 border-gray-200 flex-shrink-0 shadow-md">
                               <img
                                 src={`https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${encodeURIComponent("https://scantopay.vercel.app")}`}
                                 alt="Scan to open scantopay.vercel.app"
@@ -2627,128 +2777,53 @@ const Home: FunctionComponent = () => {
             </Dialog>
 
             <Dialog open={showPaymentReceivedModal} onOpenChange={setShowPaymentReceivedModal}>
-              <DialogContent className="max-w-[95vw] max-h-[90vh]">
-                <div className="space-y-4 text-center py-8">
-                  <div className="text-xl font-semibold text-gray-800 mb-4">Prichádzajúca platba</div>
-
-                  {verifyingIntegrity ? (
-                    <div className="flex flex-col items-center justify-center gap-4">
-                      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-                      <span className="text-lg font-medium text-gray-600">Kontrolujem integritu platby</span>
+              <DialogContent className="rounded-2xl backdrop-blur-xl bg-white/95 border border-white/30 shadow-2xl max-w-md">
+                <div className="flex flex-col items-center justify-center space-y-6 py-6">
+                  <div className="relative">
+                    <div className="absolute inset-0 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full blur-xl opacity-50 animate-pulse"></div>
+                    <div className="relative inline-block p-6 bg-gradient-to-br from-green-100 to-emerald-100 rounded-full">
+                      <CheckCircle className="h-20 w-20 text-green-600" />
                     </div>
-                  ) : (
-                    <div className="flex flex-col items-center justify-center gap-4">
-                      {integrityError ? (
-                        <>
-                          <XCircle className="h-12 w-12 text-red-600" />
-                          {(() => {
-                            // Compare expected amount with received amount
-                            const expectedAmount = eurAmount
-                            const receivedAmount = confirmedPaymentAmount
-                            const amountsMatch = expectedAmount === receivedAmount
-
-                            if (!amountsMatch) {
-                              // Amounts don't match - show comparison
-                              const formatAmount = (cents: string) => {
-                                if (!cents || cents === "0") return "0,00"
-                                const cleanDigits = cents.replace(/^0+/, "") || "0"
-                                const paddedDigits = cleanDigits.padStart(2, "0")
-                                const centsValue = paddedDigits.slice(-2)
-                                const euros = paddedDigits.slice(0, -2) || "0"
-                                return `${euros},${centsValue}`
-                              }
-
-                              return (
-                                <div className="space-y-3">
-                                  <span className="text-lg font-medium text-yellow-600">
-                                    Pozor! Preverte platbu vo Vašej banke
-                                  </span>
-                                  <div className="bg-red-50 p-4 rounded-lg space-y-2">
-                                    <div className="flex justify-between items-center">
-                                      <span className="text-sm text-gray-600">Očakávaná suma:</span>
-                                      <span className="text-lg font-bold text-gray-900">
-                                        {formatAmount(expectedAmount)} EUR
-                                      </span>
-                                    </div>
-                                    <div className="flex justify-between items-center">
-                                      <span className="text-sm text-gray-600">Oznámená suma:</span>
-                                      <span className="text-lg font-bold text-gray-900">
-                                        {formatAmount(receivedAmount)} EUR
-                                      </span>
-                                    </div>
-                                  </div>
-                                </div>
-                              )
-                            } else {
-                              // Amounts match but integrity error - invalid payment
-                              return (
-                                <span className="text-lg font-medium text-red-600">
-                                  Toto je neplatná platba. Môže ísť o podvod.
-                                </span>
-                              )
-                            }
-                          })()}
-                        </>
-                      ) : (
-                        <>
-                          <CheckCircle className="h-12 w-12 text-green-600" />
-                          <span className="text-lg font-medium text-green-600">
-                            Platba vo výške {(() => {
-                              const formatAmount = (cents: string) => {
-                                if (!cents || cents === "0") return "0,00"
-                                const cleanDigits = cents.replace(/^0+/, "") || "0"
-                                const paddedDigits = cleanDigits.padStart(2, "0")
-                                const centsValue = paddedDigits.slice(-2)
-                                const euros = paddedDigits.slice(0, -2) || "0"
-                                return `${euros},${centsValue}`
-                              }
-                              return formatAmount(confirmedPaymentAmount)
-                            })()} EUR overená
-                          </span>
-                        </>
-                      )}
+                  </div>
+                  
+                  <div className="text-center space-y-2">
+                    <h3 className="text-3xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
+                      Platba prijatá!
+                    </h3>
+                    <p className="text-gray-600">Úspešne ste prijali platbu</p>
+                  </div>
+                  
+                  <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl p-6 border-2 border-green-200 w-full">
+                    <div className="text-center">
+                      <p className="text-sm text-gray-600 mb-2">Suma</p>
+                      <p className="text-4xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
+                        {confirmedPaymentAmount} €
+                      </p>
                     </div>
-                  )}
-
-                  {!verifyingIntegrity && (
-                    <Button
-                      onClick={() => {
-                        setShowPaymentReceivedModal(false)
-                        setEurAmount("")
-                        setConfirmedPaymentAmount("")
-                        setIntegrityVerified(false)
-                        setIntegrityError(false)
-                      }}
-                      className="w-full touch-manipulation min-h-[48px]"
-                    >
-                      Zavrieť
-                    </Button>
-                  )}
+                  </div>
+                  
+                  <Button
+                    onClick={() => setShowPaymentReceivedModal(false)}
+                    className="w-full rounded-xl bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 shadow-lg hover:shadow-xl transition-all"
+                  >
+                    Zavrieť
+                  </Button>
                 </div>
               </DialogContent>
             </Dialog>
 
             <Dialog open={showConsoleModal} onOpenChange={setShowConsoleModal}>
-              <DialogContent className="max-w-[95vw] max-h-[95vh] w-full flex flex-col">
+              <DialogContent className="max-w-[95vw] max-h-[95vh] w-full flex flex-col rounded-2xl backdrop-blur-xl bg-white/95 border border-white/30 shadow-2xl">
                 <div className="flex flex-col h-full space-y-4">
-                  <div className="flex items-center justify-between flex-shrink-0">
-                    <h3 className="text-lg font-semibold">API Call Console</h3>
-                    <div className="flex gap-2">
-                      <Button onClick={copyAllLogs} variant="outline" size="sm">
-                        <Copy className="h-4 w-4" />
-                      </Button>
-                      <Button onClick={clearApiLogs} variant="outline" size="sm">
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
+                  <DialogHeader>
+                    <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                      Denník API volaní
+                    </DialogTitle>
+                  </DialogHeader>
 
-                  <div
-                    className="bg-black text-green-400 p-4 rounded-lg font-mono text-xs overflow-y-auto"
-                    style={{ height: "calc(95vh - 200px)" }}
-                  >
+                  <div className="flex-1 overflow-y-auto bg-black/80 text-green-400 p-4 rounded-lg font-mono text-xs">
                     {apiCallLogs.length === 0 ? (
-                      <div className="text-gray-500">No API calls logged yet...</div>
+                      <div className="text-gray-500">Žiadne API volania zaznamenané...</div>
                     ) : (
                       apiCallLogs.map((log, index) => (
                         <div key={index} className="mb-4 border-b border-gray-700 pb-2 last:border-b-0">
@@ -2760,10 +2835,10 @@ const Home: FunctionComponent = () => {
                           >
                             Status: {log.status} {log.duration && `(${log.duration}ms)`}
                           </div>
-                          {log.error && <div className="text-red-400 break-all">Error: {log.error}</div>}
+                          {log.error && <div className="text-red-400 break-all">Chyba: {log.error}</div>}
                           {log.response && (
                             <div className="text-blue-400 mt-1 break-all whitespace-pre-wrap">
-                              Response: {JSON.stringify(log.response, null, 2)}
+                              Odpoveď: {JSON.stringify(log.response, null, 2)}
                             </div>
                           )}
                         </div>
@@ -2771,42 +2846,63 @@ const Home: FunctionComponent = () => {
                     )}
                   </div>
 
-                  <Button onClick={() => setShowConsoleModal(false)} className="w-full flex-shrink-0">
-                    Close Console
-                  </Button>
+                  <DialogFooter className="sm:justify-center gap-2">
+                    <Button onClick={copyAllLogs} variant="outline" className="rounded-xl border-2 border-gray-300 hover:border-gray-400 hover:bg-gray-100 transition-all">
+                      <Copy className="h-4 w-4 mr-2" />
+                      Kopírovať logy
+                    </Button>
+                    <Button onClick={clearApiLogs} variant="destructive" className="rounded-xl">
+                      <X className="h-4 w-4 mr-2" />
+                      Vyčistiť logy
+                    </Button>
+                    <Button onClick={() => setShowConsoleModal(false)} className="rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg hover:shadow-xl transition-all">
+                      Zavrieť
+                    </Button>
+                  </DialogFooter>
                 </div>
               </DialogContent>
             </Dialog>
 
             <Dialog open={showRateLimitModal} onOpenChange={setShowRateLimitModal}>
-              <DialogContent className="sm:max-w-md">
-                <div className="space-y-6 py-4">
-                  <div className="flex justify-center">
-                    <div className="relative">
-                      <Clock className="h-16 w-16 text-amber-500 animate-pulse" />
-                      <div className="absolute inset-0 h-16 w-16 rounded-full bg-amber-500/20 animate-ping" />
+              <DialogContent className="rounded-2xl backdrop-blur-xl bg-white/95 border border-white/30 shadow-2xl max-w-md">
+                <DialogHeader>
+                  <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-red-600 to-orange-600 bg-clip-text text-transparent">
+                    Príliš veľa požiadaviek
+                  </DialogTitle>
+                </DialogHeader>
+                <div className="space-y-6">
+                  <div className="relative">
+                    <div className="absolute inset-0 bg-gradient-to-r from-red-500 to-orange-500 rounded-xl blur opacity-20"></div>
+                    <div className="relative bg-red-50 border-2 border-red-200 text-red-800 px-4 py-3 rounded-xl">
+                      <p className="text-sm font-medium">
+                        Počkajte prosím chvíľu pred ďalšou požiadavkou.
+                      </p>
                     </div>
                   </div>
-                  <div className="text-center space-y-2">
-                    <p className="text-base text-foreground font-medium">Dosiahli ste limit požiadaviek</p>
-                    <p className="text-sm text-muted-foreground">
-                      Prosím, skúste to znova o {rateLimitRetryAfter} sekúnd
-                    </p>
+                  
+                  <div className="flex justify-end pt-2">
+                    <Button
+                      onClick={() => setShowRateLimitModal(false)}
+                      className="rounded-xl bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 shadow-lg hover:shadow-xl transition-all"
+                    >
+                      Rozumiem
+                    </Button>
                   </div>
-                  <Button onClick={() => setShowRateLimitModal(false)} className="w-full" variant="default">
-                    Rozumiem
-                  </Button>
                 </div>
               </DialogContent>
             </Dialog>
 
             <Dialog open={showTransactionDateModal} onOpenChange={setShowTransactionDateModal}>
-              <DialogContent className="max-w-md">
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold text-center">Vyberte dátum</h3>
+              <DialogContent className="rounded-2xl backdrop-blur-xl bg-white/95 border border-white/30 shadow-2xl max-w-md">
+                <DialogHeader>
+                  <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                    Vyberte dátum
+                  </DialogTitle>
+                </DialogHeader>
 
+                <div className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="transactionDate" className="text-sm font-medium">
+                    <Label htmlFor="transactionDate" className="text-sm font-medium text-gray-700">
                       Dátum
                     </Label>
                     <div
@@ -2818,93 +2914,122 @@ const Home: FunctionComponent = () => {
                         type="date"
                         value={selectedTransactionDate}
                         onChange={(e) => setSelectedTransactionDate(e.target.value)}
-                        className="w-full cursor-pointer"
+                        className="w-full cursor-pointer rounded-xl border-2 border-gray-300 focus:border-blue-500 transition-all"
                       />
                     </div>
                   </div>
 
-                  <div className="flex gap-2">
-                    <Button variant="outline" onClick={() => setShowTransactionDateModal(false)} className="flex-1">
+                  <DialogFooter className="sm:justify-center gap-2">
+                    <Button variant="outline" onClick={() => setShowTransactionDateModal(false)} className="rounded-xl border-2 border-gray-300 hover:border-gray-400 hover:bg-gray-100 transition-all flex-1">
                       Zrušiť
                     </Button>
-                    <Button
-                      onClick={() => handleTransactionDateSelect(selectedTransactionDate)}
-                      disabled={!selectedTransactionDate}
-                      className="flex-1"
-                    >
+                    <Button onClick={() => handleTransactionDateSelect(selectedTransactionDate)} disabled={!selectedTransactionDate} className="rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg hover:shadow-xl transition-all flex-1">
                       Vyhľadať
                     </Button>
-                  </div>
+                  </DialogFooter>
                 </div>
               </DialogContent>
             </Dialog>
 
             <Dialog open={showTransactionListModal} onOpenChange={setShowTransactionListModal}>
-              <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold">
-                    Zoznam platieb -{" "}
+              <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col rounded-2xl backdrop-blur-xl bg-white/95 border border-white/30 shadow-2xl">
+                <DialogHeader>
+                  <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                    Zoznam platieb
+                  </DialogTitle>
+                  <p className="text-sm text-gray-600">
                     {selectedTransactionDate ? new Date(selectedTransactionDate).toLocaleDateString("sk-SK") : ""}
-                  </h3>
-                </div>
+                  </p>
+                </DialogHeader>
 
                 <div className="flex-1 overflow-y-auto">
                   {transactionListLoading ? (
-                    <div className="flex items-center justify-center py-8">
-                      <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
-                      <span className="ml-2">Načítavam platby...</span>
+                    <div className="flex flex-col items-center justify-center py-12 gap-3">
+                      <Loader2 className="h-10 w-10 animate-spin text-blue-500" />
+                      <span className="text-sm font-medium text-gray-600">Načítavam platby...</span>
                     </div>
                   ) : transactionListData.length > 0 ? (
                     <div className="space-y-4">
-                      <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
+                      <div className="grid grid-cols-2 gap-4 p-6 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl border border-blue-100 shadow-sm">
                         <div className="text-center">
-                          <div className="text-2xl font-bold text-blue-600">{transactionListData.length}</div>
-                          <div className="text-sm text-gray-600">Platieb</div>
+                          <div className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                            {transactionListData.length}
+                          </div>
+                          <div className="text-sm text-gray-600 font-medium">Platieb</div>
                         </div>
                         <div className="text-center">
-                          <div className="text-2xl font-bold text-green-600">
+                          <div className="text-3xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
                             {calculateTransactionTotal().toFixed(2)} €
                           </div>
-                          <div className="text-sm text-gray-600">Celková suma</div>
+                          <div className="text-sm text-gray-600 font-medium">Celková suma</div>
                         </div>
                       </div>
                     </div>
                   ) : (
-                    <div className="text-center py-8 text-gray-500">
-                      <Calendar className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                      <p>Žiadne platby pre vybraný dátum</p>
+                    <div className="text-center py-12 text-gray-500">
+                      <div className="inline-block p-4 bg-gray-100 rounded-full mb-4">
+                        <Calendar className="h-12 w-12 text-gray-400" />
+                      </div>
+                      <p className="font-medium">Žiadne platby pre vybraný dátum</p>
                     </div>
                   )}
                 </div>
 
-                <div className="flex justify-between gap-2 mt-4">
+                <div className="flex justify-between gap-3 mt-6 pt-4 border-t border-gray-200">
                   <div className="flex gap-2">
-                    <Button onClick={printTransactionSummary} variant="outline" size="sm">
+                    <Button 
+                      onClick={printTransactionSummary} 
+                      variant="outline" 
+                      size="sm"
+                      className="rounded-xl border-2 border-gray-300 hover:border-blue-500 hover:bg-blue-50 transition-all"
+                    >
                       <Printer className="h-4 w-4 mr-2" />
                       Tlačiť súhrn
                     </Button>
-                    <Button onClick={printAllTransactions} variant="outline" size="sm">
+                    <Button 
+                      onClick={printAllTransactions} 
+                      variant="outline" 
+                      size="sm"
+                      className="rounded-xl border-2 border-gray-300 hover:border-blue-500 hover:bg-blue-50 transition-all"
+                    >
                       <Printer className="h-4 w-4 mr-2" />
                       Tlačiť všetky
                     </Button>
                   </div>
-                  <Button onClick={() => setShowTransactionListModal(false)}>Zavrieť</Button>
+                  <Button 
+                    onClick={() => setShowTransactionListModal(false)}
+                    className="rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg hover:shadow-xl transition-all"
+                  >
+                    Zavrieť
+                  </Button>
                 </div>
               </DialogContent>
             </Dialog>
             {/* Dispute confirmation modal (from cancel payment) */}
             <Dialog open={showDisputeConfirmModal} onOpenChange={setShowDisputeConfirmModal}>
-              <DialogContent className="sm:max-w-md">
+              <DialogContent className="rounded-2xl backdrop-blur-xl bg-white/95 border border-white/30 shadow-2xl max-w-md">
                 <DialogHeader>
-                  <DialogTitle>Doklad</DialogTitle>
+                  <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">
+                    Doklad
+                  </DialogTitle>
                 </DialogHeader>
-                <div className="space-y-4">
-                  <p className="text-center text-lg">Vyhotoviť doklad o nepotvrdení zrealizovanej platby?</p>
-                  <div className="flex gap-3">
-                    <Button variant="outline" className="flex-1 bg-transparent" onClick={handleDisputeNo}>
+                <div className="space-y-6">
+                  <p className="text-gray-600 leading-relaxed">
+                    Vyhotoviť doklad o nepotvrdení zrealizovanej platby?
+                  </p>
+                  
+                  <div className="flex gap-3 justify-end pt-2">
+                    <Button
+                      variant="outline"
+                      onClick={handleDisputeNo}
+                      className="rounded-xl border-2 border-gray-300 hover:border-gray-400 hover:bg-gray-100 transition-all"
+                    >
                       Nie
                     </Button>
-                    <Button className="flex-1" onClick={handleConfirmDispute}>
+                    <Button
+                      onClick={handleConfirmDispute}
+                      className="rounded-xl bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 shadow-lg hover:shadow-xl transition-all"
+                    >
                       Áno
                     </Button>
                   </div>
@@ -2913,17 +3038,29 @@ const Home: FunctionComponent = () => {
             </Dialog>
 
             <Dialog open={showDisputeActionModal} onOpenChange={setShowDisputeActionModal}>
-              <DialogContent className="sm:max-w-md">
+              <DialogContent className="rounded-2xl backdrop-blur-xl bg-white/95 border border-white/30 shadow-2xl max-w-md">
                 <DialogHeader>
-                  <DialogTitle>Doklad o neoznámenej úhrade</DialogTitle>
+                  <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">
+                    Doklad o neoznámenej úhrade
+                  </DialogTitle>
                 </DialogHeader>
-                <div className="space-y-4">
-                  <p className="text-center text-lg">Vyhotoviť doklad o neoznámenej úhrade?</p>
-                  <div className="flex gap-3">
-                    <Button variant="outline" className="flex-1 bg-transparent" onClick={handleCancelDisputeAction}>
+                <div className="space-y-6">
+                  <p className="text-gray-600 leading-relaxed">
+                    Vyhotoviť doklad o neoznámenej úhrade?
+                  </p>
+                  
+                  <div className="flex gap-3 justify-end pt-2">
+                    <Button
+                      variant="outline"
+                      onClick={() => setShowDisputeActionModal(false)}
+                      className="rounded-xl border-2 border-gray-300 hover:border-gray-400 hover:bg-gray-100 transition-all"
+                    >
                       Nie
                     </Button>
-                    <Button className="flex-1" onClick={handleConfirmDisputeAction}>
+                    <Button
+                      onClick={handleConfirmDisputeAction}
+                      className="rounded-xl bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 shadow-lg hover:shadow-xl transition-all"
+                    >
                       Áno
                     </Button>
                   </div>
@@ -2933,12 +3070,16 @@ const Home: FunctionComponent = () => {
 
             {/* Dispute date picker modal */}
             <Dialog open={showDisputeDateModal} onOpenChange={setShowDisputeDateModal}>
-              <DialogContent className="max-w-md">
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold text-center">Vyberte dátum</h3>
+              <DialogContent className="rounded-2xl backdrop-blur-xl bg-white/95 border border-white/30 shadow-2xl max-w-md">
+                <DialogHeader>
+                  <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">
+                    Vyberte dátum
+                  </DialogTitle>
+                </DialogHeader>
 
+                <div className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="disputeDate" className="text-sm font-medium">
+                    <Label htmlFor="disputeDate" className="text-sm font-medium text-gray-700">
                       Dátum
                     </Label>
                     <div
@@ -2950,146 +3091,116 @@ const Home: FunctionComponent = () => {
                         type="date"
                         value={selectedDisputeDate}
                         onChange={(e) => setSelectedDisputeDate(e.target.value)}
-                        className="w-full cursor-pointer"
+                        className="w-full cursor-pointer rounded-xl border-2 border-gray-300 focus:border-orange-500 transition-all"
                       />
                     </div>
                   </div>
 
-                  <div className="flex gap-2">
-                    <Button variant="outline" onClick={() => setShowDisputeDateModal(false)} className="flex-1">
+                  <DialogFooter className="sm:justify-center gap-2">
+                    <Button variant="outline" onClick={() => setShowDisputeDateModal(false)} className="rounded-xl border-2 border-gray-300 hover:border-gray-400 hover:bg-gray-100 transition-all flex-1">
                       Zrušiť
                     </Button>
-                    <Button onClick={handleDisputeDateSelect} disabled={!selectedDisputeDate} className="flex-1">
+                    <Button onClick={handleDisputeDateSelect} disabled={!selectedDisputeDate} className="rounded-xl bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 shadow-lg hover:shadow-xl transition-all flex-1">
                       Zobraziť transakcie
                     </Button>
-                  </div>
+                  </DialogFooter>
                 </div>
               </DialogContent>
             </Dialog>
 
             <Dialog open={showDisputeListModal} onOpenChange={setShowDisputeListModal}>
-              <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold">
-                    Vyber transakciu -{" "}
+              <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col rounded-2xl backdrop-blur-xl bg-white/95 border border-white/30 shadow-2xl">
+                <DialogHeader>
+                  <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">
+                    Zoznam reklamácií
+                  </DialogTitle>
+                  <p className="text-sm text-gray-600">
                     {selectedDisputeDate ? new Date(selectedDisputeDate).toLocaleDateString("sk-SK") : ""}
-                  </h3>
-                </div>
+                  </p>
+                </DialogHeader>
 
                 <div className="flex-1 overflow-y-auto">
                   {disputeListLoading ? (
-                    <div className="flex items-center justify-center py-8">
-                      <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
-                      <span className="ml-2">Načítavam transakcie...</span>
+                    <div className="flex flex-col items-center justify-center py-12 gap-3">
+                      <Loader2 className="h-10 w-10 animate-spin text-orange-500" />
+                      <span className="text-sm font-medium text-gray-600">Načítavam reklamácie...</span>
                     </div>
                   ) : disputeTransactions.length > 0 ? (
-                    <div className="space-y-2">
-                      <table className="w-full border-collapse">
-                        <thead>
-                          <tr className="bg-gray-50">
-                            <th
-                              className="border p-2 text-left text-sm font-medium cursor-pointer hover:bg-gray-100"
-                              onClick={() => handleDisputeSort("time")}
-                            >
-                              <div className="flex items-center gap-1">
-                                Čas
-                                {disputeSortField === "time" && (
-                                  <span className="text-xs">{disputeSortDirection === "asc" ? "↑" : "↓"}</span>
-                                )}
-                              </div>
-                            </th>
-                            <th className="border p-2 text-left text-sm font-medium">ID transakcie</th>
-                            <th
-                              className="border p-2 text-right text-sm font-medium cursor-pointer hover:bg-gray-100"
-                              onClick={() => handleDisputeSort("amount")}
-                            >
-                              <div className="flex items-center justify-end gap-1">
-                                Suma (EUR)
-                                {disputeSortField === "amount" && (
-                                  <span className="text-xs">{disputeSortDirection === "asc" ? "↑" : "↓"}</span>
-                                )}
-                              </div>
-                            </th>
-                            <th className="border p-2 text-center text-sm font-medium">Akcia</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {sortedDisputeTransactions.map((transaction) => (
-                            <tr key={transaction.id} className="hover:bg-gray-50">
-                              <td className="border p-2 text-sm">{formatDateTime(transaction.response_timestamp)}</td>
-                              <td className="border p-2 text-sm font-mono" title={transaction.transaction_id}>
-                                {truncateTransactionId(transaction.transaction_id)}
-                              </td>
-                              <td className="border p-2 text-sm text-right">{formatAmount(transaction.amount)}</td>
-                              <td className="border p-2 text-center">
-                                {!transaction.dispute ? (
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => handleTransactionDisputeClick(transaction.transaction_id)}
-                                    className="p-1"
-                                    title="Vyhotoviť doklad o nepotvrdennej platbe"
-                                  >
-                                    <FilePlus className="h-4 w-4 text-orange-500" />
-                                  </Button>
-                                ) : (
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => window.open(`/confirmation/${transaction.transaction_id}`, "_blank")}
-                                    className="p-1"
-                                    title="Zobraziť potvrdenie"
-                                  >
-                                    <FileCheck className="h-4 w-4 text-green-600" />
-                                  </Button>
-                                )}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4 p-6 bg-gradient-to-br from-orange-50 to-red-50 rounded-2xl border border-orange-100 shadow-sm">
+                        <div className="text-center">
+                          <div className="text-3xl font-bold bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">
+                            {disputeTransactions.length}
+                          </div>
+                          <div className="text-sm text-gray-600 font-medium">Reklamácií</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-3xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
+                            {calculateDisputeTotal().toFixed(2)} €
+                          </div>
+                          <div className="text-sm text-gray-600 font-medium">Celková suma</div>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        {sortedDisputeTransactions.map((dispute, index) => (
+                          <div
+                            key={index}
+                            className="flex justify-between items-center p-4 bg-white hover:bg-gray-50 rounded-xl border border-gray-200 transition-all hover:shadow-md cursor-pointer"
+                          >
+                            <div className="flex flex-col">
+                              <span className="text-sm font-semibold text-gray-900">
+                                {new Date(dispute.created_at).toLocaleTimeString("sk-SK")}
+                              </span>
+                              <span className="text-xs text-gray-500 font-mono">{dispute.transaction_id}</span>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <span className="text-lg font-bold text-orange-600">{dispute.amount} €</span>
+                              <button
+                                onClick={() => window.open(`/confirmation/${dispute.transaction_id}`, "_blank")}
+                                className="p-2 rounded-lg bg-orange-100 hover:bg-orange-200 text-orange-600 transition-all"
+                              >
+                                <FileCheck className="h-5 w-5" />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   ) : (
-                    <div className="text-center py-8 text-gray-500">
-                      <Calendar className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                      <p>Žiadne transakcie pre vybraný dátum</p>
+                    <div className="text-center py-12 text-gray-500">
+                      <div className="inline-block p-4 bg-gray-100 rounded-full mb-4">
+                        <Calendar className="h-12 w-12 text-gray-400" />
+                      </div>
+                      <p className="font-medium">Žiadne reklamácie pre vybraný dátum</p>
                     </div>
                   )}
                 </div>
 
-                <div className="flex justify-between mt-4">
-                  <Button
-                    onClick={printDisputedTransactions}
-                    variant="outline"
-                    disabled={sortedDisputeTransactions.filter((t) => t.dispute === true).length === 0}
-                  >
-                    <Printer className="h-4 w-4 mr-2" />
-                    Vytlačiť
-                  </Button>
-                  <Button onClick={() => setShowDisputeListModal(false)}>Zavrieť</Button>
-                </div>
-              </DialogContent>
-            </Dialog>
-
-            {/* Confirmation QR Code Modal */}
-            <Dialog open={showConfirmationQrModal} onOpenChange={setShowConfirmationQrModal}>
-              <DialogContent className="sm:max-w-md">
-                <DialogHeader>
-                  <DialogTitle>Potvrdenie o neoznámenej úhrade</DialogTitle>
-                </DialogHeader>
-                <div className="space-y-4">
-                  <p className="text-center text-sm text-muted-foreground">
-                    Naskenujte QR kód mobilným zariadením pre zobrazenie potvrdenia
-                  </p>
-                  <div className="flex justify-center p-4 bg-white rounded-lg">
-                    <QRCodeSVG value={confirmationUrl} size={256} level="H" />
+                <div className="flex justify-between gap-3 mt-6 pt-4 border-t border-gray-200">
+                  <div className="flex gap-2">
+                    <Button 
+                      onClick={printDisputedTransactions} 
+                      variant="outline" 
+                      size="sm"
+                      className="rounded-xl border-2 border-gray-300 hover:border-orange-500 hover:bg-orange-50 transition-all"
+                    >
+                      <Printer className="h-4 w-4 mr-2" />
+                      Tlačiť súhrn
+                    </Button>
+                    <Button 
+                      onClick={printAllDisputes} 
+                      variant="outline" 
+                      size="sm"
+                      className="rounded-xl border-2 border-gray-300 hover:border-orange-500 hover:bg-orange-50 transition-all"
+                    >
+                      <Printer className="h-4 w-4 mr-2" />
+                      Tlačiť všetky
+                    </Button>
                   </div>
-                  <Button
-                    className="w-full"
-                    onClick={() => {
-                      setShowConfirmationQrModal(false)
-                      setSelectedDisputeTransaction(null)
-                    }}
+                  <Button 
+                    onClick={() => setShowDisputeListModal(false)}
+                    className="rounded-xl bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 shadow-lg hover:shadow-xl transition-all"
                   >
                     Zavrieť
                   </Button>
@@ -3097,7 +3208,73 @@ const Home: FunctionComponent = () => {
               </DialogContent>
             </Dialog>
 
+            {/* Confirmation QR Code Modal */}
+            <Dialog open={showConfirmationQrModal} onOpenChange={setShowConfirmationQrModal}>
+              <DialogContent className="rounded-2xl backdrop-blur-xl bg-white/95 border border-white/30 shadow-2xl max-w-md">
+                <DialogHeader>
+                  <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                    Naskenujte QR kód
+                  </DialogTitle>
+                </DialogHeader>
+                <div className="space-y-6">
+                  <p className="text-sm text-gray-600 leading-relaxed">
+                    Naskenujte tento QR kód mobilným zariadením pre otvorenie potvrdenia.
+                  </p>
+                  
+                  {confirmationQrUrl && (
+                    <div className="flex justify-center">
+                      <div className="bg-white p-6 rounded-2xl shadow-lg border-2 border-gray-100">
+                        <img
+                          src={`https://api.qrserver.com/v1/create-qr-code/?size=256x256&data=${encodeURIComponent(confirmationQrUrl)}`}
+                          alt="Confirmation QR Code"
+                          className="w-64 h-64"
+                        />
+                      </div>
+                    </div>
+                  )}
+                  
+                  <div className="flex justify-end pt-2">
+                    <Button
+                      onClick={() => setShowConfirmationQrModal(false)}
+                      className="rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg hover:shadow-xl transition-all"
+                    >
+                      Zavrieť
+                    </Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
+
             {/* Logout Confirmation Modal */}
+            <Dialog open={showLogoutModal} onOpenChange={setShowLogoutModal}>
+              <DialogContent className="rounded-2xl backdrop-blur-xl bg-white/95 border border-white/30 shadow-2xl max-w-md">
+                <DialogHeader>
+                  <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-red-600 to-orange-600 bg-clip-text text-transparent">
+                    Odhlásiť sa
+                  </DialogTitle>
+                </DialogHeader>
+                <div className="space-y-6">
+                  <p className="text-gray-600 leading-relaxed">Naozaj sa chcete odhlásiť?</p>
+                  
+                  <div className="flex gap-3 justify-end pt-2">
+                    <Button
+                      variant="outline"
+                      onClick={() => setShowLogoutModal(false)}
+                      className="rounded-xl border-2 border-gray-300 hover:border-gray-400 hover:bg-gray-100 transition-all"
+                    >
+                      Zrušiť
+                    </Button>
+                    <Button
+                      onClick={handleLogout}
+                      className="rounded-xl bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 shadow-lg hover:shadow-xl transition-all"
+                    >
+                      Odhlásiť
+                    </Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
+
           </div>
 
           {allRequiredFieldsComplete && (
@@ -3145,33 +3322,7 @@ const Home: FunctionComponent = () => {
                     <Terminal className="h-5 w-5" />
                   </Button>
 
-                  <Dialog open={showLogoutModal} onOpenChange={setShowLogoutModal}>
-                    <DialogContent className="sm:max-w-md">
-                      <DialogHeader>
-                        <DialogTitle>Odhlásenie</DialogTitle>
-                      </DialogHeader>
-                      <div className="py-4">
-                        <p className="text-center">Naozaj sa chcete odhlásiť?</p>
-                      </div>
-                      <DialogFooter className="sm:justify-center gap-2">
-                        <Button
-                          variant="outline"
-                          onClick={() => setShowLogoutModal(false)}
-                        >
-                          Zrušiť
-                        </Button>
-                        <Button
-                          variant="default"
-                          onClick={() => {
-                            setShowLogoutModal(false)
-                            window.location.reload()
-                          }}
-                        >
-                          Odhlásiť
-                        </Button>
-                      </DialogFooter>
-                    </DialogContent>
-                  </Dialog>
+                  
 
                   {/* Refresh button */}
                   <Button
@@ -3189,20 +3340,39 @@ const Home: FunctionComponent = () => {
           )}
 
           {/* Mobile Print Warning Modal */}
-          <Dialog open={showMobilePrintWarningModal} onOpenChange={setShowMobilePrintWarningModal}>
-            <DialogContent className="sm:max-w-md">
+          <Dialog open={showMobilePrintWarning} onOpenChange={setShowMobilePrintWarning}>
+            <DialogContent className="rounded-2xl backdrop-blur-xl bg-white/95 border border-white/30 shadow-2xl max-w-md">
               <DialogHeader>
-                <DialogTitle>Tlač nie je podporovaná na mobilných zariadeniach</DialogTitle>
+                <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                  Tlač nie je podporovaná
+                </DialogTitle>
               </DialogHeader>
-              <div className="py-4">
-                <p className="text-center">
-                  Pre tlač dokumentov odporúčame použiť stolný počítač alebo notebook. Na mobilných
-                  zariadeniach funkcia tlače nemusí správne fungovať.
-                </p>
+              <div className="space-y-6">
+                <div className="relative">
+                  <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-xl blur opacity-20"></div>
+                  <div className="relative bg-blue-50 border-2 border-blue-200 text-blue-800 px-4 py-3 rounded-xl">
+                    <p className="text-sm font-medium flex items-center gap-2">
+                      <svg className="w-5 h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path
+                          fillRule="evenodd"
+                          d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                      Tlač je podporovaná len na Desktop PC alebo Notebook pripojenom k tlačiarni.
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="flex justify-end pt-2">
+                  <Button
+                    onClick={() => setShowMobilePrintWarning(false)}
+                    className="rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg hover:shadow-xl transition-all"
+                  >
+                    Rozumiem
+                  </Button>
+                </div>
               </div>
-              <DialogFooter className="sm:justify-center">
-                <Button onClick={() => setShowMobilePrintWarningModal(false)}>Rozumiem</Button>
-              </DialogFooter>
             </DialogContent>
           </Dialog>
         </div>
