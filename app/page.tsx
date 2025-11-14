@@ -2823,7 +2823,7 @@ const Home: FunctionComponent = () => {
               <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-semibold">
-                    Zoznam platieb -{" "}
+                    Zoznam transakcií -{" "}
                     {selectedTransactionDate ? new Date(selectedTransactionDate).toLocaleDateString("sk-SK") : ""}
                   </h3>
                 </div>
@@ -2839,7 +2839,7 @@ const Home: FunctionComponent = () => {
                       <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
                         <div className="text-center">
                           <div className="text-2xl font-bold text-blue-600">{transactionListData.length}</div>
-                          <div className="text-sm text-gray-600">Platieb</div>
+                          <div className="text-sm text-gray-600">Transakcií</div>
                         </div>
                         <div className="text-center">
                           <div className="text-2xl font-bold text-green-600">
@@ -2852,7 +2852,7 @@ const Home: FunctionComponent = () => {
                   ) : (
                     <div className="text-center py-8 text-gray-500">
                       <Calendar className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                      <p>Žiadne platby pre vybraný dátum</p>
+                      <p>Žiadne transakcie pre vybraný dátum</p>
                     </div>
                   )}
                 </div>
@@ -3102,7 +3102,7 @@ const Home: FunctionComponent = () => {
                     size="sm"
                     onClick={handleTransactionListClick}
                     className="p-3 mx-1"
-                    title="Zoznam platieb"
+                    title="Zoznam transakcií"
                   >
                     <Printer className="h-5 w-5" />
                   </Button>
