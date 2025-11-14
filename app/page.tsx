@@ -2,37 +2,15 @@
 
 import React from "react"
 import type { FunctionComponent } from "react"
-import {
-  Copy,
-  XCircle,
-  FilePlus,
-  Github,
-  CheckCircle,
-  Printer,
-  Terminal,
-  LogOut,
-  User,
-  Calendar,
-  FileText,
-  FileCheck,
-  Upload,
-  QrCode,
-  Loader2,
-  Info,
-  ExternalLink,
-  WifiOff,
-  MoveLeft,
-  X,
-  Clock,
-} from "lucide-react" // Import Copy icon, AlertTriangle icon, FileText, Github, CheckCircle, Printer, Terminal, LogOut, User, Clock, Calendar, Check, AlertCircle
-import { Euro } from "lucide-react" // Import Euro, Printer, Calendar icons
+import { Copy, XCircle, FilePlus, Github, CheckCircle, Printer, Terminal, LogOut, User, Calendar, FileText, FileCheck, Upload, QrCode, Loader2, Info, ExternalLink, WifiOff, MoveLeft, X, Clock } from 'lucide-react' // Import Copy icon, AlertTriangle icon, FileText, Github, CheckCircle, Printer, Terminal, LogOut, User, Clock, Calendar, Check, AlertCircle
+import { Euro } from 'lucide-react' // Import Euro, Printer, Calendar icons
 
 import { useState, useEffect, useCallback, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog" // Import DialogHeader and DialogTitle
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog" // Import DialogHeader and DialogTitle
 import { Tooltip, TooltipProvider, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { Switch } from "@/components/ui/switch"
 import { Alert, AlertDescription } from "@/components/ui/alert"
@@ -208,6 +186,8 @@ const Home: FunctionComponent = () => {
 
   const [showRateLimitModal, setShowRateLimitModal] = useState(false)
   const [rateLimitRetryAfter, setRateLimitRetryAfter] = useState(0)
+
+  const [showLogoutModal, setShowLogoutModal] = useState(false)
 
   useEffect(() => {
     const savedMode = localStorage.getItem("productionMode")
@@ -3106,11 +3086,39 @@ const Home: FunctionComponent = () => {
                     <Terminal className="h-5 w-5" />
                   </Button>
 
+                  <Dialog open={showLogoutModal} onOpenChange={setShowLogoutModal}>
+                    <DialogContent className="sm:max-w-md">
+                      <DialogHeader>
+                        <DialogTitle>Odhlásenie</DialogTitle>
+                      </DialogHeader>
+                      <div className="py-4">
+                        <p className="text-center">Naozaj sa chcete odhlásiť?</p>
+                      </div>
+                      <DialogFooter className="sm:justify-center gap-2">
+                        <Button
+                          variant="outline"
+                          onClick={() => setShowLogoutModal(false)}
+                        >
+                          Zrušiť
+                        </Button>
+                        <Button
+                          variant="default"
+                          onClick={() => {
+                            setShowLogoutModal(false)
+                            window.location.reload()
+                          }}
+                        >
+                          Odhlásiť
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+
                   {/* Refresh button */}
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => window.location.reload()}
+                    onClick={() => setShowLogoutModal(true)}
                     className="p-3 mx-1"
                     title="Log out"
                   >
