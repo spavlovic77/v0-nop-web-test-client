@@ -193,6 +193,11 @@ const Home: FunctionComponent = () => {
   const [showConfirmationQrModal, setShowConfirmationQrModal] = useState(false)
   const [confirmationUrl, setConfirmationUrl] = useState("")
 
+  const [selectedTransactionDate, setSelectedTransactionDate] = useState<string>("")
+  const [transactionListData, setTransactionListData] = useState<any[]>([])
+  const [transactionListLoading, setTransactionListLoading] = useState(false)
+  const [showTransactionDateModal, setShowTransactionDateModal] = useState(false)
+
   useEffect(() => {
     const savedMode = localStorage.getItem("productionMode")
     if (savedMode === "true") {
@@ -1821,7 +1826,7 @@ const Home: FunctionComponent = () => {
   // Define handlePrintTransactions here
   const handlePrintTransactions = () => {
     setShowTransactionDateModal(false)
-    setShowTransactionListModal(true)
+    setShowNotificationDateModal(true) // Changed from setShowTransactionListModal
     setTransactionListLoading(true)
 
     console.log("[v0] === FRONTEND TRANSACTION FETCH ===")
@@ -2720,7 +2725,7 @@ const Home: FunctionComponent = () => {
                               // Amounts match but integrity error - invalid payment
                               return (
                                 <span className="text-lg font-semibold text-red-600">
-                                  Toto je neplatná platba. Môže ísť o podvod.
+                                  Toto je neplatná platba. Môže šlo o podvod.
                                 </span>
                               )
                             }
@@ -2916,7 +2921,7 @@ const Home: FunctionComponent = () => {
                       <Printer className="h-4 w-4 mr-2" />
                       Tlačiť súhrn
                     </Button>
-                    <Button onClick={printAllTransactions} variant="outline" size="sm">
+                    <Button onClick={handlePrintTransactions} variant="outline" size="sm">
                       <Printer className="h-4 w-4 mr-2" />
                       Tlačiť všetky
                     </Button>
