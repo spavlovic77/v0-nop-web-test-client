@@ -145,9 +145,9 @@ const Home: FunctionComponent = () => {
   const [integrityVerified, setIntegrityVerified] = useState(false)
   const [integrityError, setIntegrityError] = useState(false)
 
-  const [showNotificationListModal, setShowNotificationListModal] = useState(false)
-  const [showNotificationDateModal, setShowNotificationDateModal] = useState(false)
-  const [selectedNotificationDate, setSelectedNotificationDate] = useState<string>("")
+  const [showTransactionListModal, setShowTransactionListModal] = useState(false)
+  const [showTransactionDateModal, setShowTransactionDateModal] = useState(false)
+  const [selectedTransactionDate, setSelectedTransactionDate] = useState<string>("")
   const [notificationListData, setNotificationListData] = useState<any[]>([])
   const [notificationListLoading, setNotificationListLoading] = useState(false)
 
@@ -192,11 +192,6 @@ const Home: FunctionComponent = () => {
   const [showMobilePrintWarningModal, setShowMobilePrintWarningModal] = useState(false)
   const [showConfirmationQrModal, setShowConfirmationQrModal] = useState(false)
   const [confirmationUrl, setConfirmationUrl] = useState("")
-
-  const [selectedTransactionDate, setSelectedTransactionDate] = useState<string>("")
-  const [transactionListData, setTransactionListData] = useState<any[]>([])
-  const [transactionListLoading, setTransactionListLoading] = useState(false)
-  const [showTransactionDateModal, setShowTransactionDateModal] = useState(false)
 
   useEffect(() => {
     const savedMode = localStorage.getItem("productionMode")
@@ -977,7 +972,7 @@ const Home: FunctionComponent = () => {
 
             for (const message of data.messages) {
               try {
-                const parsedMessage = JSON.Parse(message)
+                const parsedMessage = JSON.parse(message)
                 if (parsedMessage.dataIntegrityHash) {
                   notificationHash = parsedMessage.dataIntegrityHash
                   break
@@ -1404,21 +1399,14 @@ const Home: FunctionComponent = () => {
 
   // Define calculateTransactionTotal here
   const calculateTransactionTotal = () => {
-    return transactionListData.reduce((total, transaction) => {
+    return notificationListData.reduce((total, transaction) => {
       const amount = Number.parseFloat(transaction.amount || 0)
       return total + amount
     }, 0)
   }
 
-  const calculateNotificationTotal = () => {
-    return notificationListData.reduce((total, notification) => {
-      const amount = Number.parseFloat(notification.amount || 0)
-      return total + amount
-    }, 0)
-  }
-
   // Define printTransactionSummary here
-  const printTransactionSummary = () => {
+  const printNotificationSummary = () => {
     if (isMobileDevice()) {
       setShowMobilePrintWarningModal(true)
       return
@@ -1430,7 +1418,7 @@ const Home: FunctionComponent = () => {
         <head>
           <meta charset="utf-8">
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>Súhrn transakcií - ${selectedTransactionDate}</title>
+          <title>Súhrn platieb - ${selectedTransactionDate}</title>
           <style>
             * { margin: 0; padding: 0; box-sizing: border-box; }
             body { 
@@ -1487,7 +1475,7 @@ const Home: FunctionComponent = () => {
           </style>
         </head>
         <body>
-          <h1>Súhrn transakcií</h1>
+          <h1>Súhrn platieb</h1>
           <p><strong>Dátum:</strong> ${new Date(selectedTransactionDate).toLocaleDateString("sk-SK")}</p>
           
           <table>
@@ -1499,10 +1487,10 @@ const Home: FunctionComponent = () => {
               </tr>
             </thead>
             <tbody>
-              ${transactionListData
-                .map((transaction) => {
-                  const dateStr = transaction.payload_received_at
-                    ? new Date(transaction.payload_received_at).toLocaleTimeString("sk-SK", {
+              ${notificationListData
+                .map((notification) => {
+                  const dateStr = notification.created_at
+                    ? new Date(notification.created_at).toLocaleTimeString("sk-SK", {
                         hour: "2-digit",
                         minute: "2-digit",
                       })
@@ -1510,8 +1498,8 @@ const Home: FunctionComponent = () => {
                   return `
                       <tr>
                         <td>${dateStr}</td>
-                        <td style="font-family: monospace; font-size: 10px; word-break: break-all;">${transaction.end_to_end_id || "N/A"}</td>
-                        <td class="amount">${Number.parseFloat(transaction.amount || 0).toFixed(2)}</td>
+                        <td style="font-family: monospace; font-size: 10px; word-break: break-all;">${notification.transaction_id || "N/A"}</td>
+                        <td class="amount">${Number.parseFloat(notification.amount || 0).toFixed(2)}</td>
                       </tr>
                     `
                 })
@@ -1542,124 +1530,7 @@ const Home: FunctionComponent = () => {
     }
   }
 
-  const printNotificationSummary = () => {
-    if (isMobileDevice()) {
-      setShowMobilePrintWarningModal(true)
-      return
-    }
-
-    const printContent = `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <meta charset="utf-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>Súhrn platieb - ${selectedNotificationDate}</title>
-          <style>
-            * { margin: 0; padding: 0; box-sizing: border-box; }
-            body { 
-              font-family: Arial, sans-serif; 
-              padding: 15px;
-              font-size: 12px;
-              line-height: 1.4;
-            }
-            h1 { 
-              font-size: 18px;
-              color: #333; 
-              border-bottom: 2px solid #333; 
-              padding-bottom: 8px;
-              margin-bottom: 15px;
-            }
-            p { margin-bottom: 8px; }
-            table { 
-              width: 100%; 
-              border-collapse: collapse; 
-              margin: 15px 0;
-              font-size: 11px;
-            }
-            th, td { 
-              border: 1px solid #ddd; 
-              padding: 6px 4px;
-              text-align: left;
-              word-wrap: break-word;
-            }
-            th { 
-              background-color: #f5f5f5; 
-              font-weight: bold;
-              font-size: 11px;
-            }
-            .total { 
-              font-weight: bold; 
-              background-color: #e8f4fd;
-            }
-            .verified { color: #16a34a; font-weight: bold; }
-            .failed { color: #dc2626; font-weight: bold; }
-            .pending { color: #9ca3af; }
-            .amount { text-align: right; }
-            
-            @media print {
-              body { padding: 10px; }
-              table { page-break-inside: auto; }
-              tr { page-break-inside: avoid; page-break-after: auto; }
-            }
-            
-            @media screen and (max-width: 600px) {
-              body { font-size: 11px; }
-              h1 { font-size: 16px; }
-              th, td { padding: 4px 2px; font-size: 10px; }
-            }
-          </style>
-        </head>
-        <body>
-          <h1>Súhrn platieb</h1>
-          <p><strong>Dátum:</strong> ${new Date(selectedNotificationDate).toLocaleDateString("sk-SK")}</p>
-          
-          <table>
-            <thead>
-              <tr>
-                <th style="width: 25%;">Čas</th>
-                <th style="width: 40%;">Transaction ID</th>
-                <th class="amount" style="width: 40%;">Suma (EUR)</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${notificationListData
-                .map((notification) => {
-                  return `
-                      <tr>
-                        <td>${new Date(notification.created_at).toLocaleTimeString("sk-SK", { hour: "2-digit", minute: "2-digit" })}</td>
-                        <td style="font-family: monospace; font-size: 10px; word-break: break-all;">${notification.transaction_id || "N/A"}</td>
-                        <td class="amount">${Number.parseFloat(notification.amount || 0).toFixed(2)}</td>
-                      </tr>
-                    `
-                })
-                .join("")}
-              <tr class="total">
-                <td colspan="2"><strong>Celková suma:</strong></td>
-                <td class="amount"><strong>${calculateNotificationTotal().toFixed(2)} EUR</strong></td>
-              </tr>
-            </tbody>
-          </table>
-          
-          <p style="margin-top: 15px;"><strong>Vygenerované:</strong> ${new Date().toLocaleString("sk-SK")}</p>
-          <script>
-            window.onload = function() {
-              setTimeout(function() {
-                window.print();
-              }, 250);
-            };
-          </script>
-        </body>
-      </html>
-    `
-
-    const printWindow = window.open("", "_blank")
-    if (printWindow) {
-      printWindow.document.write(printContent)
-      printWindow.document.close()
-    }
-  }
-
+  // Define printAllTransactions here
   const printAllNotifications = () => {
     if (isMobileDevice()) {
       setShowMobilePrintWarningModal(true)
@@ -1672,7 +1543,7 @@ const Home: FunctionComponent = () => {
         <head>
           <meta charset="utf-8">
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>Súhrn platieb - ${selectedNotificationDate}</title>
+          <title>Súhrn platieb - ${selectedTransactionDate}</title>
           <style>
             * { margin: 0; padding: 0; box-sizing: border-box; }
             body { 
@@ -1730,7 +1601,7 @@ const Home: FunctionComponent = () => {
         </head>
         <body>
           <h1>Súhrn platieb</h1>
-          <p><strong>Dátum:</strong> ${new Date(selectedNotificationDate).toLocaleDateString("sk-SK")}</p>
+          <p><strong>Dátum:</strong> ${new Date(selectedTransactionDate).toLocaleDateString("sk-SK")}</p>
           
           <table>
             <thead>
@@ -1825,67 +1696,11 @@ const Home: FunctionComponent = () => {
     setMqttTimeRemaining(120)
   }
 
-  const handleNotificationDateSelect = (date: string) => {
-    setSelectedNotificationDate(date)
-    setShowNotificationDateModal(false)
-    setShowNotificationListModal(true)
-    setNotificationListLoading(true)
-
-    console.log("[v0] handleNotificationDateSelect called with date:", date)
-    console.log("[v0] Pokladnica:", certificateInfo.pokladnica)
-
-    // Get user's timezone offset in minutes
-    const timezoneOffset = new Date().getTimezoneOffset()
-
-    fetch("/api/get-notifications-by-date", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        date: date,
-        pokladnica: certificateInfo.pokladnica,
-        timezoneOffset: timezoneOffset,
-        end_point: isProductionMode ? "PRODUCTION" : "TEST",
-      }),
-    })
-      .then((res) => {
-        console.log("[v0] Response status:", res.status)
-        if (res.status === 429) {
-          res.json().then((data) => {
-            console.log("[v0] Rate limit exceeded:", data)
-            setRateLimitRetryAfter(data.retryAfter || 60)
-            setShowRateLimitModal(true)
-            setNotificationListLoading(false)
-          })
-          throw new Error("Rate limit exceeded")
-        }
-        if (!res.ok) {
-          throw new Error("Failed to fetch notifications")
-        }
-        return res.json()
-      })
-      .then((data) => {
-        console.log("[v0] Received data:", data)
-        console.log("[v0] Notifications count:", data.notifications?.length || 0)
-        setNotificationListData(data.notifications || [])
-      })
-      .catch((error) => {
-        console.error("[v0] Error fetching notifications:", error)
-        setNotificationListData([])
-      })
-      .finally(() => {
-        setNotificationListLoading(false)
-      })
-  }
-
-  const handleShowNotificationList = () => {
-    setShowNotificationDateModal(true)
-  }
-
   // Define handleTransactionDateSelect here
   const handleTransactionDateSelect = (date: string) => {
     setSelectedTransactionDate(date)
     setShowTransactionDateModal(false)
-    setShowNotificationListModal(true)
+    setShowTransactionListModal(true)
     setNotificationListLoading(true)
 
     console.log("[v0] handleTransactionDateSelect called with date:", date)
@@ -1934,10 +1749,17 @@ const Home: FunctionComponent = () => {
       })
   }
 
+  // Define handleTransactionListClick here
+  const handleTransactionListClick = () => {
+    const today = new Date().toISOString().split("T")[0]
+    setSelectedTransactionDate(today)
+    setShowTransactionDateModal(true)
+  }
+
   // Define handlePrintTransactions here
   const handlePrintTransactions = () => {
     setShowTransactionDateModal(false)
-    setShowNotificationDateModal(true)
+    setShowTransactionListModal(true)
     setNotificationListLoading(true)
 
     console.log("[v0] === FRONTEND TRANSACTION FETCH ===")
@@ -1953,7 +1775,7 @@ const Home: FunctionComponent = () => {
     console.log("[v0]   Start:", startOfDay.toISOString())
     console.log("[v0]   End:", endOfDay.toISOString())
 
-    fetch("/api/get-transactions-by-date", {
+    fetch("/api/get-notifications-by-date", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -1968,28 +1790,28 @@ const Home: FunctionComponent = () => {
           console.log("[v0] Rate limit exceeded:", data)
           setRateLimitRetryAfter(data.retryAfter || 60)
           setShowRateLimitModal(true)
-          setTransactionListLoading(false)
+          setNotificationListLoading(false)
           return null
         }
 
         if (!res.ok) {
-          throw new Error("Failed to fetch transactions")
+          throw new Error("Failed to fetch notifications")
         }
         return res.json()
       })
       .then((data) => {
         if (data) {
-          console.log("[v0] Fetched transaction list data:", data.transactions)
-          console.log("[v0] Number of transactions:", data.transactions?.length || 0)
-          setTransactionListData(data.transactions || [])
+          console.log("[v0] Fetched notification list data:", data.notifications)
+          console.log("[v0] Number of notifications:", data.notifications?.length || 0)
+          setNotificationListData(data.notifications || [])
         }
       })
       .catch((error) => {
-        console.error("[v0] Error fetching transactions:", error)
-        setTransactionListData([])
+        console.error("[v0] Error fetching notifications:", error)
+        setNotificationListData([])
       })
       .finally(() => {
-        setTransactionListLoading(false)
+        setNotificationListLoading(false)
       })
   }
 
@@ -2836,7 +2658,7 @@ const Home: FunctionComponent = () => {
                               // Amounts match but integrity error - invalid payment
                               return (
                                 <span className="text-lg font-semibold text-red-600">
-                                  Toto je neplatná platba. Môže šlo o podvod.
+                                  Toto je neplatná platba. Môže ísť o podvod.
                                 </span>
                               )
                             }
@@ -2988,12 +2810,12 @@ const Home: FunctionComponent = () => {
               </DialogContent>
             </Dialog>
 
-            <Dialog open={showNotificationListModal} onOpenChange={setShowNotificationListModal}>
+            <Dialog open={showTransactionListModal} onOpenChange={setShowTransactionListModal}>
               <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-semibold">
                     Zoznam platieb -{" "}
-                    {selectedNotificationDate ? new Date(selectedNotificationDate).toLocaleDateString("sk-SK") : ""}
+                    {selectedTransactionDate ? new Date(selectedTransactionDate).toLocaleDateString("sk-SK") : ""}
                   </h3>
                 </div>
 
@@ -3032,16 +2854,15 @@ const Home: FunctionComponent = () => {
                       <Printer className="h-4 w-4 mr-2" />
                       Tlačiť súhrn
                     </Button>
-                    <Button onClick={handlePrintTransactions} variant="outline" size="sm">
+                    <Button onClick={printAllNotifications} variant="outline" size="sm">
                       <Printer className="h-4 w-4 mr-2" />
                       Tlačiť všetky
                     </Button>
                   </div>
-                  <Button onClick={() => setShowNotificationListModal(false)}>Zavrieť</Button>
+                  <Button onClick={() => setShowTransactionListModal(false)}>Zavrieť</Button>
                 </div>
               </DialogContent>
             </Dialog>
-
             {/* Dispute confirmation modal (from cancel payment) */}
             <Dialog open={showDisputeConfirmModal} onOpenChange={setShowDisputeConfirmModal}>
               <DialogContent className="sm:max-w-md">
@@ -3266,7 +3087,7 @@ const Home: FunctionComponent = () => {
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={handleShowNotificationList} // Changed from handleTransactionListClick
+                    onClick={handleTransactionListClick}
                     className="p-3 mx-1"
                     title="Zoznam platieb"
                   >
