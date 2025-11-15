@@ -972,7 +972,7 @@ const Home: FunctionComponent = () => {
 
             for (const message of data.messages) {
               try {
-                const parsedMessage = JSON.parse(message)
+                const parsedMessage = JSON.Parse(message)
                 if (parsedMessage.dataIntegrityHash) {
                   notificationHash = parsedMessage.dataIntegrityHash
                   break
@@ -1397,15 +1397,15 @@ const Home: FunctionComponent = () => {
     return disputeSortDirection === "asc" ? comparison : -comparison
   })
 
-  // Define calculateTransactionTotal here
-  const calculateTransactionTotal = () => {
+  // Define calculateNotificationTotal here
+  const calculateNotificationTotal = () => {
     return notificationListData.reduce((total, transaction) => {
       const amount = Number.parseFloat(transaction.amount || 0)
       return total + amount
     }, 0)
   }
 
-  // Define printTransactionSummary here
+  // Define printNotificationSummary here
   const printNotificationSummary = () => {
     if (isMobileDevice()) {
       setShowMobilePrintWarningModal(true)
@@ -1506,7 +1506,7 @@ const Home: FunctionComponent = () => {
                 .join("")}
               <tr class="total">
                 <td colspan="2"><strong>Celková suma:</strong></td>
-                <td class="amount"><strong>${calculateTransactionTotal().toFixed(2)} EUR</strong></td>
+                <td class="amount"><strong>${calculateNotificationTotal().toFixed(2)} EUR</strong></td>
               </tr>
             </tbody>
           </table>
@@ -1696,14 +1696,14 @@ const Home: FunctionComponent = () => {
     setMqttTimeRemaining(120)
   }
 
-  // Define handleTransactionDateSelect here
-  const handleTransactionDateSelect = (date: string) => {
+  // Define handleNotificationDateSelect here
+  const handleNotificationDateSelect = (date: string) => {
     setSelectedTransactionDate(date)
     setShowTransactionDateModal(false)
     setShowTransactionListModal(true)
     setNotificationListLoading(true)
 
-    console.log("[v0] handleTransactionDateSelect called with date:", date)
+    console.log("[v0] handleNotificationDateSelect called with date:", date)
     console.log("[v0] Pokladnica:", certificateInfo.pokladnica)
 
     // Get user's timezone offset in minutes
@@ -2802,7 +2802,7 @@ const Home: FunctionComponent = () => {
                     <Button variant="outline" onClick={() => setShowTransactionDateModal(false)} className="flex-1">
                       Zrušiť
                     </Button>
-                    <Button onClick={() => handleTransactionDateSelect(selectedTransactionDate)} disabled={!selectedTransactionDate} className="flex-1">
+                    <Button onClick={() => handleNotificationDateSelect(selectedTransactionDate)} disabled={!selectedTransactionDate} className="flex-1">
                       Vyhľadať
                     </Button>
                   </div>
