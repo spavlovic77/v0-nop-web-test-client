@@ -1542,6 +1542,124 @@ const Home: FunctionComponent = () => {
     }
   }
 
+  const printNotificationSummary = () => {
+    if (isMobileDevice()) {
+      setShowMobilePrintWarningModal(true)
+      return
+    }
+
+    const printContent = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Súhrn platieb - ${selectedNotificationDate}</title>
+          <style>
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body { 
+              font-family: Arial, sans-serif; 
+              padding: 15px;
+              font-size: 12px;
+              line-height: 1.4;
+            }
+            h1 { 
+              font-size: 18px;
+              color: #333; 
+              border-bottom: 2px solid #333; 
+              padding-bottom: 8px;
+              margin-bottom: 15px;
+            }
+            p { margin-bottom: 8px; }
+            table { 
+              width: 100%; 
+              border-collapse: collapse; 
+              margin: 15px 0;
+              font-size: 11px;
+            }
+            th, td { 
+              border: 1px solid #ddd; 
+              padding: 6px 4px;
+              text-align: left;
+              word-wrap: break-word;
+            }
+            th { 
+              background-color: #f5f5f5; 
+              font-weight: bold;
+              font-size: 11px;
+            }
+            .total { 
+              font-weight: bold; 
+              background-color: #e8f4fd;
+            }
+            .verified { color: #16a34a; font-weight: bold; }
+            .failed { color: #dc2626; font-weight: bold; }
+            .pending { color: #9ca3af; }
+            .amount { text-align: right; }
+            
+            @media print {
+              body { padding: 10px; }
+              table { page-break-inside: auto; }
+              tr { page-break-inside: avoid; page-break-after: auto; }
+            }
+            
+            @media screen and (max-width: 600px) {
+              body { font-size: 11px; }
+              h1 { font-size: 16px; }
+              th, td { padding: 4px 2px; font-size: 10px; }
+            }
+          </style>
+        </head>
+        <body>
+          <h1>Súhrn platieb</h1>
+          <p><strong>Dátum:</strong> ${new Date(selectedNotificationDate).toLocaleDateString("sk-SK")}</p>
+          
+          <table>
+            <thead>
+              <tr>
+                <th style="width: 25%;">Čas</th>
+                <th style="width: 40%;">Transaction ID</th>
+                <th class="amount" style="width: 40%;">Suma (EUR)</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${notificationListData
+                .map((notification) => {
+                  return `
+                      <tr>
+                        <td>${new Date(notification.created_at).toLocaleTimeString("sk-SK", { hour: "2-digit", minute: "2-digit" })}</td>
+                        <td style="font-family: monospace; font-size: 10px; word-break: break-all;">${notification.transaction_id || "N/A"}</td>
+                        <td class="amount">${Number.parseFloat(notification.amount || 0).toFixed(2)}</td>
+                      </tr>
+                    `
+                })
+                .join("")}
+              <tr class="total">
+                <td colspan="2"><strong>Celková suma:</strong></td>
+                <td class="amount"><strong>${calculateNotificationTotal().toFixed(2)} EUR</strong></td>
+              </tr>
+            </tbody>
+          </table>
+          
+          <p style="margin-top: 15px;"><strong>Vygenerované:</strong> ${new Date().toLocaleString("sk-SK")}</p>
+          <script>
+            window.onload = function() {
+              setTimeout(function() {
+                window.print();
+              }, 250);
+            };
+          </script>
+        </body>
+      </html>
+    `
+
+    const printWindow = window.open("", "_blank")
+    if (printWindow) {
+      printWindow.document.write(printContent)
+      printWindow.document.close()
+    }
+  }
+
   const printAllNotifications = () => {
     if (isMobileDevice()) {
       setShowMobilePrintWarningModal(true)
@@ -1767,8 +1885,8 @@ const Home: FunctionComponent = () => {
   const handleTransactionDateSelect = (date: string) => {
     setSelectedTransactionDate(date)
     setShowTransactionDateModal(false)
-    setShowTransactionListModal(true)
-    setTransactionListLoading(true)
+    setShowNotificationListModal(true)
+    setNotificationListLoading(true)
 
     console.log("[v0] handleTransactionDateSelect called with date:", date)
     console.log("[v0] Pokladnica:", certificateInfo.pokladnica)
@@ -1776,13 +1894,13 @@ const Home: FunctionComponent = () => {
     // Get user's timezone offset in minutes
     const timezoneOffset = new Date().getTimezoneOffset()
 
-    fetch("/api/get-transactions-by-date", {
+    fetch("/api/get-notifications-by-date", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         date: date,
         pokladnica: certificateInfo.pokladnica,
-        timezoneOffset: timezoneOffset, // Send timezone offset
+        timezoneOffset: timezoneOffset,
         end_point: isProductionMode ? "PRODUCTION" : "TEST",
       }),
     })
@@ -1793,41 +1911,34 @@ const Home: FunctionComponent = () => {
             console.log("[v0] Rate limit exceeded:", data)
             setRateLimitRetryAfter(data.retryAfter || 60)
             setShowRateLimitModal(true)
-            setTransactionListLoading(false)
+            setNotificationListLoading(false)
           })
           throw new Error("Rate limit exceeded")
         }
         if (!res.ok) {
-          throw new Error("Failed to fetch transactions")
+          throw new Error("Failed to fetch notifications")
         }
         return res.json()
       })
       .then((data) => {
         console.log("[v0] Received data:", data)
-        console.log("[v0] Transactions count:", data.transactions?.length || 0)
-        setTransactionListData(data.transactions || [])
+        console.log("[v0] Notifications count:", data.notifications?.length || 0)
+        setNotificationListData(data.notifications || [])
       })
       .catch((error) => {
-        console.error("[v0] Error fetching transactions:", error)
-        setTransactionListData([])
+        console.error("[v0] Error fetching notifications:", error)
+        setNotificationListData([])
       })
       .finally(() => {
-        setTransactionListLoading(false)
+        setNotificationListLoading(false)
       })
-  }
-
-  // Define handleTransactionListClick here
-  const handleTransactionListClick = () => {
-    const today = new Date().toISOString().split("T")[0]
-    setSelectedTransactionDate(today)
-    setShowTransactionDateModal(true)
   }
 
   // Define handlePrintTransactions here
   const handlePrintTransactions = () => {
     setShowTransactionDateModal(false)
-    setShowNotificationDateModal(true) // Changed from setShowTransactionListModal
-    setTransactionListLoading(true)
+    setShowNotificationDateModal(true)
+    setNotificationListLoading(true)
 
     console.log("[v0] === FRONTEND TRANSACTION FETCH ===")
     console.log("[v0] Selected date:", selectedTransactionDate)
@@ -2877,31 +2988,31 @@ const Home: FunctionComponent = () => {
               </DialogContent>
             </Dialog>
 
-            <Dialog open={showTransactionListModal} onOpenChange={setShowTransactionListModal}>
+            <Dialog open={showNotificationListModal} onOpenChange={setShowNotificationListModal}>
               <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-semibold">
                     Zoznam platieb -{" "}
-                    {selectedTransactionDate ? new Date(selectedTransactionDate).toLocaleDateString("sk-SK") : ""}
+                    {selectedNotificationDate ? new Date(selectedNotificationDate).toLocaleDateString("sk-SK") : ""}
                   </h3>
                 </div>
 
                 <div className="flex-1 overflow-y-auto">
-                  {transactionListLoading ? (
+                  {notificationListLoading ? (
                     <div className="flex items-center justify-center py-8">
                       <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
                       <span className="ml-2">Načítavam platby...</span>
                     </div>
-                  ) : transactionListData.length > 0 ? (
+                  ) : notificationListData.length > 0 ? (
                     <div className="space-y-4">
                       <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
                         <div className="text-center">
-                          <div className="text-2xl font-bold text-blue-600">{transactionListData.length}</div>
+                          <div className="text-2xl font-bold text-blue-600">{notificationListData.length}</div>
                           <div className="text-sm text-gray-600">Platieb</div>
                         </div>
                         <div className="text-center">
                           <div className="text-2xl font-bold text-green-600">
-                            {calculateTransactionTotal().toFixed(2)} €
+                            {calculateNotificationTotal().toFixed(2)} €
                           </div>
                           <div className="text-sm text-gray-600">Celková suma</div>
                         </div>
@@ -2917,7 +3028,7 @@ const Home: FunctionComponent = () => {
 
                 <div className="flex justify-between gap-2 mt-4">
                   <div className="flex gap-2">
-                    <Button onClick={printTransactionSummary} variant="outline" size="sm">
+                    <Button onClick={printNotificationSummary} variant="outline" size="sm">
                       <Printer className="h-4 w-4 mr-2" />
                       Tlačiť súhrn
                     </Button>
@@ -2926,10 +3037,11 @@ const Home: FunctionComponent = () => {
                       Tlačiť všetky
                     </Button>
                   </div>
-                  <Button onClick={() => setShowTransactionListModal(false)}>Zavrieť</Button>
+                  <Button onClick={() => setShowNotificationListModal(false)}>Zavrieť</Button>
                 </div>
               </DialogContent>
             </Dialog>
+
             {/* Dispute confirmation modal (from cancel payment) */}
             <Dialog open={showDisputeConfirmModal} onOpenChange={setShowDisputeConfirmModal}>
               <DialogContent className="sm:max-w-md">
