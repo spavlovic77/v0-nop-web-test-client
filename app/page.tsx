@@ -145,11 +145,11 @@ const Home: FunctionComponent = () => {
   const [integrityVerified, setIntegrityVerified] = useState(false)
   const [integrityError, setIntegrityError] = useState(false)
 
-  const [showTransactionListModal, setShowTransactionListModal] = useState(false)
-  const [showTransactionDateModal, setShowTransactionDateModal] = useState(false)
-  const [selectedTransactionDate, setSelectedTransactionDate] = useState<string>("")
-  const [transactionListData, setTransactionListData] = useState<any[]>([])
-  const [transactionListLoading, setTransactionListLoading] = useState(false)
+  const [showNotificationListModal, setShowNotificationListModal] = useState(false)
+  const [showNotificationDateModal, setShowNotificationDateModal] = useState(false)
+  const [selectedNotificationDate, setSelectedNotificationDate] = useState<string>("")
+  const [notificationListData, setNotificationListData] = useState<any[]>([])
+  const [notificationListLoading, setNotificationListLoading] = useState(false)
 
   const [showDisputeDateModal, setShowDisputeDateModal] = useState(false)
   const [selectedDisputeDate, setSelectedDisputeDate] = useState<string>("")
@@ -972,7 +972,7 @@ const Home: FunctionComponent = () => {
 
             for (const message of data.messages) {
               try {
-                const parsedMessage = JSON.parse(message)
+                const parsedMessage = JSON.Parse(message)
                 if (parsedMessage.dataIntegrityHash) {
                   notificationHash = parsedMessage.dataIntegrityHash
                   break
@@ -1405,6 +1405,13 @@ const Home: FunctionComponent = () => {
     }, 0)
   }
 
+  const calculateNotificationTotal = () => {
+    return notificationListData.reduce((total, notification) => {
+      const amount = Number.parseFloat(notification.amount || 0)
+      return total + amount
+    }, 0)
+  }
+
   // Define printTransactionSummary here
   const printTransactionSummary = () => {
     if (isMobileDevice()) {
@@ -1530,8 +1537,7 @@ const Home: FunctionComponent = () => {
     }
   }
 
-  // Define printAllTransactions here
-  const printAllTransactions = () => {
+  const printAllNotifications = () => {
     if (isMobileDevice()) {
       setShowMobilePrintWarningModal(true)
       return
@@ -1543,7 +1549,7 @@ const Home: FunctionComponent = () => {
         <head>
           <meta charset="utf-8">
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>Súhrn transakcií - ${selectedTransactionDate}</title>
+          <title>Súhrn platieb - ${selectedNotificationDate}</title>
           <style>
             * { margin: 0; padding: 0; box-sizing: border-box; }
             body { 
@@ -1600,8 +1606,8 @@ const Home: FunctionComponent = () => {
           </style>
         </head>
         <body>
-          <h1>Súhrn transakcií</h1>
-          <p><strong>Dátum:</strong> ${new Date(selectedTransactionDate).toLocaleDateString("sk-SK")}</p>
+          <h1>Súhrn platieb</h1>
+          <p><strong>Dátum:</strong> ${new Date(selectedNotificationDate).toLocaleDateString("sk-SK")}</p>
           
           <table>
             <thead>
@@ -1612,20 +1618,20 @@ const Home: FunctionComponent = () => {
               </tr>
             </thead>
             <tbody>
-              ${transactionListData
-                .map((transaction) => {
+              ${notificationListData
+                .map((notification) => {
                   return `
                       <tr>
-                        <td>${new Date(transaction.payload_received_at).toLocaleTimeString("sk-SK", { hour: "2-digit", minute: "2-digit" })}</td>
-                        <td style="font-family: monospace; font-size: 10px; word-break: break-all;">${transaction.end_to_end_id || "N/A"}</td>
-                        <td class="amount">${Number.parseFloat(transaction.amount || 0).toFixed(2)}</td>
+                        <td>${new Date(notification.created_at).toLocaleTimeString("sk-SK", { hour: "2-digit", minute: "2-digit" })}</td>
+                        <td style="font-family: monospace; font-size: 10px; word-break: break-all;">${notification.transaction_id || "N/A"}</td>
+                        <td class="amount">${Number.parseFloat(notification.amount || 0).toFixed(2)}</td>
                       </tr>
                     `
                 })
                 .join("")}
               <tr class="total">
                 <td colspan="2"><strong>Celková suma:</strong></td>
-                <td class="amount"><strong>${calculateTransactionTotal().toFixed(2)} EUR</strong></td>
+                <td class="amount"><strong>${calculateNotificationTotal().toFixed(2)} EUR</strong></td>
               </tr>
             </tbody>
           </table>
@@ -1694,6 +1700,62 @@ const Home: FunctionComponent = () => {
     setSubscriptionActive(false)
     setMqttTimerActive(false)
     setMqttTimeRemaining(120)
+  }
+
+  const handleNotificationDateSelect = (date: string) => {
+    setSelectedNotificationDate(date)
+    setShowNotificationDateModal(false)
+    setShowNotificationListModal(true)
+    setNotificationListLoading(true)
+
+    console.log("[v0] handleNotificationDateSelect called with date:", date)
+    console.log("[v0] Pokladnica:", certificateInfo.pokladnica)
+
+    // Get user's timezone offset in minutes
+    const timezoneOffset = new Date().getTimezoneOffset()
+
+    fetch("/api/get-notifications-by-date", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        date: date,
+        pokladnica: certificateInfo.pokladnica,
+        timezoneOffset: timezoneOffset,
+        end_point: isProductionMode ? "PRODUCTION" : "TEST",
+      }),
+    })
+      .then((res) => {
+        console.log("[v0] Response status:", res.status)
+        if (res.status === 429) {
+          res.json().then((data) => {
+            console.log("[v0] Rate limit exceeded:", data)
+            setRateLimitRetryAfter(data.retryAfter || 60)
+            setShowRateLimitModal(true)
+            setNotificationListLoading(false)
+          })
+          throw new Error("Rate limit exceeded")
+        }
+        if (!res.ok) {
+          throw new Error("Failed to fetch notifications")
+        }
+        return res.json()
+      })
+      .then((data) => {
+        console.log("[v0] Received data:", data)
+        console.log("[v0] Notifications count:", data.notifications?.length || 0)
+        setNotificationListData(data.notifications || [])
+      })
+      .catch((error) => {
+        console.error("[v0] Error fetching notifications:", error)
+        setNotificationListData([])
+      })
+      .finally(() => {
+        setNotificationListLoading(false)
+      })
+  }
+
+  const handleShowNotificationList = () => {
+    setShowNotificationDateModal(true)
   }
 
   // Define handleTransactionDateSelect here
@@ -3042,7 +3104,6 @@ const Home: FunctionComponent = () => {
               </DialogContent>
             </Dialog>
 
-            {/* Confirmation QR Code Modal */}
             <Dialog open={showConfirmationQrModal} onOpenChange={setShowConfirmationQrModal}>
               <DialogContent className="sm:max-w-md">
                 <DialogHeader>
@@ -3088,7 +3149,7 @@ const Home: FunctionComponent = () => {
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={handleTransactionListClick}
+                    onClick={handleShowNotificationList} // Changed from handleTransactionListClick
                     className="p-3 mx-1"
                     title="Zoznam platieb"
                   >
