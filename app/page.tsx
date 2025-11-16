@@ -968,8 +968,7 @@ const Home: FunctionComponent = () => {
         // Start 1-second verification process
         setTimeout(async () => {
           try {
-            // Parse the notification message to extract dataIntegrityHash
-            let notificationHash = "ABCDEF" // Default fallback
+            let notificationHash: string | null = null
 
             for (const message of data.messages) {
               try {
@@ -981,6 +980,14 @@ const Home: FunctionComponent = () => {
               } catch {
                 // Message is not JSON, continue
               }
+            }
+
+            if (!notificationHash) {
+              console.error("[v0] CRITICAL: No dataIntegrityHash found in notification messages")
+              setIntegrityVerified(false)
+              setIntegrityError(true)
+              setVerifyingIntegrity(false)
+              return
             }
 
             const numericAmount = formatEurAmountForApi(eurAmount)
@@ -2610,7 +2617,7 @@ const Home: FunctionComponent = () => {
             <Dialog open={showPaymentReceivedModal} onOpenChange={setShowPaymentReceivedModal}>
               <DialogContent className="max-w-[95vw] max-h-[90vh] rounded-2xl bg-white/95 backdrop-blur-md shadow-2xl border-0">
                 <div className="space-y-6 text-center py-8 px-4">
-                  <div className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-6">
+                  <div className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent text-center">
                     Prichádzajúca platba
                   </div>
 
