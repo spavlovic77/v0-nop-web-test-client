@@ -131,6 +131,7 @@ const Home: FunctionComponent = () => {
   const [eurAmount, setEurAmount] = useState<string>("")
   const [showQrModal, setShowQrModal] = useState(false)
   const [qrTransactionId, setQrTransactionId] = useState<string | null>(null)
+  const [qrTransactionTimestamp, setQrTransactionTimestamp] = useState<string | null>(null)
   const [qrLoading, setQrLoading] = useState(false)
   const [qrCode, setQrCode] = useState<string | null>(null)
   const [subscriptionActive, setSubscriptionActive] = useState(false)
@@ -788,6 +789,7 @@ const Home: FunctionComponent = () => {
         if (transactionId) {
           console.log("[v0] Using transaction ID:", transactionId)
           setQrTransactionId(transactionId)
+          setQrTransactionTimestamp(new Date().toISOString())
 
           console.log("[v0] Generating payment link...")
           const paymentLink = generatePaymentLink(numericAmount, transactionId)
@@ -2871,9 +2873,23 @@ const Home: FunctionComponent = () => {
             <Dialog open={showDisputeConfirmModal} onOpenChange={setShowDisputeConfirmModal}>
               <DialogContent className="sm:max-w-md">
                 <DialogHeader>
-                  <DialogTitle>Dokladu o nepotvrdení údajne zrealizovanej platby </DialogTitle>
+                  <DialogTitle>Dokladu</DialogTitle>
                 </DialogHeader>
                 <div className="space-y-4">
+                  {currentTransactionId && (
+                    <div className="space-y-2 bg-muted p-3 rounded-lg">
+                      <div className="text-sm">
+                        <span className="font-semibold">ID transakcie:</span>
+                        <p className="font-mono text-xs break-all mt-1">{currentTransactionId}</p>
+                      </div>
+                      {qrTransactionTimestamp && (
+                        <div className="text-sm">
+                          <span className="font-semibold">Čas vytvorenia:</span>
+                          <p className="mt-1">{formatDateTime(qrTransactionTimestamp)}</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
                   <p className="text-center text-lg">Vyhotoviť doklad o nepotvrdení údajne zrealizovanej platby?</p>
                   <div className="flex gap-3">
                     <Button variant="outline" className="flex-1 bg-transparent" onClick={handleDisputeNo}>
