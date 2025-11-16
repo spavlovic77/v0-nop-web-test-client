@@ -163,6 +163,7 @@ const Home: FunctionComponent = () => {
   const [currentTransactionId, setCurrentTransactionId] = useState<string | null>(null)
   const [disputeSortField, setDisputeSortField] = useState<"time" | "amount">("time")
   const [disputeSortDirection, setDisputeSortDirection] = useState<"asc" | "desc">("desc")
+  const [showOnlyDisputed, setShowOnlyDisputed] = useState(false)
 
   const [certificateInfo, setCertificateInfo] = useState<{
     vatsk: string | null
@@ -1385,21 +1386,28 @@ const Home: FunctionComponent = () => {
     }
   }
 
-  const sortedDisputeTransactions = [...disputeTransactions].sort((a, b) => {
-    let comparison = 0
+  const sortedDisputeTransactions = [...disputeTransactions]
+    .filter((transaction) => {
+      if (showOnlyDisputed) {
+        return transaction.dispute === true
+      }
+      return true
+    })
+    .sort((a, b) => {
+      let comparison = 0
 
-    if (disputeSortField === "time") {
-      const timeA = a.created_at ? new Date(a.created_at).getTime() : 0
-      const timeB = b.created_at ? new Date(b.created_at).getTime() : 0
-      comparison = timeA - timeB
-    } else if (disputeSortField === "amount") {
-      const amountA = typeof a.amount === "string" ? Number.parseFloat(a.amount) : a.amount || 0
-      const amountB = typeof b.amount === "string" ? Number.parseFloat(b.amount) : b.amount || 0
-      comparison = amountA - amountB
-    }
+      if (disputeSortField === "time") {
+        const timeA = a.created_at ? new Date(a.created_at).getTime() : 0
+        const timeB = b.created_at ? new Date(b.created_at).getTime() : 0
+        comparison = timeA - timeB
+      } else if (disputeSortField === "amount") {
+        const amountA = typeof a.amount === "string" ? Number.parseFloat(a.amount) : a.amount || 0
+        const amountB = typeof b.amount === "string" ? Number.parseFloat(b.amount) : b.amount || 0
+        comparison = amountA - amountB
+      }
 
-    return disputeSortDirection === "asc" ? comparison : -comparison
-  })
+      return disputeSortDirection === "asc" ? comparison : -comparison
+    })
 
   // Define calculateNotificationTotal here
   const calculateNotificationTotal = () => {
@@ -1869,10 +1877,8 @@ const Home: FunctionComponent = () => {
               </tr>
             </thead>
             <tbody>
-              ${sortedDisputeTransactions
-                .filter((transaction) => transaction.dispute)
-                .map((transaction) => {
-                  return `
+              ${sortedDisputeTransactions.map((transaction) => {
+                return `
                       <tr>
                         <td>${formatDateTime(transaction.created_at)}</td>
                         <td style="font-family: monospace; font-size: 10px; word-break: break-all;">${transaction.transaction_id}</td>
@@ -1880,8 +1886,7 @@ const Home: FunctionComponent = () => {
                         <td>${transaction.dispute ? "Spor" : "OK"}</td>
                       </tr>
                     `
-                })
-                .join("")}
+              }).join("")}
             </tbody>
           </table>
           
@@ -2821,6 +2826,12 @@ const Home: FunctionComponent = () => {
                     Zoznam platieb -{" "}
                     {selectedTransactionDate ? new Date(selectedTransactionDate).toLocaleDateString("sk-SK") : ""}
                   </h3>
+                  <div className="flex items-center gap-2">
+                    <label htmlFor="dispute-filter" className="text-sm font-medium">
+                      Iba sporné
+                    </label>
+                    <Switch id="dispute-filter" checked={showOnlyDisputed} onCheckedChange={setShowOnlyDisputed} />
+                  </div>
                 </div>
 
                 <div className="flex-1 overflow-y-auto">
@@ -2871,7 +2882,7 @@ const Home: FunctionComponent = () => {
             <Dialog open={showDisputeConfirmModal} onOpenChange={setShowDisputeConfirmModal}>
               <DialogContent className="sm:max-w-md">
                 <DialogHeader>
-                  <DialogTitle>Dokladu</DialogTitle>
+                  <DialogTitle>Doklad</DialogTitle>
                 </DialogHeader>
                 <div className="space-y-4">
                   <p className="text-center text-lg">Vyhotoviť doklad o nepotvrdení údajne zrealizovanej platby?</p>
@@ -2946,9 +2957,15 @@ const Home: FunctionComponent = () => {
               <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-semibold">
-                    Vyber transakciu -{" "}
+                    Nepotvrdené platby -{" "}
                     {selectedDisputeDate ? new Date(selectedDisputeDate).toLocaleDateString("sk-SK") : ""}
                   </h3>
+                  <div className="flex items-center gap-2">
+                    <label htmlFor="dispute-filter" className="text-sm font-medium">
+                      Iba sporné
+                    </label>
+                    <Switch id="dispute-filter" checked={showOnlyDisputed} onCheckedChange={setShowOnlyDisputed} />
+                  </div>
                 </div>
 
                 <div className="flex-1 overflow-y-auto">
