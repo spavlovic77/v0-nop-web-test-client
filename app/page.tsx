@@ -156,7 +156,7 @@ const Home: FunctionComponent = () => {
   const [showDisputeListModal, setShowDisputeListModal] = useState(false)
   const [disputeTransactions, setDisputeTransactions] = useState<any[]>([])
   const [disputeListLoading, setDisputeListLoading] = useState(false)
-  const [selectedDisputeTransaction, setSelectedDisputeTransaction] = useState<string | null>(null)
+  const [selectedDisputeTransaction, setSelectedDisputeTransaction] = useState<any | null>(null)
   const [showDisputeActionModal, setShowDisputeActionModal] = useState(false)
 
   const [showDisputeConfirmModal, setShowDisputeConfirmModal] = useState(false)
@@ -1317,9 +1317,9 @@ const Home: FunctionComponent = () => {
     }
   }
 
-  const handleTransactionDisputeClick = (transactionId: string) => {
-    console.log("[v0] handleTransactionDisputeClick called with:", transactionId)
-    setSelectedDisputeTransaction(transactionId)
+  const handleTransactionDisputeClick = (transaction: any) => {
+    console.log("[v0] handleTransactionDisputeClick called with:", transaction)
+    setSelectedDisputeTransaction(transaction)
     setShowDisputeActionModal(true)
     console.log("[v0] showDisputeActionModal set to true")
   }
@@ -1332,14 +1332,14 @@ const Home: FunctionComponent = () => {
       const response = await fetch("/api/update-dispute", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ transactionId: selectedDisputeTransaction }),
+        body: JSON.stringify({ transactionId: selectedDisputeTransaction.transaction_id }),
       })
 
       if (!response.ok) {
         throw new Error("Failed to update dispute flag")
       }
 
-      const url = `${window.location.origin}/confirmation/${selectedDisputeTransaction}`
+      const url = `${window.location.origin}/confirmation/${selectedDisputeTransaction.transaction_id}`
       setConfirmationUrl(url)
       setShowConfirmationQrModal(true)
 
@@ -1350,7 +1350,11 @@ const Home: FunctionComponent = () => {
       handleDisputeDateSelect()
     } catch (error) {
       console.error("[v0] Error updating dispute:", error)
-      alert("Chyba pri aktualizácii sporu")
+      toast({
+        title: "Chyba",
+        description: "Nepodarilo sa aktualizovať spor",
+        variant: "destructive",
+      })
     }
   }
 
@@ -2997,7 +3001,7 @@ const Home: FunctionComponent = () => {
                                   <Button
                                     variant="ghost"
                                     size="sm"
-                                    onClick={() => handleTransactionDisputeClick(transaction.transaction_id)}
+                                    onClick={() => handleTransactionDisputeClick(transaction)}
                                     className="p-1"
                                     title="Vyhotoviť doklad o nepotvrdennej platbe"
                                   >
@@ -3045,11 +3049,23 @@ const Home: FunctionComponent = () => {
             <Dialog open={showConfirmationQrModal} onOpenChange={setShowConfirmationQrModal}>
               <DialogContent className="sm:max-w-md">
                 <DialogHeader>
-                  <DialogTitle>Potvrdenie o neoznámenej úhrade</DialogTitle>
+                  <DialogTitle>Doklad o nepotvrdení údajne zrealizovanej platby</DialogTitle>
                 </DialogHeader>
                 <div className="space-y-4">
+                  {selectedDisputeTransaction && (
+                    <div className="space-y-2 bg-muted p-3 rounded-lg">
+                      <div className="text-sm">
+                        <span className="font-semibold">ID transakcie:</span>
+                        <p className="font-mono text-xs break-all mt-1">{selectedDisputeTransaction.transaction_id}</p>
+                      </div>
+                      <div className="text-sm">
+                        <span className="font-semibold">Čas vytvorenia:</span>
+                        <p className="mt-1">{formatDateTime(selectedDisputeTransaction.created_at)}</p>
+                      </div>
+                    </div>
+                  )}
                   <p className="text-center text-sm text-muted-foreground">
-                    Naskenujte QR kód mobilným zariadením pre zobrazenie potvrdenia
+                    Naskenujte QR kód mobilným zariadením pre zobrazenie dokladu
                   </p>
                   <div className="flex justify-center p-4 bg-white rounded-lg">
                     <QRCodeSVG value={confirmationUrl} size={256} level="H" />
