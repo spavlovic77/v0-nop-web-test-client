@@ -1861,7 +1861,7 @@ const Home: FunctionComponent = () => {
       <html>
         <head>
           <meta charset="UTF-8">
-          <title>Zoznam sporov - Tlač</title>
+          <title>Zoznam nepotvrdených platieb - Tlač</title>
           <style>
             @page { size: A4; margin: 20mm; }
             body { font-family: Arial, sans-serif; font-size: 12px; }
@@ -1873,7 +1873,7 @@ const Home: FunctionComponent = () => {
           </style>
         </head>
         <body>
-          <h1>Zoznam sporov - ${selectedDisputeDate}</h1>
+          <h1>Zoznam nepotvrdených platieb - ${selectedDisputeDate}</h1>
           <table>
             <thead>
               <tr>
@@ -1890,7 +1890,7 @@ const Home: FunctionComponent = () => {
                         <td>${formatDateTime(transaction.created_at)}</td>
                         <td style="font-family: monospace; font-size: 10px; word-break: break-all;">${transaction.transaction_id}</td>
                         <td class="amount">${formatAmount(transaction.amount)}</td>
-                        <td>${transaction.dispute ? "Spor" : "OK"}</td>
+                        <td>${transaction.dispute ? "Údajne uhradená" : "Iba pokus"}</td>
                       </tr>
                     `
               }).join("")}
