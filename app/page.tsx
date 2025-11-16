@@ -3085,6 +3085,11 @@ const Home: FunctionComponent = () => {
                       variant="outline"
                       className="flex-1"
                       onClick={() => {
+                        if (isMobileDevice()) {
+                          setShowMobilePrintWarningModal(true)
+                          return
+                        }
+                        // </CHANGE>
                         if (selectedDisputeTransaction) {
                           window.open(`/confirmation/${selectedDisputeTransaction.transaction_id}`, "_blank")
                         }
