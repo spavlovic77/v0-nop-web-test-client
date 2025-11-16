@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic"
 
 export async function POST(request: NextRequest) {
   const clientIP = getClientIp(request)
-  const rateLimitResult = rateLimit("/api/update-dispute", clientIP, 2, 60000)
+  const rateLimitResult = rateLimit("/api/update-dispute", clientIP)
 
   if (!rateLimitResult.success) {
     const retryAfter = Math.ceil((rateLimitResult.reset - Date.now()) / 1000)

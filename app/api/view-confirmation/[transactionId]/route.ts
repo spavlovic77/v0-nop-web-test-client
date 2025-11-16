@@ -5,7 +5,7 @@ import { rateLimit, getClientIp } from "@/lib/rate-limit"
 export async function GET(request: NextRequest, { params }: { params: { transactionId: string } }) {
   try {
     const clientIP = getClientIp(request)
-    const rateLimitResult = rateLimit(clientIP, 2, 60000, "/api/view-confirmation")
+    const rateLimitResult = rateLimit("/api/view-confirmation", clientIP)
 
     if (!rateLimitResult.success) {
       return NextResponse.json(

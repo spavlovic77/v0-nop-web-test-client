@@ -194,7 +194,7 @@ async function saveTransactionGeneration(data: {
 
 export async function POST(request: NextRequest) {
   const clientIP = getClientIp(request)
-  const rateLimitResult = rateLimit("/api/generate-transaction", clientIP, 2, 60000)
+  const rateLimitResult = rateLimit("/api/generate-transaction", clientIP)
 
   if (!rateLimitResult.success) {
     const retryAfter = Math.ceil((rateLimitResult.reset - Date.now()) / 1000)
