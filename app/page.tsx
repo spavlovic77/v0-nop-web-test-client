@@ -973,7 +973,7 @@ const Home: FunctionComponent = () => {
 
             for (const message of data.messages) {
               try {
-                const parsedMessage = JSON.Parse(message)
+                const parsedMessage = JSON.parse(message)
                 if (parsedMessage.dataIntegrityHash) {
                   notificationHash = parsedMessage.dataIntegrityHash
                   break
@@ -2826,12 +2826,6 @@ const Home: FunctionComponent = () => {
                     Zoznam platieb -{" "}
                     {selectedTransactionDate ? new Date(selectedTransactionDate).toLocaleDateString("sk-SK") : ""}
                   </h3>
-                  <div className="flex items-center gap-2">
-                    <label htmlFor="dispute-filter" className="text-sm font-medium">
-                      Iba sporné
-                    </label>
-                    <Switch id="dispute-filter" checked={showOnlyDisputed} onCheckedChange={setShowOnlyDisputed} />
-                  </div>
                 </div>
 
                 <div className="flex-1 overflow-y-auto">
