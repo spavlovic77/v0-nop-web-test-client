@@ -1245,27 +1245,70 @@ const Home: FunctionComponent = () => {
     }
   }
 
-  const handleCancelPayment = () => {
+  const handleCancelPayment = async () => {
     console.log("[v0] Cancel payment clicked")
-    // Stop MQTT timer
-    setMqttTimerActive(false)
-    setMqttTimeRemaining(120)
-    // Store current transaction ID
-    setCurrentTransactionId(qrTransactionId)
-    // Show dispute confirmation modal
-    setShowDisputeConfirmModal(true)
+    
+    if (!qrTransactionId) {
+      toast({
+        title: "Chyba",
+        description: "ID transakcie nebolo nájdené",
+        variant: "destructive",
+      })
+      return
+    }
+
+    try {
+      // Stop MQTT timer
+      setMqttTimerActive(false)
+      setMqttTimeRemaining(120)
+
+      // Update dispute flag in database
+      const response = await fetch("/api/update-dispute", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ transactionId: qrTransactionId }),
+      })
+
+      if (response.status === 429) {
+        const data = await response.json()
+        console.log("[v0] Rate limit exceeded:", data)
+        setRateLimitRetryAfter(data.retryAfter || 60)
+        setShowRateLimitModal(true)
+        return
+      }
+
+      if (!response.ok) {
+        throw new Error("Failed to update dispute flag")
+      }
+
+      // Close QR modal
+      setShowQrModal(false)
+
+      // Set transaction data for confirmation modal
+      const url = `${window.location.origin}/confirmation/${qrTransactionId}`
+      setConfirmationUrl(url)
+      setSelectedDisputeTransaction({
+        transaction_id: qrTransactionId,
+        created_at: new Date().toISOString(),
+      })
+      setShowConfirmationQrModal(true)
+
+      // Reset form
+      setEurAmount("")
+      setCurrentTransactionId(null)
+    } catch (error) {
+      console.error("[v0] Error confirming dispute:", error)
+      toast({
+        title: "Chyba",
+        description: "Nepodarilo sa potvrdiť spor",
+        variant: "destructive",
+      })
+    }
   }
 
-  const handleDisputeNo = () => {
-    // Close all modals
-    setShowDisputeConfirmModal(false)
-    setShowQrModal(false)
-    // Reset form
-    setEurAmount("")
-    setMqttTimerActive(false)
-    setMqttTimeRemaining(120)
-    setCurrentTransactionId(null)
-  }
+
 
   const handleDisputeClick = () => {
     const today = new Date().toISOString().split("T")[0]
