@@ -2817,146 +2817,20 @@ const Home: FunctionComponent = () => {
 
             <Dialog open={showTransactionListModal} onOpenChange={setShowTransactionListModal}>
               <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold">
-                    Zoznam platieb -{" "}
-                    {selectedTransactionDate ? new Date(selectedTransactionDate).toLocaleDateString("sk-SK") : ""}
-                  </h3>
-                </div>
-
-                <div className="flex-1 overflow-y-auto">
-                  {notificationListLoading ? (
-                    <div className="flex items-center justify-center py-8">
-                      <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
-                      <span className="ml-2">Načítavam platby...</span>
-                    </div>
-                  ) : notificationListData.length > 0 ? (
-                    <div className="space-y-4">
-                      <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
-                        <div className="text-center">
-                          <div className="text-2xl font-bold text-blue-600">{notificationListData.length}</div>
-                          <div className="text-sm text-gray-600">Platieb</div>
-                        </div>
-                        <div className="text-center">
-                          <div className="text-2xl font-bold text-green-600">
-                            {calculateNotificationTotal().toFixed(2)} €
-                          </div>
-                          <div className="text-sm text-gray-600">Celková suma</div>
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="text-center py-8 text-gray-500">
-                      <Calendar className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                      <p>Žiadne platby pre vybraný dátum</p>
-                    </div>
-                  )}
-                </div>
-
-                <div className="flex justify-between gap-2 mt-4">
-                  <div className="flex gap-2">
-                    <Button onClick={printNotificationSummary} variant="outline" size="sm">
-                      <Printer className="h-4 w-4 mr-2" />
-                      Tlačiť súhrn
-                    </Button>
-                    <Button onClick={printAllNotifications} variant="outline" size="sm">
-                      <Printer className="h-4 w-4 mr-2" />
-                      Tlačiť všetky
-                    </Button>
-                  </div>
-                  <Button onClick={() => setShowTransactionListModal(false)}>Zavrieť</Button>
-                </div>
-              </DialogContent>
-            </Dialog>
-            {/* Dispute confirmation modal (from cancel payment) */}
-            <Dialog open={showDisputeConfirmModal} onOpenChange={setShowDisputeConfirmModal}>
-              <DialogContent className="sm:max-w-md">
                 <DialogHeader>
-                  <DialogTitle>Doklad</DialogTitle>
-                </DialogHeader>
-                <div className="space-y-4">
-                  <p className="text-center text-lg">Vyhotoviť doklad o nepotvrdení údajne zrealizovanej platby?</p>
-                  <div className="flex gap-3">
-                    <Button variant="outline" className="flex-1 bg-transparent" onClick={handleDisputeNo}>
-                      Nie
-                    </Button>
-                    <Button className="flex-1" onClick={handleConfirmDispute}>
-                      Áno
-                    </Button>
-                  </div>
-                </div>
-              </DialogContent>
-            </Dialog>
-
-            <Dialog open={showDisputeActionModal} onOpenChange={setShowDisputeActionModal}>
-              <DialogContent className="sm:max-w-md">
-                <DialogHeader>
-                  <DialogTitle>Doklad</DialogTitle>
-                </DialogHeader>
-                <div className="space-y-4">
-                  <p className="text-center text-lg">Vyhotoviť doklad o nepotvrdení zrealizovanej platby ?</p>
-                  <div className="flex gap-3">
-                    <Button variant="outline" className="flex-1 bg-transparent" onClick={handleCancelDisputeAction}>
-                      Nie
-                    </Button>
-                    <Button className="flex-1" onClick={handleConfirmDisputeAction}>
-                      Áno
-                    </Button>
-                  </div>
-                </div>
-              </DialogContent>
-            </Dialog>
-
-            {/* Dispute date picker modal */}
-            <Dialog open={showDisputeDateModal} onOpenChange={setShowDisputeDateModal}>
-              <DialogContent className="max-w-md">
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold text-center">Vyberte dátum</h3>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="disputeDate" className="text-sm font-medium">
-                      Dátum
-                    </Label>
-                    <div
-                      className="cursor-pointer"
-                      onClick={() => document.getElementById("disputeDate")?.showPicker?.()}
-                    >
-                      <Input
-                        id="disputeDate"
-                        type="date"
-                        value={selectedDisputeDate}
-                        onChange={(e) => setSelectedDisputeDate(e.target.value)}
-                        className="w-full cursor-pointer"
-                      />
+                  <div className="flex items-center justify-between pr-8">
+                    <DialogTitle>
+                      Nepotvrdené platby -{" "}
+                      {selectedDisputeDate ? new Date(selectedDisputeDate).toLocaleDateString("sk-SK") : ""}
+                    </DialogTitle>
+                    <div className="flex items-center gap-2">
+                      <label htmlFor="dispute-filter" className="text-sm font-medium">
+                        Iba sporné
+                      </label>
+                      <Switch id="dispute-filter" checked={showOnlyDisputed} onCheckedChange={setShowOnlyDisputed} />
                     </div>
                   </div>
-
-                  <div className="flex gap-2">
-                    <Button variant="outline" onClick={() => setShowDisputeDateModal(false)} className="flex-1">
-                      Zrušiť
-                    </Button>
-                    <Button onClick={handleDisputeDateSelect} disabled={!selectedDisputeDate} className="flex-1">
-                      Zobraziť transakcie
-                    </Button>
-                  </div>
-                </div>
-              </DialogContent>
-            </Dialog>
-
-            <Dialog open={showDisputeListModal} onOpenChange={setShowDisputeListModal}>
-              <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold">
-                    Nepotvrdené platby -{" "}
-                    {selectedDisputeDate ? new Date(selectedDisputeDate).toLocaleDateString("sk-SK") : ""}
-                  </h3>
-                  <div className="flex items-center gap-2">
-                    <label htmlFor="dispute-filter" className="text-sm font-medium">
-                      Iba sporné
-                    </label>
-                    <Switch id="dispute-filter" checked={showOnlyDisputed} onCheckedChange={setShowOnlyDisputed} />
-                  </div>
-                </div>
+                </DialogHeader>
 
                 <div className="flex-1 overflow-y-auto">
                   {disputeListLoading ? (
