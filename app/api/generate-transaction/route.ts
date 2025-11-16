@@ -333,7 +333,11 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      data: responseData,
+      data: {
+        ...responseData,
+        // Ensure created_at is included in response
+        created_at: apiCreatedAt || new Date().toISOString(),
+      },
       clientIP,
       timestamp: new Date().toISOString(),
     })

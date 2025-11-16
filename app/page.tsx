@@ -131,6 +131,7 @@ const Home: FunctionComponent = () => {
   const [eurAmount, setEurAmount] = useState<string>("")
   const [showQrModal, setShowQrModal] = useState(false)
   const [qrTransactionId, setQrTransactionId] = useState<string | null>(null)
+  const [qrTransactionCreatedAt, setQrTransactionCreatedAt] = useState<string | null>(null)
   const [qrLoading, setQrLoading] = useState(false)
   const [qrCode, setQrCode] = useState<string | null>(null)
   const [subscriptionActive, setSubscriptionActive] = useState(false)
@@ -772,15 +773,22 @@ const Home: FunctionComponent = () => {
         console.log("[v0] Generate-transaction API call logged successfully")
 
         let transactionId = null
+        let createdAt = null
         if (data.data && data.data.transactionId) {
           transactionId = data.data.transactionId
+          createdAt = data.data.created_at || data.data.createdAt
           console.log("[v0] Found transaction ID in data.transactionId:", transactionId)
+          console.log("[v0] Found created_at:", createdAt)
         } else if (data.data && typeof data.data === "object") {
           transactionId = data.data.transactionId || data.data.id || data.data.transaction_id
+          createdAt = data.data.created_at || data.data.createdAt
           console.log("[v0] Found transaction ID in nested object:", transactionId)
+          console.log("[v0] Found created_at:", createdAt)
         } else if (data.transactionId) {
           transactionId = data.transactionId
+          createdAt = data.created_at || data.createdAt
           console.log("[v0] Found transaction ID at root level:", transactionId)
+          console.log("[v0] Found created_at:", createdAt)
         } else {
           console.log("[v0] Full response structure:", JSON.stringify(data, null, 2))
           throw new Error("No transaction ID found in response")
@@ -789,6 +797,7 @@ const Home: FunctionComponent = () => {
         if (transactionId) {
           console.log("[v0] Using transaction ID:", transactionId)
           setQrTransactionId(transactionId)
+          setQrTransactionCreatedAt(createdAt)
 
           console.log("[v0] Generating payment link...")
           const paymentLink = generatePaymentLink(numericAmount, transactionId)
@@ -1265,8 +1274,13 @@ const Home: FunctionComponent = () => {
     // Stop MQTT timer
     setMqttTimerActive(false)
     setMqttTimeRemaining(120)
-    // Store current transaction ID
     setCurrentTransactionId(qrTransactionId)
+    if (qrTransactionId && qrTransactionCreatedAt) {
+      setSelectedDisputeTransaction({
+        transaction_id: qrTransactionId,
+        created_at: qrTransactionCreatedAt,
+      } as any)
+    }
     // Show dispute confirmation modal
     setShowDisputeConfirmModal(true)
   }
@@ -1699,6 +1713,8 @@ const Home: FunctionComponent = () => {
     // For example, if there's a timer or loading state specific to the modal
     setQrLoading(false)
     setQrCode(null)
+    setQrTransactionId(null)
+    setQrTransactionCreatedAt(null)
     setSubscriptionActive(false)
     setMqttTimerActive(false)
     setMqttTimeRemaining(120)
