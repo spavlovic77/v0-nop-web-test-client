@@ -2871,10 +2871,10 @@ const Home: FunctionComponent = () => {
             <Dialog open={showDisputeConfirmModal} onOpenChange={setShowDisputeConfirmModal}>
               <DialogContent className="sm:max-w-md">
                 <DialogHeader>
-                  <DialogTitle>Doklad</DialogTitle>
+                  <DialogTitle>Dokladu o nepotvrdení údajne zrealizovanej platby </DialogTitle>
                 </DialogHeader>
                 <div className="space-y-4">
-                  <p className="text-center text-lg">Vyhotoviť doklad o nepotvrdení zrealizovanej platby?</p>
+                  <p className="text-center text-lg">Vyhotoviť doklad o nepotvrdení údajne zrealizovanej platby?</p>
                   <div className="flex gap-3">
                     <Button variant="outline" className="flex-1 bg-transparent" onClick={handleDisputeNo}>
                       Nie
@@ -3011,7 +3011,10 @@ const Home: FunctionComponent = () => {
                                   <Button
                                     variant="ghost"
                                     size="sm"
-                                    onClick={() => window.open(`/confirmation/${transaction.transaction_id}`, "_blank")}
+                                    onClick={() => {
+                                      setSelectedDisputeTransaction(transaction)
+                                      setShowConfirmationQrModal(true)
+                                    }}
                                     className="p-1"
                                     title="Zobraziť potvrdenie"
                                   >
@@ -3070,15 +3073,28 @@ const Home: FunctionComponent = () => {
                   <div className="flex justify-center p-4 bg-white rounded-lg">
                     <QRCodeSVG value={confirmationUrl} size={256} level="H" />
                   </div>
-                  <Button
-                    className="w-full"
-                    onClick={() => {
-                      setShowConfirmationQrModal(false)
-                      setSelectedDisputeTransaction(null)
-                    }}
-                  >
-                    Zavrieť
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      className="flex-1"
+                      onClick={() => {
+                        if (selectedDisputeTransaction) {
+                          window.open(`/confirmation/${selectedDisputeTransaction.transaction_id}`, "_blank")
+                        }
+                      }}
+                    >
+                      Tlačiť
+                    </Button>
+                    <Button
+                      className="flex-1"
+                      onClick={() => {
+                        setShowConfirmationQrModal(false)
+                        setSelectedDisputeTransaction(null)
+                      }}
+                    >
+                      Zavrieť
+                    </Button>
+                  </div>
                 </div>
               </DialogContent>
             </Dialog>
