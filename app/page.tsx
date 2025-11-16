@@ -969,13 +969,16 @@ const Home: FunctionComponent = () => {
         setTimeout(async () => {
           try {
             let notificationHash: string | null = null
+            let integrityValidationStatus: boolean | null = null // To store the validation result
 
             for (const message of data.messages) {
               try {
                 const parsedMessage = JSON.parse(message)
                 if (parsedMessage.dataIntegrityHash) {
                   notificationHash = parsedMessage.dataIntegrityHash
-                  break
+                }
+                if (parsedMessage.hasOwnProperty("integrity_validation")) {
+                  integrityValidationStatus = parsedMessage.integrity_validation
                 }
               } catch {
                 // Message is not JSON, continue
@@ -1007,13 +1010,17 @@ const Home: FunctionComponent = () => {
             setIntegrityVerified(hashesMatch)
             setIntegrityError(!hashesMatch)
 
+            // Determine the final status to save to the database
+            const finalValidationStatus = hashesMatch ? true : false
+
             try {
               const updateResponse = await fetch("/api/update-integrity-validation", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                   transactionId: transactionId,
-                  isValid: hashesMatch,
+                  isValid: finalValidationStatus, // Save the verified status
+                  integrityValidationStatusFromMessage: integrityValidationStatus, // Also save status from message if available
                 }),
               })
 
@@ -1424,7 +1431,6 @@ const Home: FunctionComponent = () => {
     }, 0)
   }
 
-  // Define printNotificationSummary here
   const printNotificationSummary = () => {
     if (isMobileDevice()) {
       setShowMobilePrintWarningModal(true)
@@ -1454,42 +1460,33 @@ const Home: FunctionComponent = () => {
               margin-bottom: 15px;
             }
             p { margin-bottom: 8px; }
-            table { 
-              width: 100%; 
-              border-collapse: collapse; 
-              margin: 15px 0;
-              font-size: 11px;
+            .summary-box {
+              background-color: #f5f5f5;
+              border: 2px solid #333;
+              padding: 20px;
+              margin: 20px 0;
+              border-radius: 8px;
             }
-            th, td { 
-              border: 1px solid #ddd; 
-              padding: 6px 4px;
-              text-align: left;
-              word-wrap: break-word;
+            .summary-item {
+              display: flex;
+              justify-content: space-between;
+              padding: 10px 0;
+              border-bottom: 1px solid #ddd;
             }
-            th { 
-              background-color: #f5f5f5; 
+            .summary-item:last-child {
+              border-bottom: none;
               font-weight: bold;
-              font-size: 11px;
+              font-size: 14px;
             }
-            .total { 
-              font-weight: bold; 
-              background-color: #e8f4fd;
+            .summary-label {
+              font-weight: bold;
             }
-            .verified { color: #16a34a; font-weight: bold; }
-            .failed { color: #dc2626; font-weight: bold; }
-            .pending { color: #9ca3af; }
-            .amount { text-align: right; }
+            .summary-value {
+              text-align: right;
+            }
             
             @media print {
               body { padding: 10px; }
-              table { page-break-inside: auto; }
-              tr { page-break-inside: avoid; page-break-after: auto; }
-            }
-            
-            @media screen and (max-width: 600px) {
-              body { font-size: 11px; }
-              h1 { font-size: 16px; }
-              th, td { padding: 4px 2px; font-size: 10px; }
             }
           </style>
         </head>
@@ -1497,38 +1494,16 @@ const Home: FunctionComponent = () => {
           <h1>Súhrn platieb</h1>
           <p><strong>Dátum:</strong> ${new Date(selectedTransactionDate).toLocaleDateString("sk-SK")}</p>
           
-          <table>
-            <thead>
-              <tr>
-                <th style="width: 25%;">Čas</th>
-                <th style="width: 40%;">Transaction ID</th>
-                <th class="amount" style="width: 40%;">Suma (EUR)</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${notificationListData
-                .map((notification) => {
-                  const dateStr = notification.created_at
-                    ? new Date(notification.created_at).toLocaleTimeString("sk-SK", {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })
-                    : "N/A"
-                  return `
-                      <tr>
-                        <td>${dateStr}</td>
-                        <td style="font-family: monospace; font-size: 10px; word-break: break-all;">${notification.transaction_id || "N/A"}</td>
-                        <td class="amount">${Number.parseFloat(notification.amount || 0).toFixed(2)}</td>
-                      </tr>
-                    `
-                })
-                .join("")}
-              <tr class="total">
-                <td colspan="2"><strong>Celková suma:</strong></td>
-                <td class="amount"><strong>${calculateNotificationTotal().toFixed(2)} EUR</strong></td>
-              </tr>
-            </tbody>
-          </table>
+          <div class="summary-box">
+            <div class="summary-item">
+              <span class="summary-label">Počet platieb:</span>
+              <span class="summary-value">${notificationListData.length}</span>
+            </div>
+            <div class="summary-item">
+              <span class="summary-label">Celková suma:</span>
+              <span class="summary-value">${calculateNotificationTotal().toFixed(2)} EUR</span>
+            </div>
+          </div>
           
           <p style="margin-top: 15px;"><strong>Vygenerované:</strong> ${new Date().toLocaleString("sk-SK")}</p>
           <script>
@@ -1549,7 +1524,6 @@ const Home: FunctionComponent = () => {
     }
   }
 
-  // Define printAllTransactions here
   const printAllNotifications = () => {
     if (isMobileDevice()) {
       setShowMobilePrintWarningModal(true)
@@ -1562,7 +1536,7 @@ const Home: FunctionComponent = () => {
         <head>
           <meta charset="utf-8">
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>Súhrn platieb - ${selectedTransactionDate}</title>
+          <title>Zoznam platieb - ${selectedTransactionDate}</title>
           <style>
             * { margin: 0; padding: 0; box-sizing: border-box; }
             body { 
@@ -1619,25 +1593,39 @@ const Home: FunctionComponent = () => {
           </style>
         </head>
         <body>
-          <h1>Súhrn platieb</h1>
+          <h1>Zoznam platieb</h1>
           <p><strong>Dátum:</strong> ${new Date(selectedTransactionDate).toLocaleDateString("sk-SK")}</p>
           
           <table>
             <thead>
               <tr>
-                <th style="width: 25%;">Čas</th>
-                <th style="width: 40%;">Transaction ID</th>
-                <th class="amount" style="width: 40%;">Suma (EUR)</th>
+                <th style="width: 15%;">Čas</th>
+                <th style="width: 30%;">Transaction ID</th>
+                <th class="amount" style="width: 15%;">Suma (EUR)</th>
+                <th style="width: 40%;">Stav overenia</th>
               </tr>
             </thead>
             <tbody>
               ${notificationListData
                 .map((notification) => {
+                  const dateStr = notification.created_at
+                    ? new Date(notification.created_at).toLocaleTimeString("sk-SK", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })
+                    : "N/A"
+                  const integrityStatus = notification.integrity_validation === true
+                    ? '<span class="verified">Platba v poriadku</span>'
+                    : notification.integrity_validation === false
+                    ? '<span class="failed">Skontrolujte platbu v banke</span>'
+                    : '<span class="pending">Neoverené</span>'
+                  
                   return `
                       <tr>
-                        <td>${new Date(notification.created_at).toLocaleTimeString("sk-SK", { hour: "2-digit", minute: "2-digit" })}</td>
+                        <td>${dateStr}</td>
                         <td style="font-family: monospace; font-size: 10px; word-break: break-all;">${notification.transaction_id || "N/A"}</td>
                         <td class="amount">${Number.parseFloat(notification.amount || 0).toFixed(2)}</td>
+                        <td>${integrityStatus}</td>
                       </tr>
                     `
                 })
@@ -1645,6 +1633,7 @@ const Home: FunctionComponent = () => {
               <tr class="total">
                 <td colspan="2"><strong>Celková suma:</strong></td>
                 <td class="amount"><strong>${calculateNotificationTotal().toFixed(2)} EUR</strong></td>
+                <td></td>
               </tr>
             </tbody>
           </table>
