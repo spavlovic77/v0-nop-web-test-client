@@ -2902,10 +2902,10 @@ const Home: FunctionComponent = () => {
             <Dialog open={showDisputeActionModal} onOpenChange={setShowDisputeActionModal}>
               <DialogContent className="sm:max-w-md">
                 <DialogHeader>
-                  <DialogTitle>Doklad o neoznámenej úhrade</DialogTitle>
+                  <DialogTitle>Doklad</DialogTitle>
                 </DialogHeader>
                 <div className="space-y-4">
-                  <p className="text-center text-lg">Vyhotoviť doklad o neoznámenej úhrade?</p>
+                  <p className="text-center text-lg">Vyhotoviť doklad o nepotvrdení zrealizovanej platby ?</p>
                   <div className="flex gap-3">
                     <Button variant="outline" className="flex-1 bg-transparent" onClick={handleCancelDisputeAction}>
                       Nie
