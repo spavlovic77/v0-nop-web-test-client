@@ -271,7 +271,16 @@ const Home: FunctionComponent = () => {
       MSG: "Payment+via+mobile+app", // Fabricated message
     })
 
-    return `https://payme.sk/?${params.toString()}`
+    const paymentLink = `https://payme.sk/?${params.toString()}`
+    console.log("[v0] ===== PAYMENT LINK GENERATION =====")
+    console.log("[v0] Transaction ID:", transactionId)
+    console.log("[v0] Amount:", amount)
+    console.log("[v0] IBAN:", userIban.replace(/\s/g, ""))
+    console.log("[v0] Due Date:", dueDate)
+    console.log("[v0] Full Payment Link:", paymentLink)
+    console.log("[v0] ===================================")
+    
+    return paymentLink
   }
 
   const sanitizeInput = useCallback((input: string): string => {
