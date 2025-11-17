@@ -266,9 +266,8 @@ const Home: FunctionComponent = () => {
       AM: amount, // Amount from user
       CC: "EUR", // Currency
       DT: dueDate, // Due date in YYYYMMDD format
-      CN: merchantAccountName || "Kverkom s.r.o.", // Creditor name
       PI: transactionId, // Payment identification (EndToEnd as Transaction ID)
-      MSG: "Payment+via+mobile+app", // Fabricated message
+      CN: merchantAccountName, // Creditor name
     })
 
     const paymentLink = `https://payme.sk/?${params.toString()}`
