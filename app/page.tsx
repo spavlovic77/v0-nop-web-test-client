@@ -2649,7 +2649,7 @@ const Home: FunctionComponent = () => {
                           </div>
                           <Button
                             variant="outline"
-                            className="w-full bg-white/80 backdrop-blur-sm rounded-xl border-gray-300 hover:bg-white hover:border-blue-400 hover:text-blue-600 transition-all duration-300 font-medium h-11"
+                            className="w-full bg-white/80 backdrop-blur-sm rounded-xl border-gray-300 hover:bg-white hover:border-blue-400 hover:text-blue-600 transition-all duration-300 font-medium px-6 py-3"
                             disabled={mqttTimerActive || mqttTimeRemaining > 0}
                             onClick={() => {
                               console.log("[v0] Repeat subscription clicked")
