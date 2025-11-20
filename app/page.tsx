@@ -2615,7 +2615,7 @@ const Home: FunctionComponent = () => {
               >
                 <DialogHeader className="pb-2">
                   <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent text-center">
-                    Prichádzajúca platba
+                    Nasnímaj QR kód mobilom
                   </DialogTitle>
                 </DialogHeader>
 
