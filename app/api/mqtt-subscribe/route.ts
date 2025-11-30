@@ -28,12 +28,18 @@ async function saveMqttNotificationToDatabase(
   topic: string,
   messageStr: string,
   endpoint: "PRODUCTION" | "TEST",
+  isCancelledCallback?: () => boolean,
 ): Promise<{
   success: boolean
   error?: any
   data?: any
 }> {
   try {
+    if (isCancelledCallback && isCancelledCallback()) {
+      console.log("[v0] ⛔ Database save aborted - subscription was cancelled")
+      return { success: false, error: "Subscription cancelled" }
+    }
+
     console.log("[v0] 💾 Starting database save operation...")
     console.log("[v0] 📝 Topic:", topic)
     console.log("[v0] 📝 Message:", messageStr)
@@ -112,6 +118,11 @@ async function saveMqttNotificationToDatabase(
 
     console.log("[v0] 💾 Attempting to insert data into mqtt_notifications table...")
     console.log("[v0] 📋 Insert data:", JSON.stringify(insertData, null, 2))
+
+    if (isCancelledCallback && isCancelledCallback()) {
+      console.log("[v0] ⛔ Database insert aborted - subscription was cancelled before insert")
+      return { success: false, error: "Subscription cancelled before insert" }
+    }
 
     const { data, error } = await supabase.from("mqtt_notifications").insert(insertData).select()
 
@@ -337,6 +348,8 @@ export async function POST(request: NextRequest) {
 
       let abortListenerRegistered = false
 
+      const checkCancellation = () => isCancelled || request.signal.aborted
+
       request.signal.addEventListener("abort", () => {
         const abortTime = new Date().toISOString()
         console.log("[v0] ========== ABORT EVENT FIRED ==========")
@@ -522,9 +535,8 @@ export async function POST(request: NextRequest) {
           return
         }
 
-        // Save message to database
         try {
-          const dbResult = await saveMqttNotificationToDatabase(topic, messageStr, endpoint)
+          const dbResult = await saveMqttNotificationToDatabase(topic, messageStr, endpoint, checkCancellation)
           if (dbResult.success) {
             console.log("[v0] ✅ Message saved to database")
             communicationLog.push(`[${messageTime}] ✅ Message saved to database`)
