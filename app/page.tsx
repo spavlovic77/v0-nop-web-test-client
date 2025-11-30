@@ -3360,13 +3360,13 @@ const Home: FunctionComponent = () => {
                       {/* Timeline */}
                       <div className="relative">
                         {/* Vertical line */}
-                        <div className="absolute left-[23px] top-8 bottom-8 w-0.5 bg-gradient-to-b from-blue-500 via-purple-500 to-green-500"></div>
+                        <div className="absolute left-[23px] top-8 bottom-8 w-0.5 bg-gradient-to-b from-blue-500 via-purple-500 to-green-500 z-0"></div>
 
                         {/* Timeline items */}
                         <div className="space-y-6">
                           {/* Created */}
                           <div className="flex items-start gap-4">
-                            <div className="flex-shrink-0 w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center shadow-lg">
+                            <div className="relative z-10 flex-shrink-0 w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center shadow-lg">
                               <QrCode className="h-6 w-6 text-white" />
                             </div>
                             <div className="flex-1 pt-2">
