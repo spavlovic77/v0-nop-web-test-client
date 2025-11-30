@@ -1980,15 +1980,42 @@ const Home: FunctionComponent = () => {
     setShowHistoryModal(true)
 
     try {
-      const response = await fetch(`/api/get-transaction-history/${transactionId}`)
+      console.log("[v0] Fetching transaction history for:", transactionId)
+      console.log("[v0] Production mode:", isProductionMode)
+
+      // Use the same CA bundle logic as generate-transaction
+      const caBundleContent = isProductionMode ? EMBEDDED_CA_BUNDLE_PROD : EMBEDDED_CA_BUNDLE
+      const caBundleBlob = new Blob([caBundleContent], { type: "application/x-pem-file" })
+      const caBundleFile = new File([caBundleBlob], "ca-bundle.pem", { type: "application/x-pem-file" })
+
+      const formData = new FormData()
+      formData.append("clientCert", files.convertedCertPem!)
+      formData.append("clientKey", files.convertedKeyPem!)
+      formData.append("caCert", caBundleFile)
+      formData.append("isProductionMode", isProductionMode.toString())
+
+      const response = await fetch(`/api/get-transaction-history/${transactionId}`, {
+        method: "POST",
+        body: formData,
+      })
+
       if (!response.ok) {
         throw new Error("Failed to fetch transaction history")
       }
-      const data = await response.json()
-      setHistoryData(data)
+
+      const result = await response.json()
+      console.log("[v0] Transaction history received:", result)
+
+      // Extract data from the response structure
+      setHistoryData(result.data || result)
     } catch (error) {
-      console.error("Error fetching transaction history:", error)
+      console.error("[v0] Error fetching transaction history:", error)
       setHistoryData(null)
+      toast({
+        title: "Chyba pri načítaní histórie",
+        description: error instanceof Error ? error.message : "Nepodarilo sa načítať históriu transakcie",
+        variant: "destructive",
+      })
     } finally {
       setHistoryLoading(false)
     }
@@ -2201,7 +2228,7 @@ const Home: FunctionComponent = () => {
                                   htmlFor="prod-check-2"
                                   className="text-sm font-medium text-gray-700 cursor-pointer group-hover:text-gray-900 transition-colors leading-relaxed block"
                                 >
-                                  Máme podpísanú Dohodu o spolupráci s FS SR
+                                  Máme podpísanú dohoda o spolupráci s FS SR
                                 </label>
                                 <button
                                   type="button"
