@@ -318,7 +318,6 @@ export async function POST(request: NextRequest) {
       const messages: string[] = []
       let timeoutHandle: NodeJS.Timeout
       let isResolved = false
-      let isCancelled = false
 
       const mqttUrl = `mqtts://${mqttBroker}:${mqttPort}`
       console.log("[v0] Connecting to MQTT broker:", mqttUrl)
@@ -341,17 +340,6 @@ export async function POST(request: NextRequest) {
         }
         if (client) {
           console.log("[v0] Closing MQTT client connection")
-          try {
-            client.unsubscribe(mqttTopic, (err) => {
-              if (err) {
-                console.log("[v0] Error unsubscribing:", err)
-              } else {
-                console.log("[v0] Successfully unsubscribed from topic")
-              }
-            })
-          } catch (e) {
-            console.log("[v0] Exception during unsubscribe:", e)
-          }
           client.end(true)
         }
       }
@@ -366,27 +354,9 @@ export async function POST(request: NextRequest) {
 
       request.signal.addEventListener("abort", () => {
         const abortTime = new Date().toISOString()
-        console.log("[v0] ⚠️ Request aborted by client - setting cancellation flag")
-
-        isCancelled = true
-
+        console.log("[v0] ⚠️ Request aborted by client - closing MQTT connection")
         communicationLog.push(`[${abortTime}] ⚠️ Request aborted by client`)
         communicationLog.push(`[${abortTime}] 📊 Messages received before abort: ${messages.length}`)
-
-        if (client && client.connected) {
-          console.log("[v0] Unsubscribing from topic due to abort")
-          try {
-            client.unsubscribe(mqttTopic, (err) => {
-              if (err) {
-                console.log("[v0] Error unsubscribing on abort:", err)
-              } else {
-                console.log("[v0] Successfully unsubscribed on abort")
-              }
-            })
-          } catch (e) {
-            console.log("[v0] Exception during unsubscribe on abort:", e)
-          }
-        }
 
         resolveOnce(
           new Response(
@@ -397,8 +367,9 @@ export async function POST(request: NextRequest) {
               messages: messages,
               messageCount: messages.length,
               communicationLog: communicationLog,
-              output: "Subscription cancelled by user",
+              output: messages.length > 0 ? messages.join("\n") : "Subscription cancelled by user",
               clientIP,
+              listeningDuration: "cancelled",
             }),
             {
               status: 200,
@@ -465,6 +436,7 @@ export async function POST(request: NextRequest) {
             console.log("[v0] ✅ Subscribed to topic:", granted)
             communicationLog.push(`[${subTime}] ✅ Subscribed to topic with QoS ${granted[0].qos}`)
 
+            // Save subscription to database
             saveMqttSubscriptionToDatabase(mqttTopic, granted[0].qos, subTime, endpoint)
               .then((dbResult) => {
                 if (dbResult.success) {
@@ -483,11 +455,6 @@ export async function POST(request: NextRequest) {
       })
 
       client.on("message", async (topic, message) => {
-        if (isCancelled) {
-          console.log("[v0] 🚫 Message received but subscription is cancelled - ignoring")
-          return
-        }
-
         const messageTime = new Date().toISOString()
         const messageStr = message.toString()
         console.log("[v0] 📨 Message received on topic:", topic)
@@ -496,11 +463,7 @@ export async function POST(request: NextRequest) {
         messages.push(messageStr)
         communicationLog.push(`[${messageTime}] 📨 Message received: ${messageStr}`)
 
-        if (isCancelled) {
-          console.log("[v0] 🚫 Cancellation detected before database save - skipping")
-          return
-        }
-
+        // Save message to database
         try {
           const dbResult = await saveMqttNotificationToDatabase(topic, messageStr, endpoint)
           if (dbResult.success) {
@@ -544,7 +507,7 @@ export async function POST(request: NextRequest) {
       client.on("error", (err) => {
         const errorTime = new Date().toISOString()
         console.error("[v0] ❌ MQTT client error:", err)
-        communicationLog.push(`[${errorTime}] ❌ MQTT error: ${err instanceof Error ? err.message : "Unknown error"}`)
+        communicationLog.push(`[${errorTime}] ❌ MQTT error: ${err.message}`)
 
         resolveOnce(
           new Response(

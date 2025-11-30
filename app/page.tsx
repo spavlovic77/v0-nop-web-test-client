@@ -642,6 +642,12 @@ const Home: FunctionComponent = () => {
   const stopMqttSubscription = () => {
     setMqttConnected(false)
     setMqttMessages([])
+    // Abort any ongoing MQTT subscription when stopping
+    if (mqttAbortControllerRef.current) {
+      mqttAbortControllerRef.current.abort()
+      console.log("[v0] Aborted ongoing MQTT subscription")
+      mqttAbortControllerRef.current = null
+    }
   }
 
   const allRequiredFieldsComplete =
@@ -920,10 +926,6 @@ const Home: FunctionComponent = () => {
       setMqttTimerActive(true)
       setMqttTimeRemaining(120)
 
-      const abortController = new AbortController()
-      mqttAbortControllerRef.current = abortController
-      console.log("[v0] Created AbortController for MQTT subscription")
-
       const timerInterval = setInterval(() => {
         setMqttTimeRemaining((prev) => {
           if (prev <= 1) {
@@ -958,6 +960,10 @@ const Home: FunctionComponent = () => {
       console.log("[v0] Starting MQTT subscription...")
       console.log("[v0] Production mode:", isProductionMode)
 
+      const abortController = new AbortController()
+      mqttAbortControllerRef.current = abortController
+      console.log("[v0] Created AbortController for MQTT subscription")
+
       const res = await fetch("/api/mqtt-subscribe", {
         method: "POST",
         body: formData,
@@ -973,6 +979,8 @@ const Home: FunctionComponent = () => {
         setShowRateLimitModal(true)
         setMqttTimerActive(false)
         setSubscriptionActive(false)
+        // Clear the AbortController reference as the request is handled
+        mqttAbortControllerRef.current = null
         return
       }
 
@@ -1096,38 +1104,34 @@ const Home: FunctionComponent = () => {
 
             setVerifyingIntegrity(false)
             setSubscriptionActive(false)
+            // Clear the AbortController reference after the subscription is done
+            mqttAbortControllerRef.current = null
           } catch (error) {
             console.error("[v0] Data integrity verification error:", error)
             setVerifyingIntegrity(false)
             setIntegrityVerified(false)
             setIntegrityError(true)
             setSubscriptionActive(false)
+            // Clear the AbortController reference on error
+            mqttAbortControllerRef.current = null
           }
         }, 500)
       } else {
         console.log("[v0] MQTT subscription completed but no messages received")
         setSubscriptionActive(false)
+        // Clear the AbortController reference if no messages are received
+        mqttAbortControllerRef.current = null
       }
     } catch (err) {
-      if (err instanceof Error && err.name === "AbortError") {
-        console.log("[v0] MQTT subscription was cancelled by user")
-        logEntry.status = 0
-        logEntry.error = "Subscription cancelled by user"
-        logEntry.duration = Date.now() - startTime
-        setApiCallLogs((prev) => [logEntry, ...prev])
-        setMqttTimerActive(false)
-        setSubscriptionActive(false)
-        return
-      }
-
-      console.error("[v0] MQTT subscription error:", err)
-      logEntry.status = 0
-      logEntry.error = err instanceof Error ? err.message : "Unknown error"
-      logEntry.duration = Date.now() - startTime
-      setApiCallLogs((prev) => [logEntry, ...prev])
+      console.error("[v0] Native MQTT subscription error:", err)
+      logEntry.response = { error: err instanceof Error ? err.message : "Native MQTT subscription error" }
       setSubscriptionActive(false)
-      setMqttTimerActive(false)
-      setError("Nepodarilo sa pripojiť k MQTT brokeru. Skúste to znova.")
+      setMqttConnected(false)
+      setError(err instanceof Error ? err.message : "Native MQTT subscription error")
+      // Clear the AbortController reference on fetch error
+      mqttAbortControllerRef.current = null
+    } finally {
+      logApiCall(logEntry)
     }
   }
 
@@ -1330,11 +1334,12 @@ const Home: FunctionComponent = () => {
     console.log("[v0] Cancel payment clicked")
 
     if (mqttAbortControllerRef.current) {
-      console.log("[v0] Aborting active MQTT subscription")
+      console.log("[v0] Aborting MQTT subscription")
       mqttAbortControllerRef.current.abort()
       mqttAbortControllerRef.current = null
     }
 
+    // Stop MQTT timer
     setMqttTimerActive(false)
     setMqttTimeRemaining(120)
     setCurrentTransactionId(qrTransactionId)
@@ -1782,9 +1787,10 @@ const Home: FunctionComponent = () => {
     setSubscriptionActive(false)
     setMqttTimerActive(false)
     setMqttTimeRemaining(120)
-    // Ensure MQTT abort controller is cleaned up if modal is closed
+    // Abort MQTT subscription when closing the QR modal
     if (mqttAbortControllerRef.current) {
       mqttAbortControllerRef.current.abort()
+      console.log("[v0] Aborted MQTT subscription due to QR modal close")
       mqttAbortControllerRef.current = null
     }
   }
