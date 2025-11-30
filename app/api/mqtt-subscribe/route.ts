@@ -27,7 +27,7 @@ async function getCertificateBuffer(data: File | string): Promise<Buffer> {
 async function saveMqttNotificationToDatabase(
   topic: string,
   messageStr: string,
-  endpoint: 'PRODUCTION' | 'TEST'
+  endpoint: "PRODUCTION" | "TEST",
 ): Promise<{
   success: boolean
   error?: any
@@ -138,7 +138,7 @@ async function saveMqttSubscriptionToDatabase(
   topic: string,
   qos: number,
   grantedAt: string,
-  endpoint: 'PRODUCTION' | 'TEST'
+  endpoint: "PRODUCTION" | "TEST",
 ): Promise<{
   success: boolean
   error?: any
@@ -254,7 +254,7 @@ export async function POST(request: NextRequest) {
     console.log("[v0] Production mode:", isProductionMode)
     console.log("[v0] isProductionMode raw value:", formData.get("isProductionMode"))
 
-    const endpoint: 'PRODUCTION' | 'TEST' = isProductionMode ? 'PRODUCTION' : 'TEST'
+    const endpoint: "PRODUCTION" | "TEST" = isProductionMode ? "PRODUCTION" : "TEST"
 
     if (!clientCert || !clientKey || !caCert) {
       console.log("[v0] Missing certificate files")
@@ -339,7 +339,19 @@ export async function POST(request: NextRequest) {
           clearTimeout(timeoutHandle)
         }
         if (client) {
-          client.end(true)
+          console.log("[v0] 🔌 Cleaning up MQTT connection")
+          if (mqttTopic) {
+            client.unsubscribe(mqttTopic, (err) => {
+              if (err) {
+                console.error("[v0] ❌ Unsubscribe error:", err)
+              } else {
+                console.log("[v0] ✅ Unsubscribed from topic:", mqttTopic)
+              }
+              client.end(true)
+            })
+          } else {
+            client.end(true)
+          }
         }
       }
 
@@ -501,6 +513,44 @@ export async function POST(request: NextRequest) {
         const closeTime = new Date().toISOString()
         console.log("[v0] 🔌 MQTT connection closed")
         communicationLog.push(`[${closeTime}] 🔌 Connection closed`)
+      })
+
+      request.signal.addEventListener("abort", () => {
+        const abortTime = new Date().toISOString()
+        console.log("[v0] ⚠️ Request aborted by client - unsubscribing from MQTT")
+        communicationLog.push(`[${abortTime}] ⚠️ Request aborted by client`)
+        communicationLog.push(`[${abortTime}] 📊 Messages received before abort: ${messages.length}`)
+
+        if (client && mqttTopic) {
+          client.unsubscribe(mqttTopic, (err) => {
+            if (!err) {
+              console.log("[v0] ✅ Successfully unsubscribed from topic after abort")
+              communicationLog.push(`[${abortTime}] ✅ Unsubscribed from topic`)
+            }
+            client.end(true)
+            console.log("[v0] 🔌 MQTT connection closed after abort")
+          })
+        }
+
+        resolveOnce(
+          new Response(
+            JSON.stringify({
+              success: true,
+              aborted: true,
+              hasMessages: messages.length > 0,
+              messages: messages,
+              messageCount: messages.length,
+              communicationLog: communicationLog,
+              output: "Subscription cancelled by user",
+              clientIP,
+              listeningDuration: "Cancelled",
+            }),
+            {
+              status: 200,
+              headers: { "Content-Type": "application/json" },
+            },
+          ),
+        )
       })
     })
   } catch (error) {

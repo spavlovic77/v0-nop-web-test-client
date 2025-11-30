@@ -131,6 +131,7 @@ const Home: FunctionComponent = () => {
   const cleanupRef = useRef<(() => void)[]>([])
   const qrDataUrlRef = useRef<string | null>(null)
   const timersRef = useRef<Set<NodeJS.Timeout>>(new Set())
+  const mqttAbortControllerRef = useRef<AbortController | null>(null)
 
   const [files, setFiles] = useState<CertificateFiles>({
     xmlAuthData: null,
@@ -953,9 +954,13 @@ const Home: FunctionComponent = () => {
       console.log("[v0] Starting MQTT subscription...")
       console.log("[v0] Production mode:", isProductionMode)
 
+      const abortController = new AbortController()
+      mqttAbortControllerRef.current = abortController
+
       const res = await fetch("/api/mqtt-subscribe", {
         method: "POST",
         body: formData,
+        signal: abortController.signal, // Pass abort signal to fetch
       })
 
       console.log("[v0] MQTT subscribe API response status:", res.status)
@@ -1310,6 +1315,13 @@ const Home: FunctionComponent = () => {
 
   const handleCancelPayment = () => {
     console.log("[v0] Cancel payment clicked")
+
+    if (mqttAbortControllerRef.current) {
+      console.log("[v0] Aborting MQTT subscription...")
+      mqttAbortControllerRef.current.abort()
+      mqttAbortControllerRef.current = null
+    }
+
     // Stop MQTT timer
     setMqttTimerActive(false)
     setMqttTimeRemaining(120)
