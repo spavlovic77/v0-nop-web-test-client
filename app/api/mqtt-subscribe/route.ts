@@ -318,6 +318,7 @@ export async function POST(request: NextRequest) {
       const messages: string[] = []
       let timeoutHandle: NodeJS.Timeout
       let isResolved = false
+      let isCancelled = false
 
       const mqttUrl = `mqtts://${mqttBroker}:${mqttPort}`
       console.log("[v0] Connecting to MQTT broker:", mqttUrl)
@@ -342,6 +343,7 @@ export async function POST(request: NextRequest) {
         console.log("[v0] ⚠️ Request aborted by client - unsubscribing from MQTT")
         console.log("[v0] Client connected:", client?.connected)
         console.log("[v0] Topic:", mqttTopic)
+        isCancelled = true
         communicationLog.push(`[${abortTime}] ⚠️ Request aborted by client`)
         communicationLog.push(`[${abortTime}] 📊 Messages received before abort: ${messages.length}`)
 
@@ -497,6 +499,16 @@ export async function POST(request: NextRequest) {
       })
 
       client.on("message", async (topic, message) => {
+        if (isCancelled) {
+          console.log("[v0] ⛔ Message received but subscription was cancelled, ignoring message")
+          return
+        }
+
+        if (request.signal.aborted) {
+          console.log("[v0] ⛔ Message received but request is aborted, ignoring message")
+          return
+        }
+
         const messageTime = new Date().toISOString()
         const messageStr = message.toString()
         console.log("[v0] 📨 Message received on topic:", topic)
@@ -504,6 +516,11 @@ export async function POST(request: NextRequest) {
 
         messages.push(messageStr)
         communicationLog.push(`[${messageTime}] 📨 Message received: ${messageStr}`)
+
+        if (isCancelled || request.signal.aborted) {
+          console.log("[v0] ⛔ Cancellation detected before database save, skipping")
+          return
+        }
 
         // Save message to database
         try {
