@@ -131,6 +131,7 @@ const Home: FunctionComponent = () => {
   const cleanupRef = useRef<(() => void)[]>([])
   const qrDataUrlRef = useRef<string | null>(null)
   const timersRef = useRef<Set<NodeJS.Timeout>>(new Set())
+  const mqttAbortControllerRef = useRef<AbortController | null>(null)
 
   const [files, setFiles] = useState<CertificateFiles>({
     xmlAuthData: null,
@@ -919,6 +920,10 @@ const Home: FunctionComponent = () => {
       setMqttTimerActive(true)
       setMqttTimeRemaining(120)
 
+      const abortController = new AbortController()
+      mqttAbortControllerRef.current = abortController
+      console.log("[v0] Created AbortController for MQTT subscription")
+
       const timerInterval = setInterval(() => {
         setMqttTimeRemaining((prev) => {
           if (prev <= 1) {
@@ -956,6 +961,7 @@ const Home: FunctionComponent = () => {
       const res = await fetch("/api/mqtt-subscribe", {
         method: "POST",
         body: formData,
+        signal: abortController.signal,
       })
 
       console.log("[v0] MQTT subscribe API response status:", res.status)
@@ -1103,13 +1109,25 @@ const Home: FunctionComponent = () => {
         setSubscriptionActive(false)
       }
     } catch (err) {
-      console.error("[v0] Native MQTT subscription error:", err)
-      logEntry.response = { error: err instanceof Error ? err.message : "Native MQTT subscription error" }
+      if (err instanceof Error && err.name === "AbortError") {
+        console.log("[v0] MQTT subscription was cancelled by user")
+        logEntry.status = 0
+        logEntry.error = "Subscription cancelled by user"
+        logEntry.duration = Date.now() - startTime
+        setApiCallLogs((prev) => [logEntry, ...prev])
+        setMqttTimerActive(false)
+        setSubscriptionActive(false)
+        return
+      }
+
+      console.error("[v0] MQTT subscription error:", err)
+      logEntry.status = 0
+      logEntry.error = err instanceof Error ? err.message : "Unknown error"
+      logEntry.duration = Date.now() - startTime
+      setApiCallLogs((prev) => [logEntry, ...prev])
       setSubscriptionActive(false)
-      setMqttConnected(false)
-      setError(err instanceof Error ? err.message : "Native MQTT subscription error")
-    } finally {
-      logApiCall(logEntry)
+      setMqttTimerActive(false)
+      setError("Nepodarilo sa pripojiť k MQTT brokeru. Skúste to znova.")
     }
   }
 
@@ -1310,7 +1328,13 @@ const Home: FunctionComponent = () => {
 
   const handleCancelPayment = () => {
     console.log("[v0] Cancel payment clicked")
-    // Stop MQTT timer
+
+    if (mqttAbortControllerRef.current) {
+      console.log("[v0] Aborting active MQTT subscription")
+      mqttAbortControllerRef.current.abort()
+      mqttAbortControllerRef.current = null
+    }
+
     setMqttTimerActive(false)
     setMqttTimeRemaining(120)
     setCurrentTransactionId(qrTransactionId)
@@ -1758,6 +1782,11 @@ const Home: FunctionComponent = () => {
     setSubscriptionActive(false)
     setMqttTimerActive(false)
     setMqttTimeRemaining(120)
+    // Ensure MQTT abort controller is cleaned up if modal is closed
+    if (mqttAbortControllerRef.current) {
+      mqttAbortControllerRef.current.abort()
+      mqttAbortControllerRef.current = null
+    }
   }
 
   // Define handleNotificationDateSelect here
