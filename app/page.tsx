@@ -954,8 +954,14 @@ const Home: FunctionComponent = () => {
       console.log("[v0] Starting MQTT subscription...")
       console.log("[v0] Production mode:", isProductionMode)
 
+      if (mqttAbortControllerRef.current) {
+        console.log("[v0] ⚠️ Existing AbortController found, clearing it before creating new one")
+        mqttAbortControllerRef.current = null
+      }
+
       const abortController = new AbortController()
       mqttAbortControllerRef.current = abortController
+      console.log("[v0] 🆕 Created new AbortController, signal.aborted:", abortController.signal.aborted)
 
       const res = await fetch("/api/mqtt-subscribe", {
         method: "POST",
@@ -1317,14 +1323,17 @@ const Home: FunctionComponent = () => {
     console.log("[v0] ========== CANCEL PAYMENT CLICKED ==========")
     console.log("[v0] mqttAbortControllerRef.current:", mqttAbortControllerRef.current)
 
-    if (mqttAbortControllerRef.current) {
+    if (mqttAbortControllerRef.current && !mqttAbortControllerRef.current.signal.aborted) {
       console.log("[v0] 🛑 Calling abort() on AbortController...")
       mqttAbortControllerRef.current.abort()
       console.log("[v0] ✅ abort() called successfully")
-      mqttAbortControllerRef.current = null
+    } else if (mqttAbortControllerRef.current?.signal.aborted) {
+      console.log("[v0] ⚠️ AbortController already aborted - skipping abort() call")
     } else {
       console.log("[v0] ⚠️ No AbortController found - MQTT may not be active")
     }
+
+    mqttAbortControllerRef.current = null
 
     // Stop MQTT timer
     setMqttTimerActive(false)
