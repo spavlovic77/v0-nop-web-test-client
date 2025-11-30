@@ -131,7 +131,6 @@ const Home: FunctionComponent = () => {
   const cleanupRef = useRef<(() => void)[]>([])
   const qrDataUrlRef = useRef<string | null>(null)
   const timersRef = useRef<Set<NodeJS.Timeout>>(new Set())
-  const mqttAbortControllerRef = useRef<AbortController | null>(null)
 
   const [files, setFiles] = useState<CertificateFiles>({
     xmlAuthData: null,
@@ -642,12 +641,6 @@ const Home: FunctionComponent = () => {
   const stopMqttSubscription = () => {
     setMqttConnected(false)
     setMqttMessages([])
-    // Abort any ongoing MQTT subscription when stopping
-    if (mqttAbortControllerRef.current) {
-      mqttAbortControllerRef.current.abort()
-      console.log("[v0] Aborted ongoing MQTT subscription")
-      mqttAbortControllerRef.current = null
-    }
   }
 
   const allRequiredFieldsComplete =
@@ -960,14 +953,9 @@ const Home: FunctionComponent = () => {
       console.log("[v0] Starting MQTT subscription...")
       console.log("[v0] Production mode:", isProductionMode)
 
-      const abortController = new AbortController()
-      mqttAbortControllerRef.current = abortController
-      console.log("[v0] Created AbortController for MQTT subscription")
-
       const res = await fetch("/api/mqtt-subscribe", {
         method: "POST",
         body: formData,
-        signal: abortController.signal,
       })
 
       console.log("[v0] MQTT subscribe API response status:", res.status)
@@ -979,8 +967,6 @@ const Home: FunctionComponent = () => {
         setShowRateLimitModal(true)
         setMqttTimerActive(false)
         setSubscriptionActive(false)
-        // Clear the AbortController reference as the request is handled
-        mqttAbortControllerRef.current = null
         return
       }
 
@@ -1104,23 +1090,17 @@ const Home: FunctionComponent = () => {
 
             setVerifyingIntegrity(false)
             setSubscriptionActive(false)
-            // Clear the AbortController reference after the subscription is done
-            mqttAbortControllerRef.current = null
           } catch (error) {
             console.error("[v0] Data integrity verification error:", error)
             setVerifyingIntegrity(false)
             setIntegrityVerified(false)
             setIntegrityError(true)
             setSubscriptionActive(false)
-            // Clear the AbortController reference on error
-            mqttAbortControllerRef.current = null
           }
         }, 500)
       } else {
         console.log("[v0] MQTT subscription completed but no messages received")
         setSubscriptionActive(false)
-        // Clear the AbortController reference if no messages are received
-        mqttAbortControllerRef.current = null
       }
     } catch (err) {
       console.error("[v0] Native MQTT subscription error:", err)
@@ -1128,8 +1108,6 @@ const Home: FunctionComponent = () => {
       setSubscriptionActive(false)
       setMqttConnected(false)
       setError(err instanceof Error ? err.message : "Native MQTT subscription error")
-      // Clear the AbortController reference on fetch error
-      mqttAbortControllerRef.current = null
     } finally {
       logApiCall(logEntry)
     }
@@ -1332,13 +1310,6 @@ const Home: FunctionComponent = () => {
 
   const handleCancelPayment = () => {
     console.log("[v0] Cancel payment clicked")
-
-    if (mqttAbortControllerRef.current) {
-      console.log("[v0] Aborting MQTT subscription")
-      mqttAbortControllerRef.current.abort()
-      mqttAbortControllerRef.current = null
-    }
-
     // Stop MQTT timer
     setMqttTimerActive(false)
     setMqttTimeRemaining(120)
@@ -1787,12 +1758,6 @@ const Home: FunctionComponent = () => {
     setSubscriptionActive(false)
     setMqttTimerActive(false)
     setMqttTimeRemaining(120)
-    // Abort MQTT subscription when closing the QR modal
-    if (mqttAbortControllerRef.current) {
-      mqttAbortControllerRef.current.abort()
-      console.log("[v0] Aborted MQTT subscription due to QR modal close")
-      mqttAbortControllerRef.current = null
-    }
   }
 
   // Define handleNotificationDateSelect here

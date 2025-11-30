@@ -27,7 +27,7 @@ async function getCertificateBuffer(data: File | string): Promise<Buffer> {
 async function saveMqttNotificationToDatabase(
   topic: string,
   messageStr: string,
-  endpoint: "PRODUCTION" | "TEST",
+  endpoint: 'PRODUCTION' | 'TEST'
 ): Promise<{
   success: boolean
   error?: any
@@ -138,7 +138,7 @@ async function saveMqttSubscriptionToDatabase(
   topic: string,
   qos: number,
   grantedAt: string,
-  endpoint: "PRODUCTION" | "TEST",
+  endpoint: 'PRODUCTION' | 'TEST'
 ): Promise<{
   success: boolean
   error?: any
@@ -254,7 +254,7 @@ export async function POST(request: NextRequest) {
     console.log("[v0] Production mode:", isProductionMode)
     console.log("[v0] isProductionMode raw value:", formData.get("isProductionMode"))
 
-    const endpoint: "PRODUCTION" | "TEST" = isProductionMode ? "PRODUCTION" : "TEST"
+    const endpoint: 'PRODUCTION' | 'TEST' = isProductionMode ? 'PRODUCTION' : 'TEST'
 
     if (!clientCert || !clientKey || !caCert) {
       console.log("[v0] Missing certificate files")
@@ -339,7 +339,6 @@ export async function POST(request: NextRequest) {
           clearTimeout(timeoutHandle)
         }
         if (client) {
-          console.log("[v0] Closing MQTT client connection")
           client.end(true)
         }
       }
@@ -351,33 +350,6 @@ export async function POST(request: NextRequest) {
           resolve(response)
         }
       }
-
-      request.signal.addEventListener("abort", () => {
-        const abortTime = new Date().toISOString()
-        console.log("[v0] ⚠️ Request aborted by client - closing MQTT connection")
-        communicationLog.push(`[${abortTime}] ⚠️ Request aborted by client`)
-        communicationLog.push(`[${abortTime}] 📊 Messages received before abort: ${messages.length}`)
-
-        resolveOnce(
-          new Response(
-            JSON.stringify({
-              success: true,
-              aborted: true,
-              hasMessages: messages.length > 0,
-              messages: messages,
-              messageCount: messages.length,
-              communicationLog: communicationLog,
-              output: messages.length > 0 ? messages.join("\n") : "Subscription cancelled by user",
-              clientIP,
-              listeningDuration: "cancelled",
-            }),
-            {
-              status: 200,
-              headers: { "Content-Type": "application/json" },
-            },
-          ),
-        )
-      })
 
       timeoutHandle = setTimeout(() => {
         const endTime = new Date().toISOString()
