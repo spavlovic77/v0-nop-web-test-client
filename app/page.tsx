@@ -1308,9 +1308,38 @@ const Home: FunctionComponent = () => {
     }
   }
 
-  const handleCancelPayment = () => {
-    console.log("[v0] Cancel payment clicked")
-    // Stop MQTT timer
+  const handleCancelPayment = async () => {
+    console.log("[v0] ========== CANCEL PAYMENT CLICKED ==========")
+
+    if (qrTransactionId) {
+      console.log(`[v0] 🛑 Calling unsubscribe API for transaction: ${qrTransactionId}`)
+      try {
+        const unsubscribeRes = await fetch("/api/mqtt-unsubscribe", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ transactionId: qrTransactionId }),
+        })
+
+        const unsubscribeData = await unsubscribeRes.json()
+        console.log("[v0] 📡 Unsubscribe API response:", unsubscribeData)
+
+        if (unsubscribeData.success) {
+          console.log("[v0] ✅ MQTT subscription closed successfully")
+          toast({
+            title: "Pripojenie zrušené",
+            description: "Odpojené od banky.",
+          })
+        } else {
+          console.log("[v0] ⚠️ Unsubscribe failed or no active subscription:", unsubscribeData.error)
+        }
+      } catch (unsubError) {
+        console.error("[v0] ❌ Unsubscribe API call failed:", unsubError)
+      }
+    }
+
+    // Stop MQTT timer UI
     setMqttTimerActive(false)
     setMqttTimeRemaining(120)
     setCurrentTransactionId(qrTransactionId)
