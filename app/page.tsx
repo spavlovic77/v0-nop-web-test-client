@@ -3381,7 +3381,7 @@ const Home: FunctionComponent = () => {
                           {/* Received */}
                           {historyData.receivedAt ? (
                             <div className="flex items-start gap-4">
-                              <div className="flex-shrink-0 w-12 h-12 bg-purple-500 rounded-full flex items-center justify-center shadow-lg">
+                              <div className="relative z-10 flex-shrink-0 w-12 h-12 bg-purple-500 rounded-full flex items-center justify-center shadow-lg">
                                 <WifiOff className="h-6 w-6 text-white" />
                               </div>
                               <div className="flex-1 pt-2">
@@ -3399,7 +3399,7 @@ const Home: FunctionComponent = () => {
                             </div>
                           ) : (
                             <div className="flex items-start gap-4 opacity-50">
-                              <div className="flex-shrink-0 w-12 h-12 bg-gray-300 rounded-full flex items-center justify-center">
+                              <div className="relative z-10 flex-shrink-0 w-12 h-12 bg-gray-300 rounded-full flex items-center justify-center">
                                 <WifiOff className="h-6 w-6 text-gray-500" />
                               </div>
                               <div className="flex-1 pt-2">
@@ -3412,7 +3412,7 @@ const Home: FunctionComponent = () => {
                           {/* Indexed */}
                           {historyData.indexedAt ? (
                             <div className="flex items-start gap-4">
-                              <div className="flex-shrink-0 w-12 h-12 bg-indigo-500 rounded-full flex items-center justify-center shadow-lg">
+                              <div className="relative z-10 flex-shrink-0 w-12 h-12 bg-indigo-500 rounded-full flex items-center justify-center shadow-lg">
                                 <FileText className="h-6 w-6 text-white" />
                               </div>
                               <div className="flex-1 pt-2">
@@ -3430,7 +3430,7 @@ const Home: FunctionComponent = () => {
                             </div>
                           ) : (
                             <div className="flex items-start gap-4 opacity-50">
-                              <div className="flex-shrink-0 w-12 h-12 bg-gray-300 rounded-full flex items-center justify-center">
+                              <div className="relative z-10 flex-shrink-0 w-12 h-12 bg-gray-300 rounded-full flex items-center justify-center">
                                 <FileText className="h-6 w-6 text-gray-500" />
                               </div>
                               <div className="flex-1 pt-2">
@@ -3443,7 +3443,7 @@ const Home: FunctionComponent = () => {
                           {/* Matched */}
                           {historyData.matchedAt ? (
                             <div className="flex items-start gap-4">
-                              <div className="flex-shrink-0 w-12 h-12 bg-amber-500 rounded-full flex items-center justify-center shadow-lg">
+                              <div className="relative z-10 flex-shrink-0 w-12 h-12 bg-amber-500 rounded-full flex items-center justify-center shadow-lg">
                                 <CheckCircle className="h-6 w-6 text-white" />
                               </div>
                               <div className="flex-1 pt-2">
@@ -3461,7 +3461,7 @@ const Home: FunctionComponent = () => {
                             </div>
                           ) : (
                             <div className="flex items-start gap-4 opacity-50">
-                              <div className="flex-shrink-0 w-12 h-12 bg-gray-300 rounded-full flex items-center justify-center">
+                              <div className="relative z-10 flex-shrink-0 w-12 h-12 bg-gray-300 rounded-full flex items-center justify-center">
                                 <CheckCircle className="h-6 w-6 text-gray-500" />
                               </div>
                               <div className="flex-1 pt-2">
@@ -3474,7 +3474,7 @@ const Home: FunctionComponent = () => {
                           {/* Published */}
                           {historyData.publishedAt ? (
                             <div className="flex items-start gap-4">
-                              <div className="flex-shrink-0 w-12 h-12 bg-green-500 rounded-full flex items-center justify-center shadow-lg">
+                              <div className="relative z-10 flex-shrink-0 w-12 h-12 bg-green-500 rounded-full flex items-center justify-center shadow-lg">
                                 <Upload className="h-6 w-6 text-white" />
                               </div>
                               <div className="flex-1 pt-2">
@@ -3492,7 +3492,7 @@ const Home: FunctionComponent = () => {
                             </div>
                           ) : (
                             <div className="flex items-start gap-4 opacity-50">
-                              <div className="flex-shrink-0 w-12 h-12 bg-gray-300 rounded-full flex items-center justify-center">
+                              <div className="relative z-10 flex-shrink-0 w-12 h-12 bg-gray-300 rounded-full flex items-center justify-center">
                                 <Upload className="h-6 w-6 text-gray-500" />
                               </div>
                               <div className="flex-1 pt-2">
