@@ -334,6 +334,64 @@ export async function POST(request: NextRequest) {
         reconnectPeriod: 0, // Disable auto-reconnect
       })
 
+      let abortListenerRegistered = false
+
+      request.signal.addEventListener("abort", () => {
+        const abortTime = new Date().toISOString()
+        console.log("[v0] ========== ABORT EVENT FIRED ==========")
+        console.log("[v0] ⚠️ Request aborted by client - unsubscribing from MQTT")
+        console.log("[v0] Client connected:", client?.connected)
+        console.log("[v0] Topic:", mqttTopic)
+        communicationLog.push(`[${abortTime}] ⚠️ Request aborted by client`)
+        communicationLog.push(`[${abortTime}] 📊 Messages received before abort: ${messages.length}`)
+
+        if (client) {
+          if (client.connected && mqttTopic) {
+            console.log("[v0] 📤 Unsubscribing from topic...")
+            client.unsubscribe(mqttTopic, (err) => {
+              if (err) {
+                console.error("[v0] ❌ Unsubscribe error:", err)
+              } else {
+                console.log("[v0] ✅ Successfully unsubscribed from topic after abort")
+                communicationLog.push(`[${abortTime}] ✅ Unsubscribed from topic`)
+              }
+              console.log("[v0] 🔌 Forcing MQTT connection close...")
+              client.end(true)
+              console.log("[v0] ✅ MQTT connection closed after abort")
+            })
+          } else {
+            console.log("[v0] 🔌 Client not connected or topic missing, forcing close...")
+            client.end(true)
+            console.log("[v0] ✅ MQTT connection closed after abort")
+          }
+        } else {
+          console.log("[v0] ⚠️ No MQTT client found to close")
+        }
+
+        resolveOnce(
+          new Response(
+            JSON.stringify({
+              success: true,
+              aborted: true,
+              hasMessages: messages.length > 0,
+              messages: messages,
+              messageCount: messages.length,
+              communicationLog: communicationLog,
+              output: "Subscription cancelled by user",
+              clientIP,
+              listeningDuration: "Cancelled",
+            }),
+            {
+              status: 200,
+              headers: { "Content-Type": "application/json" },
+            },
+          ),
+        )
+      })
+
+      abortListenerRegistered = true
+      console.log("[v0] ✅ Abort listener registered")
+
       const cleanup = () => {
         if (timeoutHandle) {
           clearTimeout(timeoutHandle)
@@ -513,44 +571,6 @@ export async function POST(request: NextRequest) {
         const closeTime = new Date().toISOString()
         console.log("[v0] 🔌 MQTT connection closed")
         communicationLog.push(`[${closeTime}] 🔌 Connection closed`)
-      })
-
-      request.signal.addEventListener("abort", () => {
-        const abortTime = new Date().toISOString()
-        console.log("[v0] ⚠️ Request aborted by client - unsubscribing from MQTT")
-        communicationLog.push(`[${abortTime}] ⚠️ Request aborted by client`)
-        communicationLog.push(`[${abortTime}] 📊 Messages received before abort: ${messages.length}`)
-
-        if (client && mqttTopic) {
-          client.unsubscribe(mqttTopic, (err) => {
-            if (!err) {
-              console.log("[v0] ✅ Successfully unsubscribed from topic after abort")
-              communicationLog.push(`[${abortTime}] ✅ Unsubscribed from topic`)
-            }
-            client.end(true)
-            console.log("[v0] 🔌 MQTT connection closed after abort")
-          })
-        }
-
-        resolveOnce(
-          new Response(
-            JSON.stringify({
-              success: true,
-              aborted: true,
-              hasMessages: messages.length > 0,
-              messages: messages,
-              messageCount: messages.length,
-              communicationLog: communicationLog,
-              output: "Subscription cancelled by user",
-              clientIP,
-              listeningDuration: "Cancelled",
-            }),
-            {
-              status: 200,
-              headers: { "Content-Type": "application/json" },
-            },
-          ),
-        )
       })
     })
   } catch (error) {

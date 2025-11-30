@@ -1314,12 +1314,16 @@ const Home: FunctionComponent = () => {
   }
 
   const handleCancelPayment = () => {
-    console.log("[v0] Cancel payment clicked")
+    console.log("[v0] ========== CANCEL PAYMENT CLICKED ==========")
+    console.log("[v0] mqttAbortControllerRef.current:", mqttAbortControllerRef.current)
 
     if (mqttAbortControllerRef.current) {
-      console.log("[v0] Aborting MQTT subscription...")
+      console.log("[v0] 🛑 Calling abort() on AbortController...")
       mqttAbortControllerRef.current.abort()
+      console.log("[v0] ✅ abort() called successfully")
       mqttAbortControllerRef.current = null
+    } else {
+      console.log("[v0] ⚠️ No AbortController found - MQTT may not be active")
     }
 
     // Stop MQTT timer
