@@ -131,7 +131,6 @@ const Home: FunctionComponent = () => {
   const cleanupRef = useRef<(() => void)[]>([])
   const qrDataUrlRef = useRef<string | null>(null)
   const timersRef = useRef<Set<NodeJS.Timeout>>(new Set())
-  const mqttAbortControllerRef = useRef<AbortController | null>(null)
 
   const [files, setFiles] = useState<CertificateFiles>({
     xmlAuthData: null,
@@ -954,19 +953,9 @@ const Home: FunctionComponent = () => {
       console.log("[v0] Starting MQTT subscription...")
       console.log("[v0] Production mode:", isProductionMode)
 
-      if (mqttAbortControllerRef.current) {
-        console.log("[v0] ⚠️ Existing AbortController found, clearing it before creating new one")
-        mqttAbortControllerRef.current = null
-      }
-
-      const abortController = new AbortController()
-      mqttAbortControllerRef.current = abortController
-      console.log("[v0] 🆕 Created new AbortController, signal.aborted:", abortController.signal.aborted)
-
       const res = await fetch("/api/mqtt-subscribe", {
         method: "POST",
         body: formData,
-        signal: abortController.signal, // Pass abort signal to fetch
       })
 
       console.log("[v0] MQTT subscribe API response status:", res.status)
@@ -1320,21 +1309,7 @@ const Home: FunctionComponent = () => {
   }
 
   const handleCancelPayment = () => {
-    console.log("[v0] ========== CANCEL PAYMENT CLICKED ==========")
-    console.log("[v0] mqttAbortControllerRef.current:", mqttAbortControllerRef.current)
-
-    if (mqttAbortControllerRef.current && !mqttAbortControllerRef.current.signal.aborted) {
-      console.log("[v0] 🛑 Calling abort() on AbortController...")
-      mqttAbortControllerRef.current.abort()
-      console.log("[v0] ✅ abort() called successfully")
-    } else if (mqttAbortControllerRef.current?.signal.aborted) {
-      console.log("[v0] ⚠️ AbortController already aborted - skipping abort() call")
-    } else {
-      console.log("[v0] ⚠️ No AbortController found - MQTT may not be active")
-    }
-
-    mqttAbortControllerRef.current = null
-
+    console.log("[v0] Cancel payment clicked")
     // Stop MQTT timer
     setMqttTimerActive(false)
     setMqttTimeRemaining(120)

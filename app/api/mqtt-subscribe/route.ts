@@ -27,19 +27,13 @@ async function getCertificateBuffer(data: File | string): Promise<Buffer> {
 async function saveMqttNotificationToDatabase(
   topic: string,
   messageStr: string,
-  endpoint: "PRODUCTION" | "TEST",
-  isCancelledCallback?: () => boolean,
+  endpoint: 'PRODUCTION' | 'TEST'
 ): Promise<{
   success: boolean
   error?: any
   data?: any
 }> {
   try {
-    if (isCancelledCallback && isCancelledCallback()) {
-      console.log("[v0] ⛔ Database save aborted - subscription was cancelled")
-      return { success: false, error: "Subscription cancelled" }
-    }
-
     console.log("[v0] 💾 Starting database save operation...")
     console.log("[v0] 📝 Topic:", topic)
     console.log("[v0] 📝 Message:", messageStr)
@@ -119,11 +113,6 @@ async function saveMqttNotificationToDatabase(
     console.log("[v0] 💾 Attempting to insert data into mqtt_notifications table...")
     console.log("[v0] 📋 Insert data:", JSON.stringify(insertData, null, 2))
 
-    if (isCancelledCallback && isCancelledCallback()) {
-      console.log("[v0] ⛔ Database insert aborted - subscription was cancelled before insert")
-      return { success: false, error: "Subscription cancelled before insert" }
-    }
-
     const { data, error } = await supabase.from("mqtt_notifications").insert(insertData).select()
 
     if (error) {
@@ -149,7 +138,7 @@ async function saveMqttSubscriptionToDatabase(
   topic: string,
   qos: number,
   grantedAt: string,
-  endpoint: "PRODUCTION" | "TEST",
+  endpoint: 'PRODUCTION' | 'TEST'
 ): Promise<{
   success: boolean
   error?: any
@@ -265,7 +254,7 @@ export async function POST(request: NextRequest) {
     console.log("[v0] Production mode:", isProductionMode)
     console.log("[v0] isProductionMode raw value:", formData.get("isProductionMode"))
 
-    const endpoint: "PRODUCTION" | "TEST" = isProductionMode ? "PRODUCTION" : "TEST"
+    const endpoint: 'PRODUCTION' | 'TEST' = isProductionMode ? 'PRODUCTION' : 'TEST'
 
     if (!clientCert || !clientKey || !caCert) {
       console.log("[v0] Missing certificate files")
@@ -329,7 +318,6 @@ export async function POST(request: NextRequest) {
       const messages: string[] = []
       let timeoutHandle: NodeJS.Timeout
       let isResolved = false
-      let isCancelled = false
 
       const mqttUrl = `mqtts://${mqttBroker}:${mqttPort}`
       console.log("[v0] Connecting to MQTT broker:", mqttUrl)
@@ -346,85 +334,12 @@ export async function POST(request: NextRequest) {
         reconnectPeriod: 0, // Disable auto-reconnect
       })
 
-      let abortListenerRegistered = false
-
-      const checkCancellation = () => isCancelled || request.signal.aborted
-
-      request.signal.addEventListener("abort", () => {
-        const abortTime = new Date().toISOString()
-        console.log("[v0] ========== ABORT EVENT FIRED ==========")
-        console.log("[v0] ⚠️ Request aborted by client - unsubscribing from MQTT")
-        console.log("[v0] Client connected:", client?.connected)
-        console.log("[v0] Topic:", mqttTopic)
-        isCancelled = true
-        communicationLog.push(`[${abortTime}] ⚠️ Request aborted by client`)
-        communicationLog.push(`[${abortTime}] 📊 Messages received before abort: ${messages.length}`)
-
-        if (client) {
-          if (client.connected && mqttTopic) {
-            console.log("[v0] 📤 Unsubscribing from topic...")
-            client.unsubscribe(mqttTopic, (err) => {
-              if (err) {
-                console.error("[v0] ❌ Unsubscribe error:", err)
-              } else {
-                console.log("[v0] ✅ Successfully unsubscribed from topic after abort")
-                communicationLog.push(`[${abortTime}] ✅ Unsubscribed from topic`)
-              }
-              console.log("[v0] 🔌 Forcing MQTT connection close...")
-              client.end(true)
-              console.log("[v0] ✅ MQTT connection closed after abort")
-            })
-          } else {
-            console.log("[v0] 🔌 Client not connected or topic missing, forcing close...")
-            client.end(true)
-            console.log("[v0] ✅ MQTT connection closed after abort")
-          }
-        } else {
-          console.log("[v0] ⚠️ No MQTT client found to close")
-        }
-
-        resolveOnce(
-          new Response(
-            JSON.stringify({
-              success: true,
-              aborted: true,
-              hasMessages: messages.length > 0,
-              messages: messages,
-              messageCount: messages.length,
-              communicationLog: communicationLog,
-              output: "Subscription cancelled by user",
-              clientIP,
-              listeningDuration: "Cancelled",
-            }),
-            {
-              status: 200,
-              headers: { "Content-Type": "application/json" },
-            },
-          ),
-        )
-      })
-
-      abortListenerRegistered = true
-      console.log("[v0] ✅ Abort listener registered")
-
       const cleanup = () => {
         if (timeoutHandle) {
           clearTimeout(timeoutHandle)
         }
         if (client) {
-          console.log("[v0] 🔌 Cleaning up MQTT connection")
-          if (mqttTopic) {
-            client.unsubscribe(mqttTopic, (err) => {
-              if (err) {
-                console.error("[v0] ❌ Unsubscribe error:", err)
-              } else {
-                console.log("[v0] ✅ Unsubscribed from topic:", mqttTopic)
-              }
-              client.end(true)
-            })
-          } else {
-            client.end(true)
-          }
+          client.end(true)
         }
       }
 
@@ -512,16 +427,6 @@ export async function POST(request: NextRequest) {
       })
 
       client.on("message", async (topic, message) => {
-        if (isCancelled) {
-          console.log("[v0] ⛔ Message received but subscription was cancelled, ignoring message")
-          return
-        }
-
-        if (request.signal.aborted) {
-          console.log("[v0] ⛔ Message received but request is aborted, ignoring message")
-          return
-        }
-
         const messageTime = new Date().toISOString()
         const messageStr = message.toString()
         console.log("[v0] 📨 Message received on topic:", topic)
@@ -530,13 +435,9 @@ export async function POST(request: NextRequest) {
         messages.push(messageStr)
         communicationLog.push(`[${messageTime}] 📨 Message received: ${messageStr}`)
 
-        if (isCancelled || request.signal.aborted) {
-          console.log("[v0] ⛔ Cancellation detected before database save, skipping")
-          return
-        }
-
+        // Save message to database
         try {
-          const dbResult = await saveMqttNotificationToDatabase(topic, messageStr, endpoint, checkCancellation)
+          const dbResult = await saveMqttNotificationToDatabase(topic, messageStr, endpoint)
           if (dbResult.success) {
             console.log("[v0] ✅ Message saved to database")
             communicationLog.push(`[${messageTime}] ✅ Message saved to database`)
