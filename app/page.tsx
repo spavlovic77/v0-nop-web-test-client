@@ -3379,7 +3379,7 @@ const Home: FunctionComponent = () => {
                           </div>
 
                           {/* Received */}
-                          {historyData.receivedAt && (
+                          {historyData.receivedAt ? (
                             <div className="flex items-start gap-4">
                               <div className="flex-shrink-0 w-12 h-12 bg-purple-500 rounded-full flex items-center justify-center shadow-lg">
                                 <WifiOff className="h-6 w-6 text-white" />
@@ -3397,10 +3397,20 @@ const Home: FunctionComponent = () => {
                                 </div>
                               </div>
                             </div>
+                          ) : (
+                            <div className="flex items-start gap-4 opacity-50">
+                              <div className="flex-shrink-0 w-12 h-12 bg-gray-300 rounded-full flex items-center justify-center">
+                                <WifiOff className="h-6 w-6 text-gray-500" />
+                              </div>
+                              <div className="flex-1 pt-2">
+                                <div className="font-medium text-sm text-gray-600">Oznámenie prijaté</div>
+                                <div className="text-xs text-gray-400 italic">Čaká sa na prijatie...</div>
+                              </div>
+                            </div>
                           )}
 
                           {/* Indexed */}
-                          {historyData.indexedAt && (
+                          {historyData.indexedAt ? (
                             <div className="flex items-start gap-4">
                               <div className="flex-shrink-0 w-12 h-12 bg-indigo-500 rounded-full flex items-center justify-center shadow-lg">
                                 <FileText className="h-6 w-6 text-white" />
@@ -3418,10 +3428,20 @@ const Home: FunctionComponent = () => {
                                 </div>
                               </div>
                             </div>
+                          ) : (
+                            <div className="flex items-start gap-4 opacity-50">
+                              <div className="flex-shrink-0 w-12 h-12 bg-gray-300 rounded-full flex items-center justify-center">
+                                <FileText className="h-6 w-6 text-gray-500" />
+                              </div>
+                              <div className="flex-1 pt-2">
+                                <div className="font-medium text-sm text-gray-600">Oznámenie uložené</div>
+                                <div className="text-xs text-gray-400 italic">Čaká sa na uloženie...</div>
+                              </div>
+                            </div>
                           )}
 
                           {/* Matched */}
-                          {historyData.matchedAt && (
+                          {historyData.matchedAt ? (
                             <div className="flex items-start gap-4">
                               <div className="flex-shrink-0 w-12 h-12 bg-amber-500 rounded-full flex items-center justify-center shadow-lg">
                                 <CheckCircle className="h-6 w-6 text-white" />
@@ -3439,10 +3459,20 @@ const Home: FunctionComponent = () => {
                                 </div>
                               </div>
                             </div>
+                          ) : (
+                            <div className="flex items-start gap-4 opacity-50">
+                              <div className="flex-shrink-0 w-12 h-12 bg-gray-300 rounded-full flex items-center justify-center">
+                                <CheckCircle className="h-6 w-6 text-gray-500" />
+                              </div>
+                              <div className="flex-1 pt-2">
+                                <div className="font-medium text-sm text-gray-600">Spárované s pokladňou</div>
+                                <div className="text-xs text-gray-400 italic">Čaká sa na spárovanie...</div>
+                              </div>
+                            </div>
                           )}
 
                           {/* Published */}
-                          {historyData.publishedAt && (
+                          {historyData.publishedAt ? (
                             <div className="flex items-start gap-4">
                               <div className="flex-shrink-0 w-12 h-12 bg-green-500 rounded-full flex items-center justify-center shadow-lg">
                                 <Upload className="h-6 w-6 text-white" />
@@ -3458,6 +3488,16 @@ const Home: FunctionComponent = () => {
                                     calculateTimeDifference(historyData.createdAt, historyData.publishedAt),
                                   )}
                                 </div>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="flex items-start gap-4 opacity-50">
+                              <div className="flex-shrink-0 w-12 h-12 bg-gray-300 rounded-full flex items-center justify-center">
+                                <Upload className="h-6 w-6 text-gray-500" />
+                              </div>
+                              <div className="flex-1 pt-2">
+                                <div className="font-medium text-sm text-gray-600">Publikované k pokladnici</div>
+                                <div className="text-xs text-gray-400 italic">Čaká sa na publikovanie...</div>
                               </div>
                             </div>
                           )}
@@ -3476,27 +3516,40 @@ const Home: FunctionComponent = () => {
                         )}
                       </div>
 
-                      {/* Additional info */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                        <div className="bg-gray-50 p-3 rounded-lg">
-                          <div className="text-gray-500 mb-1">Banka</div>
-                          <div className="font-medium">{historyData.organizationName}</div>
+                      {/* Additional info - only show if data exists */}
+                      {(historyData.organizationName ||
+                        historyData.status ||
+                        historyData.payment ||
+                        historyData.creditorAccount) && (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                          {historyData.organizationName && (
+                            <div className="bg-gray-50 p-3 rounded-lg">
+                              <div className="text-gray-500 mb-1">Banka</div>
+                              <div className="font-medium">{historyData.organizationName}</div>
+                            </div>
+                          )}
+                          {historyData.status && (
+                            <div className="bg-gray-50 p-3 rounded-lg">
+                              <div className="text-gray-500 mb-1">Stav</div>
+                              <div className="font-medium">{historyData.status}</div>
+                            </div>
+                          )}
+                          {historyData.payment && (
+                            <div className="bg-gray-50 p-3 rounded-lg">
+                              <div className="text-gray-500 mb-1">Suma</div>
+                              <div className="font-medium">
+                                {historyData.payment.amount} {historyData.payment.currency}
+                              </div>
+                            </div>
+                          )}
+                          {historyData.creditorAccount && (
+                            <div className="bg-gray-50 p-3 rounded-lg">
+                              <div className="text-gray-500 mb-1">IBAN</div>
+                              <div className="font-medium font-mono text-xs">{historyData.creditorAccount.iban}</div>
+                            </div>
+                          )}
                         </div>
-                        <div className="bg-gray-50 p-3 rounded-lg">
-                          <div className="text-gray-500 mb-1">Stav</div>
-                          <div className="font-medium">{historyData.status}</div>
-                        </div>
-                        <div className="bg-gray-50 p-3 rounded-lg">
-                          <div className="text-gray-500 mb-1">Suma</div>
-                          <div className="font-medium">
-                            {historyData.payment.amount} {historyData.payment.currency}
-                          </div>
-                        </div>
-                        <div className="bg-gray-50 p-3 rounded-lg">
-                          <div className="text-gray-500 mb-1">IBAN</div>
-                          <div className="font-medium font-mono text-xs">{historyData.creditorAccount.iban}</div>
-                        </div>
-                      </div>
+                      )}
                     </div>
                   ) : (
                     <div className="text-center py-8 text-gray-500">
