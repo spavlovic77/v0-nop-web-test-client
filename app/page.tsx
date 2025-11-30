@@ -24,6 +24,7 @@ import {
   MoveLeft,
   X,
   Clock,
+  History,
 } from "lucide-react" // Import Copy icon, AlertTriangle icon, FileText, Github, CheckCircle, Printer, Terminal, LogOut, User, Clock, Calendar, Check, AlertCircle
 import { Euro } from "lucide-react" // Import Euro, Printer, Calendar icons
 import { QRCodeSVG } from "qrcode.react" // Import QRCodeSVG
@@ -167,6 +168,11 @@ const Home: FunctionComponent = () => {
   const [verifyingIntegrity, setVerifyingIntegrity] = useState(false)
   const [integrityVerified, setIntegrityVerified] = useState(false)
   const [integrityError, setIntegrityError] = useState(false)
+
+  const [showHistoryModal, setShowHistoryModal] = useState(false)
+  const [historyLoading, setHistoryLoading] = useState(false)
+  const [historyData, setHistoryData] = useState<any>(null)
+  const [selectedHistoryTransaction, setSelectedHistoryTransaction] = useState<string | null>(null)
 
   const [showTransactionListModal, setShowTransactionListModal] = useState(false)
   const [showTransactionDateModal, setShowTransactionDateModal] = useState(false)
@@ -1968,6 +1974,43 @@ const Home: FunctionComponent = () => {
     return false
   }
 
+  const fetchTransactionHistory = async (transactionId: string) => {
+    setHistoryLoading(true)
+    setSelectedHistoryTransaction(transactionId)
+    setShowHistoryModal(true)
+
+    try {
+      const response = await fetch(`/api/get-transaction-history/${transactionId}`)
+      if (!response.ok) {
+        throw new Error("Failed to fetch transaction history")
+      }
+      const data = await response.json()
+      setHistoryData(data)
+    } catch (error) {
+      console.error("Error fetching transaction history:", error)
+      setHistoryData(null)
+    } finally {
+      setHistoryLoading(false)
+    }
+  }
+
+  const calculateTimeDifference = (startTime: string, endTime: string) => {
+    const start = new Date(startTime).getTime()
+    const end = new Date(endTime).getTime()
+    return ((end - start) / 1000).toFixed(2)
+  }
+
+  const formatTimeDisplay = (seconds: string) => {
+    const sec = Number.parseFloat(seconds)
+    if (sec < 60) {
+      return `${seconds}s`
+    } else if (sec < 3600) {
+      return `${(sec / 60).toFixed(2)}min`
+    } else {
+      return `${(sec / 3600).toFixed(2)}h`
+    }
+  }
+
   return (
     <ErrorBoundary>
       <TooltipProvider>
@@ -3120,6 +3163,7 @@ const Home: FunctionComponent = () => {
                                 )}
                               </div>
                             </th>
+                            <th className="border p-2 text-center text-sm font-medium">História</th>
                             <th className="border p-2 text-center text-sm font-medium">Akcia</th>
                           </tr>
                         </thead>
@@ -3131,6 +3175,17 @@ const Home: FunctionComponent = () => {
                                 {truncateTransactionId(transaction.transaction_id)}
                               </td>
                               <td className="border p-2 text-sm text-right">{formatAmount(transaction.amount)}</td>
+                              <td className="border p-2 text-center">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => fetchTransactionHistory(transaction.transaction_id)}
+                                  className="p-1"
+                                  title="Zobraziť históriu transakcie"
+                                >
+                                  <History className="h-4 w-4 text-blue-500" />
+                                </Button>
+                              </td>
                               <td className="border p-2 text-center">
                                 {!transaction.dispute ? (
                                   <Button
@@ -3235,6 +3290,182 @@ const Home: FunctionComponent = () => {
                       Zavrieť
                     </Button>
                   </div>
+                </div>
+              </DialogContent>
+            </Dialog>
+
+            <Dialog open={showHistoryModal} onOpenChange={setShowHistoryModal}>
+              <DialogContent className="sm:max-w-2xl">
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2">
+                    <History className="h-5 w-5 text-blue-500" />
+                    História transakcie
+                  </DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  {historyLoading ? (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+                      <span className="ml-2">Načítavam históriu...</span>
+                    </div>
+                  ) : historyData ? (
+                    <div className="space-y-6">
+                      {/* Transaction ID display */}
+                      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200">
+                        <div className="text-xs text-gray-500 mb-1">ID transakcie</div>
+                        <div className="font-mono text-sm break-all">{historyData.transactionId}</div>
+                      </div>
+
+                      {/* Timeline */}
+                      <div className="relative">
+                        {/* Vertical line */}
+                        <div className="absolute left-[23px] top-8 bottom-8 w-0.5 bg-gradient-to-b from-blue-500 via-purple-500 to-green-500"></div>
+
+                        {/* Timeline items */}
+                        <div className="space-y-6">
+                          {/* Created */}
+                          <div className="flex items-start gap-4">
+                            <div className="flex-shrink-0 w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center shadow-lg">
+                              <QrCode className="h-6 w-6 text-white" />
+                            </div>
+                            <div className="flex-1 pt-2">
+                              <div className="font-medium text-sm">Transakcia vytvorená</div>
+                              <div className="text-xs text-gray-500">
+                                {new Date(historyData.createdAt).toLocaleString("sk-SK")}
+                              </div>
+                              <div className="text-xs text-blue-600 font-semibold mt-1">Začiatok</div>
+                            </div>
+                          </div>
+
+                          {/* Received */}
+                          {historyData.receivedAt && (
+                            <div className="flex items-start gap-4">
+                              <div className="flex-shrink-0 w-12 h-12 bg-purple-500 rounded-full flex items-center justify-center shadow-lg">
+                                <WifiOff className="h-6 w-6 text-white" />
+                              </div>
+                              <div className="flex-1 pt-2">
+                                <div className="font-medium text-sm">Oznámenie prijaté</div>
+                                <div className="text-xs text-gray-500">
+                                  {new Date(historyData.receivedAt).toLocaleString("sk-SK")}
+                                </div>
+                                <div className="inline-block mt-1 px-2 py-0.5 bg-purple-100 text-purple-700 text-xs font-semibold rounded">
+                                  +
+                                  {formatTimeDisplay(
+                                    calculateTimeDifference(historyData.createdAt, historyData.receivedAt),
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Indexed */}
+                          {historyData.indexedAt && (
+                            <div className="flex items-start gap-4">
+                              <div className="flex-shrink-0 w-12 h-12 bg-indigo-500 rounded-full flex items-center justify-center shadow-lg">
+                                <FileText className="h-6 w-6 text-white" />
+                              </div>
+                              <div className="flex-1 pt-2">
+                                <div className="font-medium text-sm">Oznámenie uložené</div>
+                                <div className="text-xs text-gray-500">
+                                  {new Date(historyData.indexedAt).toLocaleString("sk-SK")}
+                                </div>
+                                <div className="inline-block mt-1 px-2 py-0.5 bg-indigo-100 text-indigo-700 text-xs font-semibold rounded">
+                                  +
+                                  {formatTimeDisplay(
+                                    calculateTimeDifference(historyData.createdAt, historyData.indexedAt),
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Matched */}
+                          {historyData.matchedAt && (
+                            <div className="flex items-start gap-4">
+                              <div className="flex-shrink-0 w-12 h-12 bg-amber-500 rounded-full flex items-center justify-center shadow-lg">
+                                <CheckCircle className="h-6 w-6 text-white" />
+                              </div>
+                              <div className="flex-1 pt-2">
+                                <div className="font-medium text-sm">Spárované s pokladňou</div>
+                                <div className="text-xs text-gray-500">
+                                  {new Date(historyData.matchedAt).toLocaleString("sk-SK")}
+                                </div>
+                                <div className="inline-block mt-1 px-2 py-0.5 bg-amber-100 text-amber-700 text-xs font-semibold rounded">
+                                  +
+                                  {formatTimeDisplay(
+                                    calculateTimeDifference(historyData.createdAt, historyData.matchedAt),
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Published */}
+                          {historyData.publishedAt && (
+                            <div className="flex items-start gap-4">
+                              <div className="flex-shrink-0 w-12 h-12 bg-green-500 rounded-full flex items-center justify-center shadow-lg">
+                                <Upload className="h-6 w-6 text-white" />
+                              </div>
+                              <div className="flex-1 pt-2">
+                                <div className="font-medium text-sm">Publikované k pokladnici</div>
+                                <div className="text-xs text-gray-500">
+                                  {new Date(historyData.publishedAt).toLocaleString("sk-SK")}
+                                </div>
+                                <div className="inline-block mt-1 px-2 py-0.5 bg-green-100 text-green-700 text-xs font-semibold rounded">
+                                  +
+                                  {formatTimeDisplay(
+                                    calculateTimeDifference(historyData.createdAt, historyData.publishedAt),
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Summary card */}
+                      <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-4 rounded-lg border border-green-200">
+                        <div className="text-sm font-medium text-gray-700 mb-2">Celkový čas spracovania</div>
+                        {historyData.publishedAt ? (
+                          <div className="text-2xl font-bold text-green-600">
+                            {formatTimeDisplay(calculateTimeDifference(historyData.createdAt, historyData.publishedAt))}
+                          </div>
+                        ) : (
+                          <div className="text-sm text-gray-500">Spracovanie prebieha...</div>
+                        )}
+                      </div>
+
+                      {/* Additional info */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                        <div className="bg-gray-50 p-3 rounded-lg">
+                          <div className="text-gray-500 mb-1">Banka</div>
+                          <div className="font-medium">{historyData.organizationName}</div>
+                        </div>
+                        <div className="bg-gray-50 p-3 rounded-lg">
+                          <div className="text-gray-500 mb-1">Status</div>
+                          <div className="font-medium">{historyData.status}</div>
+                        </div>
+                        <div className="bg-gray-50 p-3 rounded-lg">
+                          <div className="text-gray-500 mb-1">Suma</div>
+                          <div className="font-medium">
+                            {historyData.payment.amount} {historyData.payment.currency}
+                          </div>
+                        </div>
+                        <div className="bg-gray-50 p-3 rounded-lg">
+                          <div className="text-gray-500 mb-1">IBAN</div>
+                          <div className="font-medium font-mono text-xs">{historyData.creditorAccount.iban}</div>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-gray-500">
+                      <Info className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                      <p>Nepodarilo sa načítať históriu transakcie</p>
+                    </div>
+                  )}
+                  <Button onClick={() => setShowHistoryModal(false)} className="w-full">
+                    Zavrieť
+                  </Button>
                 </div>
               </DialogContent>
             </Dialog>
