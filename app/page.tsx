@@ -25,6 +25,7 @@ import {
   X,
   Clock,
   History,
+  AlertCircle,
 } from "lucide-react" // Import Copy icon, AlertTriangle icon, FileText, Github, CheckCircle, Printer, Terminal, LogOut, User, Clock, Calendar, Check, AlertCircle
 import { Euro } from "lucide-react" // Import Euro, Printer, Calendar icons
 import { QRCodeSVG } from "qrcode.react" // Import QRCodeSVG
@@ -1983,7 +1984,6 @@ const Home: FunctionComponent = () => {
       console.log("[v0] Fetching transaction history for:", transactionId)
       console.log("[v0] Production mode:", isProductionMode)
 
-      // Use the same CA bundle logic as generate-transaction
       const caBundleContent = isProductionMode ? EMBEDDED_CA_BUNDLE_PROD : EMBEDDED_CA_BUNDLE
       const caBundleBlob = new Blob([caBundleContent], { type: "application/x-pem-file" })
       const caBundleFile = new File([caBundleBlob], "ca-bundle.pem", { type: "application/x-pem-file" })
@@ -2006,8 +2006,21 @@ const Home: FunctionComponent = () => {
       const result = await response.json()
       console.log("[v0] Transaction history received:", result)
 
-      // Extract data from the response structure
-      setHistoryData(result.data || result)
+      const historyResponseData = result.data || result
+
+      // Check if we have valid data
+      if (!historyResponseData || typeof historyResponseData !== "object") {
+        throw new Error("Invalid response format from API")
+      }
+
+      // Validate required field
+      if (!historyResponseData.transactionId && !historyResponseData.createdAt) {
+        console.error("[v0] Invalid history data structure:", historyResponseData)
+        throw new Error("Missing required transaction data")
+      }
+
+      setHistoryData(historyResponseData)
+      console.log("[v0] History data set successfully:", historyResponseData)
     } catch (error) {
       console.error("[v0] Error fetching transaction history:", error)
       setHistoryData(null)
@@ -2016,6 +2029,7 @@ const Home: FunctionComponent = () => {
         description: error instanceof Error ? error.message : "Nepodarilo sa načítať históriu transakcie",
         variant: "destructive",
       })
+      setShowHistoryModal(false)
     } finally {
       setHistoryLoading(false)
     }
@@ -3322,7 +3336,7 @@ const Home: FunctionComponent = () => {
             </Dialog>
 
             <Dialog open={showHistoryModal} onOpenChange={setShowHistoryModal}>
-              <DialogContent className="sm:max-w-2xl">
+              <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle className="flex items-center gap-2">
                     <History className="h-5 w-5 text-blue-500" />
@@ -3335,7 +3349,7 @@ const Home: FunctionComponent = () => {
                       <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
                       <span className="ml-2">Načítavam históriu...</span>
                     </div>
-                  ) : historyData ? (
+                  ) : historyData && historyData.createdAt ? (
                     <div className="space-y-6">
                       {/* Transaction ID display */}
                       <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200">
@@ -3469,7 +3483,7 @@ const Home: FunctionComponent = () => {
                           <div className="font-medium">{historyData.organizationName}</div>
                         </div>
                         <div className="bg-gray-50 p-3 rounded-lg">
-                          <div className="text-gray-500 mb-1">Status</div>
+                          <div className="text-gray-500 mb-1">Stav</div>
                           <div className="font-medium">{historyData.status}</div>
                         </div>
                         <div className="bg-gray-50 p-3 rounded-lg">
@@ -3486,13 +3500,10 @@ const Home: FunctionComponent = () => {
                     </div>
                   ) : (
                     <div className="text-center py-8 text-gray-500">
-                      <Info className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                      <AlertCircle className="h-12 w-12 mx-auto mb-2 text-gray-400" />
                       <p>Nepodarilo sa načítať históriu transakcie</p>
                     </div>
                   )}
-                  <Button onClick={() => setShowHistoryModal(false)} className="w-full">
-                    Zavrieť
-                  </Button>
                 </div>
               </DialogContent>
             </Dialog>
