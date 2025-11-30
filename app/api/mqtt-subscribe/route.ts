@@ -3,35 +3,6 @@ import { createClient } from "@supabase/supabase-js"
 import mqtt from "mqtt"
 import { rateLimit, getClientIp } from "@/lib/rate-limit"
 
-// This allows other endpoints to directly close specific MQTT connections
-type ActiveSubscription = {
-  client: mqtt.MqttClient
-  topic: string
-  startTime: string
-  transactionId: string
-}
-
-// Global map: transactionId -> subscription details
-const activeMqttSubscriptions = new Map<string, ActiveSubscription>()
-
-// Cleanup function to remove stale subscriptions (older than 125 seconds)
-setInterval(() => {
-  const now = Date.now()
-  for (const [transactionId, subscription] of activeMqttSubscriptions.entries()) {
-    const age = now - new Date(subscription.startTime).getTime()
-    if (age > 125000) {
-      // 125 seconds (5 seconds buffer after 120s timeout)
-      console.log(`[v0] 🧹 Cleaning up stale subscription: ${transactionId}`)
-      try {
-        subscription.client.end(true)
-      } catch (err) {
-        console.error(`[v0] Error cleaning up stale subscription: ${err}`)
-      }
-      activeMqttSubscriptions.delete(transactionId)
-    }
-  }
-}, 30000) // Run cleanup every 30 seconds
-
 function getClientIP(request: NextRequest): string {
   const forwarded = request.headers.get("x-forwarded-for")
   const realIP = request.headers.get("x-real-ip")
@@ -56,7 +27,7 @@ async function getCertificateBuffer(data: File | string): Promise<Buffer> {
 async function saveMqttNotificationToDatabase(
   topic: string,
   messageStr: string,
-  endpoint: "PRODUCTION" | "TEST",
+  endpoint: 'PRODUCTION' | 'TEST'
 ): Promise<{
   success: boolean
   error?: any
@@ -167,7 +138,7 @@ async function saveMqttSubscriptionToDatabase(
   topic: string,
   qos: number,
   grantedAt: string,
-  endpoint: "PRODUCTION" | "TEST",
+  endpoint: 'PRODUCTION' | 'TEST'
 ): Promise<{
   success: boolean
   error?: any
@@ -283,7 +254,7 @@ export async function POST(request: NextRequest) {
     console.log("[v0] Production mode:", isProductionMode)
     console.log("[v0] isProductionMode raw value:", formData.get("isProductionMode"))
 
-    const endpoint: "PRODUCTION" | "TEST" = isProductionMode ? "PRODUCTION" : "TEST"
+    const endpoint: 'PRODUCTION' | 'TEST' = isProductionMode ? 'PRODUCTION' : 'TEST'
 
     if (!clientCert || !clientKey || !caCert) {
       console.log("[v0] Missing certificate files")
@@ -370,8 +341,6 @@ export async function POST(request: NextRequest) {
         if (client) {
           client.end(true)
         }
-        activeMqttSubscriptions.delete(transactionId)
-        console.log(`[v0] 🗑️ Removed subscription from active map: ${transactionId}`)
       }
 
       const resolveOnce = (response: Response) => {
@@ -439,15 +408,7 @@ export async function POST(request: NextRequest) {
             console.log("[v0] ✅ Subscribed to topic:", granted)
             communicationLog.push(`[${subTime}] ✅ Subscribed to topic with QoS ${granted[0].qos}`)
 
-            activeMqttSubscriptions.set(transactionId, {
-              client,
-              topic: mqttTopic,
-              startTime: subTime,
-              transactionId,
-            })
-            console.log(`[v0] 📝 Stored active subscription: ${transactionId}`)
-            console.log(`[v0] 📊 Active subscriptions count: ${activeMqttSubscriptions.size}`)
-
+            // Save subscription to database
             saveMqttSubscriptionToDatabase(mqttTopic, granted[0].qos, subTime, endpoint)
               .then((dbResult) => {
                 if (dbResult.success) {
@@ -559,13 +520,4 @@ export async function POST(request: NextRequest) {
       },
     )
   }
-}
-
-export function getActiveSubscriptions() {
-  return Array.from(activeMqttSubscriptions.entries()).map(([id, sub]) => ({
-    transactionId: id,
-    topic: sub.topic,
-    startTime: sub.startTime,
-    age: Date.now() - new Date(sub.startTime).getTime(),
-  }))
 }
