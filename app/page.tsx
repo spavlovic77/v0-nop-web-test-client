@@ -294,8 +294,6 @@ const Home: FunctionComponent = () => {
     const dueDate = `${year}${month}${day}`
 
     const cleanIban = userIban.replace(/\s/g, "")
-    // Encode creditor name: replace spaces with + for readability per spec
-    const encodedCreditorName = merchantAccountName.replace(/ /g, "+")
 
     let paymentLink: string
 
@@ -308,7 +306,7 @@ const Home: FunctionComponent = () => {
         AM: amount,
         CC: "EUR",
         PI: transactionId,
-        CN: encodedCreditorName,
+        CN: merchantAccountName,
       })
       paymentLink = `https://payme.sk/2/m/PME?${params.toString()}`
     } else {
@@ -2657,20 +2655,6 @@ const Home: FunctionComponent = () => {
                     </div>
 
                     {/* Payment Link Version Selector */}
-                    <div className="flex items-center justify-between bg-gray-50/80 backdrop-blur-sm rounded-2xl p-3 border border-gray-200">
-                      <label htmlFor="paymentLinkVersion" className="text-sm font-medium text-gray-700">
-                        Verzia platobného linku:
-                      </label>
-                      <select
-                        id="paymentLinkVersion"
-                        value={paymentLinkVersion}
-                        onChange={(e) => setPaymentLinkVersion(e.target.value as "1.3" | "2.0")}
-                        className="bg-white/80 backdrop-blur-sm rounded-lg border border-gray-300 p-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                      >
-                        <option value="1.3">1.3</option>
-                        <option value="2.0">2.0</option>
-                      </select>
-                    </div>
 
                     <div className="bg-gray-50 border-2 border-gray-200 rounded-lg p-4 shadow-inner">
                       <div className="grid grid-cols-3 gap-3 mb-3">
