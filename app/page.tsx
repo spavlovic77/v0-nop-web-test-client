@@ -1004,25 +1004,19 @@ const Home: FunctionComponent = () => {
       if (data.hasMessages && data.messages && data.messages.length > 0) {
         console.log("[v0] Payment notification received via MQTT! Messages:", data.messages)
 
-        let notificationAmount = eurAmount // Fallback to entered amount
+        const notificationAmount = eurAmount // Fallback to entered amount
+        let notificationHash: string | null = null // Declare notificationHash
+        let integrityValidationStatus: boolean | null = null // Declare integrityValidationStatus
 
         // Try to parse the notification message to extract the actual amount
         for (const message of data.messages) {
           try {
-            const parsedMessage = JSON.parse(message)
-            if (parsedMessage.transactionAmount && parsedMessage.transactionAmount.amount) {
-              // Convert the amount to the same format as eurAmount (digits only)
-              const amountValue = Number.parseFloat(parsedMessage.transactionAmount.amount)
-              const amountInCents = Math.round(amountValue * 100)
-              notificationAmount = amountInCents.toString()
-              console.log(
-                "[v0] Extracted amount from notification:",
-                amountValue,
-                "EUR (",
-                notificationAmount,
-                "cents)",
-              )
-              break
+            const parsedMessage = JSON.parse(message) // Fixed typo: JSON.Parse -> JSON.parse
+            if (parsedMessage.dataIntegrityHash) {
+              notificationHash = parsedMessage.dataIntegrityHash
+            }
+            if (parsedMessage.hasOwnProperty("integrity_validation")) {
+              integrityValidationStatus = parsedMessage.integrity_validation
             }
           } catch (error) {
             console.log("[v0] Could not parse message as JSON:", message)
@@ -1044,7 +1038,7 @@ const Home: FunctionComponent = () => {
 
             for (const message of data.messages) {
               try {
-                const parsedMessage = JSON.Parse(message)
+                const parsedMessage = JSON.parse(message) // Fixed typo: JSON.Parse -> JSON.parse
                 if (parsedMessage.dataIntegrityHash) {
                   notificationHash = parsedMessage.dataIntegrityHash
                 }
