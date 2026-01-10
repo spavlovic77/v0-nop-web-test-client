@@ -139,6 +139,8 @@ const Home: FunctionComponent = () => {
   })
   const [userIban, setUserIban] = useState<string>("")
   const [merchantAccountName, setMerchantAccountName] = useState<string>("")
+  const [paymentLinkVersion, setPaymentLinkVersion] = useState<"1.3" | "2.0">("2.0")
+
   const [loading, setLoading] = useState(false)
   const [mqttLoading, setMqttLoading] = useState(false)
   const [bankLoading, setBankLoading] = useState(false)
@@ -283,7 +285,7 @@ const Home: FunctionComponent = () => {
     })
   }
 
-  const generatePaymentLink = (amount: string, transactionId: string) => {
+  const generatePaymentLink = (amount: string, transactionId: string, version: "1.3" | "2.0" = paymentLinkVersion) => {
     // Format: YYYYMMDD (ISO 8601)
     const today = new Date()
     const year = today.getFullYear()
@@ -291,22 +293,45 @@ const Home: FunctionComponent = () => {
     const day = String(today.getDate()).padStart(2, "0")
     const dueDate = `${year}${month}${day}`
 
-    const params = new URLSearchParams({
-      V: "1", // Version
-      IBAN: userIban.replace(/\s/g, ""), // Remove spaces from IBAN for payment link
-      AM: amount, // Amount from user
-      CC: "EUR", // Currency
-      DT: dueDate, // Due date in YYYYMMDD format
-      PI: transactionId, // Payment identification (EndToEnd as Transaction ID)
-      CN: merchantAccountName, // Creditor name
-    })
+    const cleanIban = userIban.replace(/\s/g, "")
+    // Encode creditor name: replace spaces with + for readability per spec
+    const encodedCreditorName = merchantAccountName.replace(/ /g, "+")
 
-    const paymentLink = `https://payme.sk/?${params.toString()}`
+    let paymentLink: string
+
+    if (version === "2.0") {
+      // Payment Link Standard 2.0 format
+      // Path: /2/m/PME (version 2, type mobile POI, scheme ID PME)
+      // For /m/ type: IBAN, AM, CC, PI, CN are mandatory; DT is omitted
+      const params = new URLSearchParams({
+        IBAN: cleanIban,
+        AM: amount,
+        CC: "EUR",
+        PI: transactionId,
+        CN: encodedCreditorName,
+      })
+      paymentLink = `https://payme.sk/2/m/PME?${params.toString()}`
+    } else {
+      // Payment Link Standard 1.3 format (legacy)
+      const params = new URLSearchParams({
+        V: "1",
+        IBAN: cleanIban,
+        AM: amount,
+        CC: "EUR",
+        DT: dueDate,
+        PI: transactionId,
+        CN: merchantAccountName,
+      })
+      paymentLink = `https://payme.sk/?${params.toString()}`
+    }
+
     console.log("[v0] ===== PAYMENT LINK GENERATION =====")
+    console.log("[v0] Version:", version)
     console.log("[v0] Transaction ID:", transactionId)
     console.log("[v0] Amount:", amount)
-    console.log("[v0] IBAN:", userIban.replace(/\s/g, ""))
-    console.log("[v0] Due Date:", dueDate)
+    console.log("[v0] IBAN:", cleanIban)
+    if (version === "1.3") console.log("[v0] Due Date:", dueDate)
+    console.log("[v0] Creditor Name:", merchantAccountName)
     console.log("[v0] Full Payment Link:", paymentLink)
     console.log("[v0] ===================================")
 
@@ -438,8 +463,8 @@ const Home: FunctionComponent = () => {
   useEffect(() => {
     return () => {
       // Run custom cleanup functions
-      cleanupRef.current.forEach((cleanup) => cleanup())
-      cleanupRef.current.length = 0
+      cleanupRef.forEach((cleanup) => cleanup())
+      cleanupRef.length = 0
     }
   }, [])
 
@@ -1021,7 +1046,7 @@ const Home: FunctionComponent = () => {
 
             for (const message of data.messages) {
               try {
-                const parsedMessage = JSON.parse(message)
+                const parsedMessage = JSON.Parse(message)
                 if (parsedMessage.dataIntegrityHash) {
                   notificationHash = parsedMessage.dataIntegrityHash
                 }
@@ -1758,6 +1783,7 @@ const Home: FunctionComponent = () => {
     setSubscriptionActive(false)
     setMqttTimerActive(false)
     setMqttTimeRemaining(120)
+    setPaymentLinkVersion("2.0") // Reset to default version
   }
 
   // Define handleNotificationDateSelect here
@@ -2630,6 +2656,22 @@ const Home: FunctionComponent = () => {
                       </div>
                     </div>
 
+                    {/* Payment Link Version Selector */}
+                    <div className="flex items-center justify-between bg-gray-50/80 backdrop-blur-sm rounded-2xl p-3 border border-gray-200">
+                      <label htmlFor="paymentLinkVersion" className="text-sm font-medium text-gray-700">
+                        Verzia platobného linku:
+                      </label>
+                      <select
+                        id="paymentLinkVersion"
+                        value={paymentLinkVersion}
+                        onChange={(e) => setPaymentLinkVersion(e.target.value as "1.3" | "2.0")}
+                        className="bg-white/80 backdrop-blur-sm rounded-lg border border-gray-300 p-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                      >
+                        <option value="1.3">1.3</option>
+                        <option value="2.0">2.0</option>
+                      </select>
+                    </div>
+
                     <div className="bg-gray-50 border-2 border-gray-200 rounded-lg p-4 shadow-inner">
                       <div className="grid grid-cols-3 gap-3 mb-3">
                         {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
@@ -2726,12 +2768,61 @@ const Home: FunctionComponent = () => {
                     </div>
                   ) : qrCode ? (
                     <div className="space-y-6 flex flex-col items-center w-full">
+                      <div className="flex items-center gap-2 bg-gray-100 p-1 rounded-xl">
+                        <button
+                          onClick={async () => {
+                            if (paymentLinkVersion !== "1.3" && qrTransactionId) {
+                              setPaymentLinkVersion("1.3")
+                              const newLink = generatePaymentLink(
+                                (Number.parseFloat(eurAmount) / 100).toFixed(2),
+                                qrTransactionId,
+                                "1.3",
+                              )
+                              const newQrCode = await generateQrCodeSecure(newLink)
+                              setQrCode(newQrCode)
+                            }
+                          }}
+                          className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                            paymentLinkVersion === "1.3"
+                              ? "bg-white text-blue-600 shadow-md"
+                              : "text-gray-600 hover:text-gray-900"
+                          }`}
+                        >
+                          v1.3
+                        </button>
+                        <button
+                          onClick={async () => {
+                            if (paymentLinkVersion !== "2.0" && qrTransactionId) {
+                              setPaymentLinkVersion("2.0")
+                              const newLink = generatePaymentLink(
+                                (Number.parseFloat(eurAmount) / 100).toFixed(2),
+                                qrTransactionId,
+                                "2.0",
+                              )
+                              const newQrCode = await generateQrCodeSecure(newLink)
+                              setQrCode(newQrCode)
+                            }
+                          }}
+                          className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                            paymentLinkVersion === "2.0"
+                              ? "bg-white text-blue-600 shadow-md"
+                              : "text-gray-600 hover:text-gray-900"
+                          }`}
+                        >
+                          v2.0
+                        </button>
+                      </div>
+
                       {/* QR Code with enhanced styling */}
                       <div className="relative">
                         <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-2xl blur-xl opacity-20"></div>
                         <div className="relative bg-white p-6 rounded-2xl shadow-xl border-2 border-gray-100">
                           <img src={qrCode || "/placeholder.svg"} alt="Payment QR Code" className="w-64 h-64" />
                         </div>
+                      </div>
+
+                      <div className="text-xs text-gray-500 font-medium">
+                        Payment Link Standard {paymentLinkVersion}
                       </div>
 
                       <div className="w-full max-w-sm space-y-4 px-4">
@@ -3278,7 +3369,7 @@ const Home: FunctionComponent = () => {
                   )}
                 </div>
 
-                <div className="flex justify-between mt-4">
+                <div className="flex justify-between gap-2 mt-4">
                   <Button
                     onClick={printDisputedTransactions}
                     variant="outline"
