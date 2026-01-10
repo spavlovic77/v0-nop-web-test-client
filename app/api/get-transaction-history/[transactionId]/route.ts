@@ -150,6 +150,23 @@ export async function POST(request: NextRequest, { params }: { params: { transac
 
       if (body) {
         responseData = JSON.parse(body)
+        if (statusCode >= 400) {
+          console.log(
+            `[v0] ❌ API returned error - Status: ${statusCode}, Title: ${responseData.title}, Detail: ${responseData.detail}`,
+          )
+
+          // Return error with proper status code
+          return NextResponse.json(
+            {
+              success: false,
+              error: responseData.title || "API Error",
+              detail: responseData.detail || "An error occurred",
+              statusCode: statusCode,
+              timestamp: new Date().toISOString(),
+            },
+            { status: statusCode },
+          )
+        }
         console.log(`[v0] ✅ Transaction history retrieved - Status: ${responseData.status}`)
       } else {
         responseData = { error: "Empty response body" }
