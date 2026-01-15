@@ -216,7 +216,7 @@ const Home: FunctionComponent = () => {
   const [showProductionConfirmModal, setShowProductionConfirmModal] = useState(false)
 
   const [productionCheck1, setProductionCheck1] = useState(false)
-  const [productionCheck2, setProductionCheck2] = useState(false) // FIX: Declare productionCheck2
+  const [productionCheck2, setProductionCheck2] = useState(false)
 
   const [showRateLimitModal, setShowRateLimitModal] = useState(false)
   const [rateLimitRetryAfter, setRateLimitRetryAfter] = useState(0)
@@ -253,7 +253,7 @@ const Home: FunctionComponent = () => {
     localStorage.setItem("productionMode", "true")
     setShowProductionConfirmModal(false)
     setProductionCheck1(false)
-    setProductionCheck2(false) // FIX: Reset productionCheck2
+    setProductionCheck2(false)
     toast({
       title: "Prepnuté na produkčné prostredie",
       description: "Používate produkčné URL adresy pripojené k bankám",
@@ -264,7 +264,7 @@ const Home: FunctionComponent = () => {
   const cancelProductionSwitch = () => {
     setShowProductionConfirmModal(false)
     setProductionCheck1(false)
-    setProductionCheck2(false) // FIX: Reset productionCheck2
+    setProductionCheck2(false)
   }
 
   const logApiCall = (log: ApiCallLog) => {
@@ -2207,11 +2207,11 @@ const Home: FunctionComponent = () => {
                                     <span className="text-xs text-gray-600 font-medium">Tatra banka:</span>
                                     <button
                                       type="button"
-                                      onClick={() => copyEmailToClipboard("tbservis@tatrabank.sk", "Tatra banka")}
+                                      onClick={() => copyEmailToClipboard("tbservis@tatrabanka.sk", "Tatra banka")}
                                       className="inline-flex items-center gap-1.5 text-blue-600 hover:text-blue-700 font-mono text-xs bg-blue-50 px-2 py-1 rounded hover:bg-blue-100 transition-all group/email"
                                       title="Kliknite pre skopírovanie"
                                     >
-                                      <span className="break-all">tbservis@tatrabank.sk</span>
+                                      <span className="break-all">tbservis@tatrabanka.sk</span>
                                       <svg
                                         className="w-3.5 h-3.5 flex-shrink-0 group-hover/email:scale-110 transition-transform"
                                         fill="none"
@@ -2262,12 +2262,42 @@ const Home: FunctionComponent = () => {
                                 <input
                                   type="checkbox"
                                   id="prod-check-2"
-                                  checked={productionCheck2} // FIX: Use productionCheck2
-                                  onChange={(e) => setProductionCheck2(e.target.checked)} // FIX: Use setProductionCheck2
+                                  checked={productionCheck2}
+                                  onChange={(e) => setProductionCheck2(e.target.checked)}
                                   className="w-5 h-5 rounded border-2 border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all cursor-pointer"
                                 />
                               </div>
-                              
+                              <div className="flex-1 space-y-2">
+                                <label
+                                  htmlFor="prod-check-2"
+                                  className="text-sm font-medium text-gray-700 cursor-pointer group-hover:text-gray-900 transition-colors leading-relaxed block"
+                                >
+                                  Máme podpísanú dohoda o spolupráci s FS SR
+                                </label>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    copyEmailToClipboard("kverkom.kasoveIS@financnasprava.sk", "Finančná správa SR")
+                                  }
+                                  className="inline-flex items-center gap-1.5 text-blue-600 hover:text-blue-700 font-mono text-xs bg-blue-50 px-2 py-1 rounded hover:bg-blue-100 transition-all group/email w-full sm:w-auto justify-center sm:justify-start"
+                                  title="Kliknite pre skopírovanie"
+                                >
+                                  <span className="break-all">kverkom.kasoveIS@financnasprava.sk</span>
+                                  <svg
+                                    className="w-3.5 h-3.5 flex-shrink-0 group-hover/email:scale-110 transition-transform"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2}
+                                      d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                                    />
+                                  </svg>
+                                </button>
+                              </div>
                             </div>
                           </div>
 
@@ -2281,10 +2311,10 @@ const Home: FunctionComponent = () => {
                             </Button>
                             <Button
                               onClick={confirmProductionSwitch}
-                              disabled={!productionCheck1 || !productionCheck2} // FIX: disabled condition
+                              disabled={!productionCheck1 || !productionCheck2}
                               className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl w-full sm:w-auto"
                             >
-                              {productionCheck1 ? ( // FIX: condition for checkmark
+                              {productionCheck1 && productionCheck2 ? (
                                 <span className="flex items-center gap-2 justify-center">
                                   <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                                     <path
