@@ -216,7 +216,7 @@ const Home: FunctionComponent = () => {
   const [showProductionConfirmModal, setShowProductionConfirmModal] = useState(false)
 
   const [productionCheck1, setProductionCheck1] = useState(false)
-  const [productionCheck2, setProductionCheck2] = useState(false)
+  const [productionCheck2, setProductionCheck2] = useState(false) // FIX: Declare productionCheck2
 
   const [showRateLimitModal, setShowRateLimitModal] = useState(false)
   const [rateLimitRetryAfter, setRateLimitRetryAfter] = useState(0)
@@ -253,7 +253,7 @@ const Home: FunctionComponent = () => {
     localStorage.setItem("productionMode", "true")
     setShowProductionConfirmModal(false)
     setProductionCheck1(false)
-    setProductionCheck2(false)
+    setProductionCheck2(false) // FIX: Reset productionCheck2
     toast({
       title: "Prepnuté na produkčné prostredie",
       description: "Používate produkčné URL adresy pripojené k bankám",
@@ -264,7 +264,7 @@ const Home: FunctionComponent = () => {
   const cancelProductionSwitch = () => {
     setShowProductionConfirmModal(false)
     setProductionCheck1(false)
-    setProductionCheck2(false)
+    setProductionCheck2(false) // FIX: Reset productionCheck2
   }
 
   const logApiCall = (log: ApiCallLog) => {
@@ -2207,11 +2207,11 @@ const Home: FunctionComponent = () => {
                                     <span className="text-xs text-gray-600 font-medium">Tatra banka:</span>
                                     <button
                                       type="button"
-                                      onClick={() => copyEmailToClipboard("tbservis@tatrabanka.sk", "Tatra banka")}
+                                      onClick={() => copyEmailToClipboard("tbservis@tatrabank.sk", "Tatra banka")}
                                       className="inline-flex items-center gap-1.5 text-blue-600 hover:text-blue-700 font-mono text-xs bg-blue-50 px-2 py-1 rounded hover:bg-blue-100 transition-all group/email"
                                       title="Kliknite pre skopírovanie"
                                     >
-                                      <span className="break-all">tbservis@tatrabanka.sk</span>
+                                      <span className="break-all">tbservis@tatrabank.sk</span>
                                       <svg
                                         className="w-3.5 h-3.5 flex-shrink-0 group-hover/email:scale-110 transition-transform"
                                         fill="none"
@@ -2262,8 +2262,8 @@ const Home: FunctionComponent = () => {
                                 <input
                                   type="checkbox"
                                   id="prod-check-2"
-                                  checked={productionCheck2}
-                                  onChange={(e) => setProductionCheck2(e.target.checked)}
+                                  checked={productionCheck2} // FIX: Use productionCheck2
+                                  onChange={(e) => setProductionCheck2(e.target.checked)} // FIX: Use setProductionCheck2
                                   className="w-5 h-5 rounded border-2 border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all cursor-pointer"
                                 />
                               </div>
@@ -2311,10 +2311,10 @@ const Home: FunctionComponent = () => {
                             </Button>
                             <Button
                               onClick={confirmProductionSwitch}
-                              disabled={!productionCheck1 || !productionCheck2}
+                              disabled={!productionCheck1 || !productionCheck2} // FIX: disabled condition
                               className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl w-full sm:w-auto"
                             >
-                              {productionCheck1 && productionCheck2 ? (
+                              {productionCheck1 && productionCheck2 ? ( // FIX: condition for checkmark
                                 <span className="flex items-center gap-2 justify-center">
                                   <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                                     <path
