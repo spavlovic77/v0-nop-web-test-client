@@ -2816,8 +2816,8 @@ const Home: FunctionComponent = () => {
                       </span>
                       <div className="bg-white p-2 rounded-xl border-2 border-amber-200 shadow-md flex-shrink-0">
                         <img
-                          src={`https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${encodeURIComponent("https://scantopay.vercel.app")}`}
-                          alt="Scan to open scantopay.vercel.app"
+                          src={`https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${encodeURIComponent("https://kverkom.vercel.app")}`}
+                          alt="Scan to open kverkom.vercel.app"
                           className={`w-20 h-20 object-contain transition-all duration-300 ${
                             scanToggleActive ? "blur-none" : "blur-sm"
                           }`}

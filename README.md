@@ -565,7 +565,7 @@ https://scantopay.sk/?iban=SK3112000000198742637541
 **Available only in TEST environment** - hidden in PRODUCTION.
 
 1. After generating QR code, click **"Simulátor úhrady"**
-2. Reveals QR code link: `https://scantopay.vercel.app/...`
+2. Reveals QR code link: `https://kverkom.vercel.app/...`
 3. Open link on mobile device
 4. Simulates payment without real banking app
 5. Sends test MQTT notification
@@ -1042,7 +1042,7 @@ vercel --prod
 vercel
 \`\`\`
 
-**Deployment URL:** `https://your-project.vercel.app`
+**Deployment URL:** `https://kverkom.vercel.app`
 
 ---
 
